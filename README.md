@@ -1,0 +1,42 @@
+# REM Negocio
+
+Clientes, presupuestos, facturas, cobros, gastos y tareas para pymes y autónomos. Una web app que corre **en tu propio equipo**: sin cuentas, sin nube, sin dependencias (solo Node ≥ 22.13).
+
+Nace de la filosofía de [REM](https://github.com/aulafy/REM): local primero, revisión humana y **aprobar no es enviar**. REM Negocio redacta mensajes (recordatorios de pago, seguimiento de presupuestos) pero nunca envía nada por ti.
+
+## Arrancar
+
+```sh
+npm start            # http://127.0.0.1:4400
+REM_DATA_DIR=/ruta REM_PORT=4500 npm start   # datos y puerto propios
+```
+
+Los datos van por defecto a `~/Library/Application Support/REM Negocio` (SQLite) con una copia automática diaria (se conservan las últimas 20).
+Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (todo ficticio).
+
+## Qué incluye
+
+| Área | Qué resuelve |
+|---|---|
+| **Hoy** | Qué cobrar, qué está vencido, presupuestos aceptados sin facturar o sin respuesta, tareas y evolución mensual |
+| **Clientes** | Ficha con NIF validado, historial, deuda, tareas y notas |
+| **Presupuestos** | Numeración automática, estados (borrador → enviado → aceptado/rechazado), caducidad y **conversión a factura** |
+| **Facturas** | Borrador → emitida (número correlativo F2026-0001, ya no se edita) → cobros parciales/totales → vencida; **rectificativas** en vez de borrar; IVA múltiple, descuentos, IRPF; hoja imprimible/PDF |
+| **Cobros** | Registro por factura con control de importe pendiente; reclamación con borrador de mensaje (correo/WhatsApp/copiar) |
+| **Gastos** | Con IVA soportado y categorías |
+| **Informes** | Ingresos, gastos, resultado, resumen de IVA tipo 303 por trimestre, mejores clientes, export CSV para el asesor |
+| **Ajustes** | Datos fiscales y logo, valores por defecto, catálogo, copias, exportación JSON, IA local opcional (Ollama) |
+| **General** | Buscador ⌘K, tema claro/oscuro, móvil con barra inferior, accesible por teclado |
+
+## Límites que conviene saber
+
+- Es una herramienta de gestión, **no un software de facturación certificado**: no incluye Verifactu/SII ni firma electrónica. Revisa con tu asesor las obligaciones que te apliquen.
+- Los informes de IVA son orientativos.
+- El servidor solo escucha en `127.0.0.1`, exige la cabecera `X-REM` en las escrituras y rechaza otros `Host`.
+- La IA local es opcional; solo admite direcciones locales y únicamente reformula el texto del borrador.
+
+## Pruebas
+
+```sh
+npm test
+```
