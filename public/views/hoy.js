@@ -1,4 +1,6 @@
 import { store, on, go, openModal } from '../core.js';
+import { esc, api } from '../util.js';
+import { ago, pending } from './mensajes.js';
 import { html, raw, eur, fdate, fdateShort, relDate, icon, badge, avatar, clientOf, paidOf, statusOf, docLabel } from '../util.js';
 import { today, addDays } from '../calc.js';
 import { messageModal, reminderText, quoteFollowText } from '../messages.js';
@@ -35,38 +37,45 @@ export const views = {
       for (const d of S.documents.filter((x) => x.type === 'presupuesto' && x.status === 'aceptado')) attention.push({ tone: 'green', d, icon: 'check', title: `${d.number} aceptado: falta facturar`, sub: `${clientOf(S, d.client_id)?.name} · ${eur(d.total)}`, btn: ['Facturar', 'convert'], href: `#/presupuestos/${d.id}` });
       for (const d of S.documents.filter((x) => x.type === 'presupuesto' && ['enviado', 'caducado'].includes(statusOf(S, x)) && addDays(x.issue_date, 7) <= t)) attention.push({ tone: 'amber', d, icon: 'mail', title: `${d.number} sin respuesta desde ${relDate(d.issue_date, t)}`, sub: `${clientOf(S, d.client_id)?.name} · ${eur(d.total)}`, btn: ['Dar seguimiento', 'followQuote'], href: `#/presupuestos/${d.id}` });
       for (const d of S.documents.filter((x) => x.type === 'factura' && x.status === 'borrador')) attention.push({ tone: 'grey', d, icon: 'edit', title: `Borrador de factura sin emitir`, sub: `${clientOf(S, d.client_id)?.name || 'Sin cliente'} · ${eur(d.total)}`, btn: ['Continuar', null], href: `#/facturas/${d.id}` });
-      const tasks = S.tasks.filter((x) => !x.done).slice(0, 6);
-      const series = monthSeries(S), max = Math.max(1, ...series.flatMap((m) => [m.in, m.out]));
-      const empty = !S.documents.length && !S.clients.length;
+      const tasks = S.tasks.filter((x) => !x.done).slice(0, 5);
+      const msgs = pending(S).slice(0, 4), empty = !S.documents.length && !S.clients.length && !S.messages.length;
       return html`
-        <div class="page-head"><div><h1>${greet}${S.settings.company_name ? html`, <span style="color:var(--muted);font-weight:500">${S.settings.company_name}</span>` : ''}</h1><p class="sub">${new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p></div>
-          <div class="actions"><a class="btn" href="#/presupuestos/nuevo">${icon('presupuestos', 'sm')}Presupuesto</a><a class="btn primary" href="#/facturas/nueva">${icon('plus', 'sm')}Factura</a></div></div>
-        ${empty ? html`<div class="card"><div class="empty">${icon('hoy')}<h3>Empieza por tu primer cliente</h3><p>Añade un cliente y crea tu primera factura o presupuesto. También puedes cargar datos de ejemplo para explorar.</p><div class="row" style="justify-content:center"><button class="btn primary" data-act="newClient">Crear cliente</button><button class="btn" data-act="loadDemo">Ver con datos de ejemplo</button></div></div></div>` : html`
-        <div class="kpis">
-          <a class="card kpi" href="#/facturas?f=pendientes"><div class="l">${icon('coins', 'sm')}Pendiente de cobro</div><div class="v">${eur(pend)}</div><div class="s">${invoices.filter((d) => d.total > paidOf(S, d.id)).length} facturas abiertas</div></a>
-          <a class="card kpi ${overdue.length ? 'warn' : ''}" href="#/facturas?f=vencidas"><div class="l">${icon('alert', 'sm')}Vencido</div><div class="v">${eur(overdueSum)}</div><div class="s">${overdue.length ? `${overdue.length} ${overdue.length === 1 ? 'factura' : 'facturas'} por reclamar` : 'Todo al día'}</div></a>
-          <a class="card kpi" href="#/informes"><div class="l">${icon('facturas', 'sm')}Facturado este mes</div><div class="v">${eur(factMes)}</div><div class="s">Base imponible</div></a>
-          <a class="card kpi" href="#/gastos"><div class="l">${icon('gastos', 'sm')}Gastos este mes</div><div class="v">${eur(gastoMes)}</div><div class="s">Resultado: ${eur(factMes - gastoMes)}</div></a>
+        <div class="page-head"><div><h1>${greet}${S.settings.company_name ? html`, <span style="color:var(--muted);font-weight:500">${S.settings.company_name}</span>` : ''}</h1><p class="sub">${new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p></div></div>
+        <form class="askbar" data-ask role="search"><span class="ic-wrap">${icon('sparkle')}</span><input id="ask" class="input" placeholder="Pregunta algo de tu negocio: «¿cuánto cuesta el desplazamiento?»" aria-label="Preguntar al asistente" autocomplete="off"><button class="btn primary" type="submit">Preguntar</button></form>
+        ${empty ? html`<div class="card"><div class="empty">${icon('hoy')}<h3>Empieza por conectar tus mensajes</h3><p>Conecta Telegram o tu correo, cuéntale al asistente cómo trabajas y deja que te prepare las respuestas.</p><div class="row wrap" style="justify-content:center"><a class="btn primary" href="#/ajustes" data-act="goChannels">Conectar canales</a><button class="btn" data-act="newClient">Crear cliente</button><button class="btn" data-act="loadDemo">Ver con datos de ejemplo</button></div></div></div>` : html`
+        <div class="kpis k3">
+          <a class="card kpi" href="#/facturas?f=pendientes"><div class="l">${icon('coins', 'sm')}Por cobrar</div><div class="v">${eur(pend)}</div><div class="s">${invoices.filter((d) => d.total > paidOf(S, d.id)).length} facturas abiertas</div></a>
+          <a class="card kpi ${overdue.length ? 'warn' : ''}" href="#/facturas?f=vencidas"><div class="l">${icon('alert', 'sm')}Vencido</div><div class="v">${eur(overdueSum)}</div><div class="s">${overdue.length ? `${overdue.length} por reclamar` : 'Todo al día'}</div></a>
+          <a class="card kpi" href="#/informes"><div class="l">${icon('dinero', 'sm')}Este mes</div><div class="v" style="${factMes - gastoMes < 0 ? 'color:var(--red)' : ''}">${eur(factMes - gastoMes)}</div><div class="s">${eur(factMes)} − ${eur(gastoMes)} gastos</div></a>
         </div>
-        <div class="cols">
-          <div class="stack">
-            <section class="card" aria-labelledby="h-att"><div class="card-h"><h2 id="h-att">Necesita tu atención</h2>${attention.length ? html`<span class="badge amber">${attention.length}</span>` : ''}</div>
-              ${attention.length ? html`<ul class="list">${attention.slice(0, 8).map((a, i) => html`<li class="link" data-href="${a.href}"><span class="badge ic-only ${a.tone}" style="padding:6px" aria-hidden="true">${icon(a.icon, 'sm')}</span><div class="grow"><div class="t">${a.title}</div><div class="d">${a.sub}</div></div>
-                ${a.btn[1] ? html`<button class="btn sm" data-act="${a.btn[1]}" data-id="${a.d.id}">${a.btn[0]}</button>` : html`<span class="muted">${icon('arrow', 'sm')}</span>`}</li>`)}</ul>` : html`<div class="empty">${icon('check')}<h3>Todo en orden</h3><p>No hay facturas vencidas ni presupuestos esperando respuesta.</p></div>`}
-            </section>
-            <section class="card" aria-labelledby="h-ch"><div class="card-h"><h2 id="h-ch">Ingresos y gastos</h2><div class="legend"><span><i style="background:var(--accent)"></i>Facturado</span><span><i style="background:var(--line-2)"></i>Gastos</span></div></div>
-              <div class="card-b"><div class="bars" role="img" aria-label="Ingresos y gastos de los últimos seis meses">${series.map((m) => html`<div class="bar-col" title="${m.label}: facturado ${eur(m.in)}, gastos ${eur(m.out)}"><div class="bar-pair"><div class="bar in" style="height:${(m.in / max) * 100}%"></div><div class="bar out" style="height:${(m.out / max) * 100}%"></div></div><small>${m.label}</small></div>`)}</div></div></section>
-          </div>
-          <div class="stack">
-            <section class="card" aria-labelledby="h-tk"><div class="card-h"><h2 id="h-tk">Tareas</h2><a class="more" href="#/tareas">Ver todas</a></div>
-              ${tasks.length ? html`<ul class="list">${tasks.map((k) => html`<li><input type="checkbox" class="check" data-act="toggleTask" data-id="${k.id}" aria-label="Completar: ${k.title}"><div class="grow"><div class="t">${k.title}</div><div class="d" style="${k.due && k.due < t ? 'color:var(--red)' : ''}">${k.due ? `${fdateShort(k.due)} · ${relDate(k.due, t)}` : 'Sin fecha'}${k.client_id ? ' · ' + clientOf(S, k.client_id)?.name : ''}</div></div></li>`)}</ul>` : html`<div class="empty" style="padding:26px">${icon('tareas')}<p>No tienes tareas pendientes.</p><button class="btn sm" data-act="newTask">Añadir tarea</button></div>`}</section>
-            <section class="card" aria-labelledby="h-ac"><div class="card-h"><h2 id="h-ac">Actividad reciente</h2></div>
-              <div class="card-b"><ol class="timeline">${S.activity.slice(0, 6).map((a) => html`<li>${a.text}<div class="muted" style="font-size:12px">${new Date(a.at).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div></li>`)}</ol></div></section>
-          </div>
+        <div class="cols"><div class="stack">
+          <section class="card" aria-labelledby="h-msg"><div class="card-h"><h2 id="h-msg">Mensajes por responder</h2>${pending(S).length ? html`<span class="badge blue">${pending(S).length}</span>` : ''}<a class="more" href="#/mensajes">Abrir bandeja</a></div>
+            ${msgs.length ? html`<ul class="list">${msgs.map((m) => html`<li class="link" data-href="#/mensajes/${m.id}">${avatar(m.peer_name)}<div class="grow"><div class="t">${m.peer_name}</div><div class="d" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.body.replace(/\s+/g, ' ').slice(0, 80)}</div></div>${m.draft ? html`<span class="chip ok">${icon('sparkle', 'sm')}Borrador</span>` : ''}<span class="when">${ago(m.created_at)}</span></li>`)}</ul>`
+              : html`<div class="empty" style="padding:28px">${icon('check')}<h3>Bandeja al día</h3><p>${S.channels.telegram.on || S.channels.email.on ? 'No tienes mensajes pendientes.' : 'Conecta Telegram o tu correo para verlos aquí.'}</p></div>`}</section>
+          <section class="card" aria-labelledby="h-att"><div class="card-h"><h2 id="h-att">Necesita tu atención</h2>${attention.length ? html`<span class="badge amber">${attention.length}</span>` : ''}</div>
+            ${attention.length ? html`<ul class="list">${attention.slice(0, 6).map((a) => html`<li class="link" data-href="${a.href}"><span class="badge ic-only ${a.tone}" style="padding:6px" aria-hidden="true">${icon(a.icon, 'sm')}</span><div class="grow"><div class="t">${a.title}</div><div class="d">${a.sub}</div></div>
+              ${a.btn[1] ? html`<button class="btn sm" data-act="${a.btn[1]}" data-id="${a.d.id}">${a.btn[0]}</button>` : html`<span class="muted">${icon('arrow', 'sm')}</span>`}</li>`)}</ul>` : html`<div class="empty" style="padding:28px">${icon('check')}<h3>Todo en orden</h3><p>No hay facturas vencidas ni presupuestos esperando respuesta.</p></div>`}</section></div>
+          <section class="card" aria-labelledby="h-tk"><div class="card-h"><h2 id="h-tk">Tareas</h2><a class="more" href="#/tareas">Ver todas</a></div>
+            ${tasks.length ? html`<ul class="list">${tasks.map((k) => html`<li><input type="checkbox" class="check" data-act="toggleTask" data-id="${k.id}" aria-label="Completar: ${k.title}"><div class="grow"><div class="t">${k.title}</div><div class="d" style="${k.due && k.due < t ? 'color:var(--red)' : ''}">${k.due ? `${fdateShort(k.due)} · ${relDate(k.due, t)}` : 'Sin fecha'}${k.client_id ? ' · ' + clientOf(S, k.client_id)?.name : ''}</div></div></li>`)}</ul>` : html`<div class="empty" style="padding:26px">${icon('tareas')}<p>No tienes tareas pendientes.</p><button class="btn sm" data-act="newTask">Añadir tarea</button></div>`}</section>
         </div>`}`;
+    },
+    mount(root) {
+      root.querySelector('[data-ask]')?.addEventListener('submit', async (e) => {
+        e.preventDefault(); const q = root.querySelector('#ask').value.trim(); if (q) askModal(q);
+      });
     },
   },
 };
+
+export async function askModal(q) {
+  const m = openModal({ title: q, wide: true, body: '<p class="muted" id="ans"><i class="dots"></i> Buscando en la información de tu negocio…</p>' });
+  try {
+    const r = await api('POST', '/api/ask', { question: q });
+    const box = m.el.querySelector('#ans');
+    box.innerHTML = (r.answer ? `<p style="white-space:pre-wrap;font-size:15px;color:var(--ink)">${esc(r.answer)}</p>` : '') + (r.sources.length ? `<p class="lbl" style="margin:${r.answer ? 16 : 0}px 0 6px">${r.answer ? 'Fuentes' : 'Esto es lo que he encontrado en tu negocio'}</p>` + r.sources.map((s) => `<div class="notice" style="margin-bottom:8px"><span><b>${esc(s.title)}</b> — ${esc(s.text)}</span></div>`).join('') : `<p class="muted">No encuentro nada sobre eso. Añade tus tarifas, horarios y condiciones en <a href="#/ajustes" data-close>Ajustes → Conocimiento</a>.</p>`);
+    box.className = '';
+  } catch (e) { m.el.querySelector('#ans').textContent = e.message; }
+}
 
 on('remind', (el) => { const S = store.S, d = S.documents.find((x) => x.id === Number(el.dataset.id)); const m = reminderText(S, d); messageModal({ title: 'Reclamar cobro', client: clientOf(S, d.client_id), ...m }); });
 on('followQuote', (el) => { const S = store.S, d = S.documents.find((x) => x.id === Number(el.dataset.id)); const m = quoteFollowText(S, d); messageModal({ title: 'Seguimiento del presupuesto', client: clientOf(S, d.client_id), ...m }); });

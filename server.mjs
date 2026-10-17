@@ -6,6 +6,8 @@ import { join, extname, dirname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { computeTotals, today, addDays } from './public/calc.js';
+import { createInbox } from './lib/inbox.mjs';
+import { speak } from './lib/ai.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(ROOT, 'public');
@@ -52,8 +54,11 @@ function cleanLines(lines) {
 }
 
 function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM settings').map((r) => [r.key, JSON.parse(r.value)])); }
-const SETTING_KEYS = ['company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
+function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
+const SETTING_KEYS = ['embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
   'default_iva', 'default_irpf', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
+
+const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting });
 
 function nextNumber(type, year) {
   const prefix = type === 'presupuesto' ? 'P' : type === 'rectificativa' ? 'R' : 'F';
@@ -181,7 +186,7 @@ function state() {
     expenses: all('SELECT * FROM expenses ORDER BY date DESC, id DESC'),
     tasks: all('SELECT * FROM tasks ORDER BY done, CASE WHEN due=\'\' THEN 1 ELSE 0 END, due'),
     activity: all('SELECT * FROM activity ORDER BY id DESC LIMIT 60'),
-    backups: listBackups(), serverDate: today(),
+    backups: listBackups(), serverDate: today(), ...inbox.state(),
   };
 }
 
@@ -218,6 +223,7 @@ const TABLE_OF = { clients: 'clients', items: 'items', expenses: 'expenses', tas
 async function route(req_, url, body) {
   const m = req_.method, p = url.pathname;
   if (m === 'GET' && p === '/api/state') return state();
+  { const r = await inbox.route(m, p, body); if (r !== undefined) return r; }
   let g;
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {
     const [, name, id] = g;
@@ -281,7 +287,8 @@ async function route(req_, url, body) {
   if (m === 'POST' && p === '/api/reset') {
     if (body.confirm !== 'BORRAR') throw bad('Confirmación necesaria');
     makeBackup('antes-de-borrar');
-    for (const t of ['payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
+    inbox.stop();
+    for (const t of ['messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
     return { ok: true };
   }
   throw new HttpError(404, 'Ruta no encontrada');
@@ -297,6 +304,13 @@ const server = createServer(async (req, res) => {
     const headers = { 'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'", 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' };
     if (url.pathname.startsWith('/api/')) {
       if (url.pathname === '/api/export.csv') return csv(url, res, headers);
+      if (url.pathname === '/api/tts' && req.method === 'POST') {
+        if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
+        const chunks = []; for await (const c of req) chunks.push(c);
+        const b = JSON.parse(Buffer.concat(chunks).toString() || '{}'); const wav = speak(str(b.text, 1500), settingsObj().tts_voice || '');
+        if (!wav) throw new HttpError(501, 'Este equipo no tiene voz del sistema disponible');
+        res.writeHead(200, { ...headers, 'Content-Type': 'audio/wav', 'Cache-Control': 'no-store' }).end(wav); return;
+      }
       if (req.method !== 'GET' && req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
       let body = {};
       if (req.method !== 'GET' && req.method !== 'DELETE') { const chunks = []; let n = 0; for await (const c of req) { n += c.length; if (n > 2e6) throw bad('Demasiado grande'); chunks.push(c); } try { body = JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch { throw bad('JSON no válido'); } }
@@ -327,5 +341,5 @@ function csv(url, res, headers) {
   res.writeHead(200, { ...headers, 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${kind}-${today()}.csv"` }).end('﻿' + rows.map((r) => r.map(q).join(';')).join('\r\n'));
 }
 
-server.listen(PORT, '127.0.0.1', () => console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`));
+server.listen(PORT, '127.0.0.1', () => { console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`); inbox.start(); });
 export { server, db };

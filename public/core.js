@@ -95,9 +95,10 @@ export function formModal({ title, fields, submit = 'Guardar', wide, onSubmit, e
 export function openPalette() {
   const S = store.S;
   const items = [
-    ...['hoy', 'clientes', 'presupuestos', 'facturas', 'gastos', 'tareas', 'informes', 'ajustes'].map((v) => ({ g: 'Ir a', t: v[0].toUpperCase() + v.slice(1), href: '#/' + v, i: v })),
-    { g: 'Crear', t: 'Nueva factura', href: '#/facturas/nueva', i: 'plus' }, { g: 'Crear', t: 'Nuevo presupuesto', href: '#/presupuestos/nuevo', i: 'plus' },
+    ...['hoy', 'mensajes', 'clientes', 'facturas', 'presupuestos', 'gastos', 'tareas', 'informes', 'ajustes'].map((v) => ({ g: 'Ir a', t: v[0].toUpperCase() + v.slice(1), href: '#/' + v, i: v })),
+    { g: 'Crear', t: 'Pegar un mensaje', run: () => ACT.pasteMsg(), i: 'mensajes' }, { g: 'Crear', t: 'Nueva factura', href: '#/facturas/nueva', i: 'plus' }, { g: 'Crear', t: 'Nuevo presupuesto', href: '#/presupuestos/nuevo', i: 'plus' },
     { g: 'Crear', t: 'Nuevo cliente', run: () => ACT.newClient(), i: 'plus' }, { g: 'Crear', t: 'Nuevo gasto', run: () => ACT.newExpense(), i: 'plus' }, { g: 'Crear', t: 'Nueva tarea', run: () => ACT.newTask(), i: 'plus' },
+    ...(S.messages || []).filter((m) => m.direction === 'in').slice(0, 60).map((m) => ({ g: 'Mensajes', t: m.peer_name, s: m.body.slice(0, 40), href: '#/mensajes/' + m.id, i: 'mensajes', k: m.body + ' ' + (m.subject || '') })),
     ...S.clients.filter((c) => !c.archived).map((c) => ({ g: 'Clientes', t: c.name, s: c.nif || c.city, href: '#/clientes/' + c.id, i: 'clientes', k: c.email })),
     ...S.documents.map((d) => { const c = S.clients.find((x) => x.id === d.client_id); return { g: d.type === 'factura' ? 'Facturas' : 'Presupuestos', t: (d.number || 'Borrador') + (c ? ' · ' + c.name : ''), s: '', href: `#/${d.type === 'factura' ? 'facturas' : 'presupuestos'}/${d.id}`, i: d.type === 'factura' ? 'facturas' : 'presupuestos' }; }),
   ];
@@ -108,12 +109,13 @@ export function openPalette() {
       const draw = () => {
         const t = norm(q.value);
         shown = (t ? items.filter((x) => norm(x.t + ' ' + (x.s || '') + ' ' + (x.k || '')).includes(t)) : items.filter((x) => x.g === 'Ir a' || x.g === 'Crear')).slice(0, 30);
+        if (q.value.trim().length > 2) shown.push({ g: 'Asistente', t: `Preguntar: ${q.value.trim()}`, i: 'sparkle', run: () => import('./views/hoy.js').then((h) => h.askModal(q.value.trim())), keep: true });
         sel = Math.min(sel, Math.max(0, shown.length - 1));
         let last = '';
         ul.innerHTML = shown.map((x, n) => `${x.g !== last ? `<li class="grp" role="presentation">${last = x.g}</li>` : ''}<li role="option" data-n="${n}" aria-selected="${n === sel}">${icon(x.i)}<span>${esc(x.t)}</span>${x.s ? `<small>${esc(x.s)}</small>` : ''}</li>`).join('') || '<li class="grp">Sin resultados</li>';
         ul.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
       };
-      const pick = (n) => { const x = shown[n]; if (!x) return; close(); if (x.href) go(x.href); else x.run?.(); };
+      const pick = (n) => { const x = shown[n]; if (!x) return; const qv = q.value.trim(); close(); if (x.href) go(x.href); else if (x.keep) import('./views/hoy.js').then((h) => h.askModal(qv)); else x.run?.(); };
       q.addEventListener('input', () => { sel = 0; draw(); });
       q.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown') { sel = Math.min(sel + 1, shown.length - 1); draw(); e.preventDefault(); }

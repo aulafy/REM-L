@@ -1,5 +1,6 @@
 // Datos ficticios para probar la aplicación. Todo es inventado (@example.test).
 import { addDays } from './public/calc.js';
+import { chunkText } from './lib/rag.mjs';
 
 export function seedDemo({ run, one, createDocument, issueInvoice, convertQuote, today, log }) {
   if (one('SELECT COUNT(*) n FROM clients').n > 0) throw Object.assign(new Error('Ya hay datos. Usa una copia limpia para la demo.'), { status: 409 });
@@ -46,6 +47,15 @@ export function seedDemo({ run, one, createDocument, issueInvoice, convertQuote,
   ex(35, 'Gasolinera Costa', 'Combustible furgoneta', 'vehículo', 8200); ex(12, 'Asesoría Fiscal Plus', 'Asesoría trimestral', 'servicios profesionales', 12000);
   const tk = (t, d, ci) => run('INSERT INTO tasks(title,due,client_id,created_at) VALUES(?,?,?,?)', t, addDays(T, d), ci == null ? null : c[ci], new Date().toISOString());
   tk('Llamar a Ferretería Gil por el presupuesto', 1, 4); tk('Reclamar la factura vencida de Gimnasio Fuerza Viva', -2, 5); tk('Pedir material para la reforma', 3, null); tk('Preparar el IVA del trimestre', 9, null);
+  const kb = 'Horario\nLunes a viernes de 9:00 a 18:00. Sábados con cita previa.\n\nTarifas\nMano de obra: 45 €/hora (+IVA). Desplazamiento: 25 € dentro de Valencia. Presupuesto sin compromiso.\n\nRevisión anual\nLa revisión anual completa cuesta 120 € + IVA e incluye informe.\n\nFormas de pago\nTransferencia, tarjeta o Bizum. Facturas a 30 días.\n\nGarantía\n12 meses en todas las reparaciones.';
+  const kid = Number(run('INSERT INTO knowledge(title,body,updated_at) VALUES(?,?,?)', 'Mi negocio: tarifas y condiciones', kb, new Date().toISOString()).lastInsertRowid);
+  chunkText(kb).forEach((t, i) => run('INSERT INTO chunks(doc_id,idx,text) VALUES(?,?,?)', kid, i, t));
+  const ago = (min) => new Date(Date.now() - min * 60000).toISOString();
+  const msg = (ch, name, addr, subject, body, draft, min, cid, intent = 'consulta', sources = '[]') => run("INSERT INTO messages(channel,direction,peer_name,peer_addr,subject,body,client_id,status,draft,intent,sources,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", ch, 'in', name, addr, subject, body, cid, 'listo', draft, intent, sources, ago(min));
+  const src = JSON.stringify([{ title: 'Mi negocio: tarifas y condiciones', text: 'La revisión anual completa cuesta 120 € + IVA e incluye informe.' }]);
+  msg('telegram', 'Lucía Pérez', '555001', '', 'Hola, ¿cuánto cuesta la revisión anual del horno? Y ¿podéis venir esta semana?', 'Hola Lucía, la revisión anual completa cuesta 120 € + IVA e incluye informe. Esta semana tenemos hueco el jueves por la tarde; ¿te viene bien?\n\nUn saludo,\nTaller Mediterráneo', 6, null, 'presupuesto', src);
+  msg('email', 'Panadería La Espiga', 'panader.a.la.espiga@example.test', 'Factura de este mes', 'Buenos días, ¿me podéis reenviar la factura de este mes? No la encuentro. Gracias.', 'Buenos días, ahora mismo os la reenvío. Si necesitáis algún otro documento, decídnoslo.\n\nUn saludo,\nTaller Mediterráneo', 95, c[0], 'consulta');
+  msg('whatsapp', 'Marta Olmedo', '+34622333444', '', 'Mi lavadora hace un ruido raro, ¿podéis mirarla?', 'Hola Marta, claro. El desplazamiento son 25 € y la mano de obra 45 €/hora (+IVA). ¿Qué día te viene mejor?', 240, c[2], 'cita');
   log('Datos de demostración cargados');
   return { ok: true };
 }
