@@ -27,7 +27,7 @@ function shell(S, key, content) {
   const c = counts(S), st = S.settings;
   const nk = navKey(key);
   const badge = (k) => k === 'mensajes' && c.mensajes ? html`<span class="count" title="Mensajes por responder">${c.mensajes}</span>` : k === 'dinero' && c.facturas ? html`<span class="count alert" title="Facturas vencidas">${c.facturas}</span>` : k === 'hoy' && c.tareas ? html`<span class="count alert" title="Tareas para hoy o vencidas">${c.tareas}</span>` : '';
-  const link = (k, l) => html`<a href="#/${k === 'dinero' ? 'facturas' : k}" ${nk === k ? raw('aria-current="page"') : ''}>${icon(k)}<span>${l}</span>${badge(k)}</a>`;
+  const link = (k, l) => html`<a href="#/${k === 'dinero' ? 'facturas' : k}" ${nk === k ? raw('aria-current="page"') : ''}><span class="ni" data-c="${k}">${icon(k)}</span><span>${l}</span>${badge(k)}</a>`;
   const theme = document.documentElement.dataset.theme;
   return html`<div class="app">
     <aside class="side" aria-label="Navegación principal">
@@ -43,7 +43,7 @@ function shell(S, key, content) {
         <button class="search-btn" data-act="palette" aria-label="Buscar o crear">${icon('search', 'sm')}<span>Buscar…</span><kbd>⌘K</kbd></button>
         <span class="grow"></span>
         <button class="btn ghost icon" data-act="theme" aria-label="Cambiar entre tema claro y oscuro" title="Tema">${icon(theme === 'dark' ? 'sun' : 'moon')}</button>
-        <button class="btn primary" data-act="quick"><span class="hide-sm" style="display:contents">${icon('plus', 'sm')}</span> Nuevo</button>
+        <span class="me" title="${st.company_name || ''}">${st.logo ? html`<img src="${st.logo}" alt="">` : (st.company_name || 'R')[0].toUpperCase()}</span><button class="btn primary" data-act="quick"><span class="hide-sm" style="display:contents">${icon('plus', 'sm')}</span> Nuevo</button>
       </header>
       <main class="page" id="page" tabindex="-1">${DINERO.includes(key) ? html`<nav class="subtabs" aria-label="Dinero">${[['facturas', 'Facturas'], ['presupuestos', 'Presupuestos'], ['gastos', 'Gastos'], ['informes', 'Informes']].map(([k, l]) => html`<a href="#/${k}" ${key === k ? raw('aria-current="page"') : ''}>${l}${k === 'facturas' && c.facturas ? html` <span class="count alert">${c.facturas}</span>` : ''}</a>`)}</nav>` : ''}${content}</main>
     </div>
