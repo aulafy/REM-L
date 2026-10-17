@@ -30,7 +30,7 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 
 ## Límites que conviene saber
 
-- Es una herramienta de gestión, **no un software de facturación certificado**: no incluye Verifactu/SII ni firma electrónica. Revisa con tu asesor las obligaciones que te apliquen.
+- **Posicionamiento:** herramienta de gestión interna (control de clientes, cobros, gastos e informes). **No es software de facturación certificado**: no cumple Verifactu/SII ni envía registros a la AEAT. Las facturas que prepara sirven de control interno; para emitir facturas oficiales hay que usar un sistema conforme a la normativa. Consúltalo con tu asesor.
 - Los informes de IVA son orientativos.
 - El servidor solo escucha en `127.0.0.1`, exige la cabecera `X-REM` en las escrituras y rechaza otros `Host`.
 - La IA local es opcional; solo admite direcciones locales y únicamente reformula el texto del borrador.
