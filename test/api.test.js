@@ -61,3 +61,9 @@ test('importes y fechas inválidos se rechazan', async () => {
   assert.equal((await call('POST', '/api/expenses', { date: 'ayer', concept: 'x', base: 1, total: 1 })).status, 400);
   assert.equal((await call('POST', '/api/documents', { type: 'factura', lines: [{ desc: 'x', qty: 1, price: 'abc', iva: 21 }] })).status, 400);
 });
+
+test('importar clientes: omite sin nombre y NIF repetidos', async () => {
+  const rows = [{ name: 'Alfa SL', nif: 'B11111111' }, { name: 'Alfa Duplicada', nif: 'B11111111' }, { name: '', nif: 'B22222222' }, { name: 'Beta', nif: '' }];
+  const r = (await call('POST', '/api/clients/import', { rows })).json;
+  assert.deepEqual([r.added, r.skipped], [2, 2]);
+});

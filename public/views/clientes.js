@@ -1,4 +1,4 @@
-import { store, on, go } from '../core.js';
+import { store, on, go, mutate, toast } from '../core.js';
 import { html, raw, eur, fdate, fdateShort, relDate, icon, badge, avatar, clientOf, paidOf, statusOf, norm, plural } from '../util.js';
 
 function clientStats(S, c) {
@@ -23,7 +23,7 @@ export const views = {
       const list = S.clients.filter((c) => !c.archived).map((c) => ({ c, s: clientStats(S, c) }))
         .filter(({ c, s }) => (!q || norm(`${c.name} ${c.nif} ${c.email} ${c.city} ${c.phone}`).includes(norm(q))) && (filter === 'todos' || (filter === 'deuda' && s.pending > 0) || (filter === 'vencido' && s.overdue > 0)));
       return html`
-        <div class="page-head"><div><h1>Clientes</h1><p class="sub">${plural(S.clients.filter((c) => !c.archived).length, 'cliente', 'clientes')}</p></div><div class="actions"><button class="btn primary" data-act="newClient">${icon('plus', 'sm')}Nuevo cliente</button></div></div>
+        <div class="page-head"><div><h1>Clientes</h1><p class="sub">${plural(S.clients.filter((c) => !c.archived).length, 'cliente', 'clientes')}</p></div><div class="actions"><label class="btn" for="csv-in">${icon('download', 'sm')}Importar CSV</label><input id="csv-in" class="sr" type="file" accept=".csv,text/csv"><button class="btn primary" data-act="newClient">${icon('plus', 'sm')}Nuevo cliente</button></div></div>
         <div class="toolbar"><input class="input" id="cq" type="search" placeholder="Buscar por nombre, NIF, email…" value="${q}" aria-label="Buscar clientes">
           <div class="seg" role="group" aria-label="Filtrar">${[['todos', 'Todos'], ['deuda', 'Con deuda'], ['vencido', 'Con vencidas']].map(([k, l]) => html`<button data-act="cfilter" data-k="${k}" aria-pressed="${filter === k}">${l}</button>`)}</div></div>
         <div class="card">${list.length ? html`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Cliente</th><th class="hide-sm">Contacto</th><th class="right">Facturado</th><th class="right">Pendiente</th></tr></thead><tbody>
@@ -33,6 +33,13 @@ export const views = {
           : html`<div class="empty">${icon('clientes')}<h3>${q || filter !== 'todos' ? 'Sin resultados' : 'Aún no tienes clientes'}</h3><p>${q || filter !== 'todos' ? 'Prueba con otra búsqueda o quita el filtro.' : 'Guarda aquí a quién le vendes: tendrás su historial, cobros y notas en un solo sitio.'}</p>${q || filter !== 'todos' ? '' : html`<button class="btn primary" data-act="newClient">Crear el primero</button>`}</div>`}</div>`;
     },
     mount(root) {
+      root.querySelector('#csv-in')?.addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const rows = parseCsv(await f.text());
+        if (!rows.length) return toast('No se encontraron clientes. La primera fila debe tener cabeceras (nombre, nif, email, teléfono…).', 'err');
+        const r = await mutate('POST', '/api/clients/import', { rows });
+        toast(`${r.added} clientes importados${r.skipped ? `, ${r.skipped} omitidos (sin nombre o NIF repetido)` : ''}`);
+      });
       const i = root.querySelector('#cq');
       if (i) i.addEventListener('input', () => { q = i.value; const pos = i.selectionStart; window.dispatchEvent(new Event('rem-render')); const n = document.getElementById('cq'); n?.focus(); n?.setSelectionRange(pos, pos); });
     },
@@ -64,3 +71,23 @@ function detail(S, id) {
 }
 
 on('cfilter', (el) => { filter = el.dataset.k; window.dispatchEvent(new Event('rem-render')); });
+
+// CSV sencillo (separador ; o , y comillas); la primera fila son cabeceras.
+function parseCsv(text) {
+  text = text.replace(/^\ufeff/, '');
+  const sep = (text.split('\n')[0].match(/;/g) || []).length >= (text.split('\n')[0].match(/,/g) || []).length ? ';' : ',';
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if (ch === '"') q = true; else if (ch === sep) { row.push(cur); cur = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+    else cur += ch;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  const [head, ...data] = rows.filter((r) => r.some((x) => x.trim()));
+  if (!head) return [];
+  const map = { name: /^(nombre|raz[oó]n|cliente|name|empresa)/i, nif: /^(nif|cif|dni|nie|vat)/i, email: /mail|correo/i, phone: /tel|m[oó]vil|phone/i, address: /direcc|domicil|address/i, city: /poblaci|ciudad|localidad|city/i, zip: /postal|cp$|zip/i };
+  const idx = Object.fromEntries(Object.entries(map).map(([k, re]) => [k, head.findIndex((h) => re.test(h.trim()))]));
+  return data.map((r) => Object.fromEntries(Object.entries(idx).map(([k, i]) => [k, i >= 0 ? (r[i] || '').trim() : ''])));
+}

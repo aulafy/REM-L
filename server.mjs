@@ -228,6 +228,17 @@ async function route(req_, url, body) {
       run(`DELETE FROM ${TABLE_OF[name]} WHERE id=?`, Number(id)); return { ok: true };
     }
   }
+  if (m === 'POST' && p === '/api/clients/import') {
+    const rows = Array.isArray(body.rows) ? body.rows.slice(0, 5000) : [];
+    let added = 0, skipped = 0;
+    tx(() => { for (const r of rows) {
+      const name = str(r.name, 300); if (!name) { skipped++; continue; }
+      const nif = str(r.nif, 20).toUpperCase();
+      if (nif && one('SELECT 1 FROM clients WHERE nif=?', nif)) { skipped++; continue; }
+      run('INSERT INTO clients(name,nif,email,phone,address,city,zip,created_at) VALUES(?,?,?,?,?,?,?,?)', name, nif, str(r.email, 200), str(r.phone, 40), str(r.address, 300), str(r.city, 100), str(r.zip, 10), nowIso()); added++;
+    } });
+    log(`Importados ${added} clientes`); return { added, skipped };
+  }
   if (m === 'POST' && p === '/api/documents') return createDocument(body);
   if ((g = p.match(/^\/api\/documents\/(\d+)$/))) {
     const id = Number(g[1]);
