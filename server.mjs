@@ -101,7 +101,7 @@ const hindsight = createHindsight({ settingsObj, saveSetting, log: (e) => agents
 const modules = createModules({ db, run, one, all, nowIso, str, HttpError, settingsObj, saveSetting, agents });
 const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument, createExpense: (b) => C.expenses.create(b) });
 const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpError, log });
-const importer = createImporter({ db, run, one, all, tx, nowIso, log, settingsObj, addDays, makeBackup, HttpError, computeTotals });
+const importer = createImporter({ db, run, one, all, tx, nowIso, log, settingsObj, addDays, makeBackup, HttpError, computeTotals, getSecret });
 const office = createOffice({ HttpError });
 const autostart = createAutostart({ script: fileURLToPath(import.meta.url), dataDir: DATA, port: PORT, HttpError });
 const menubar = createMenubar({ dataDir: DATA, port: PORT, settingsObj, saveSetting, counts: () => notifier.counts(), HttpError, log: (t) => log(t) });
@@ -368,7 +368,7 @@ function state() {
     expenses: all('SELECT * FROM expenses ORDER BY date DESC, id DESC'),
     tasks: all('SELECT * FROM tasks ORDER BY done, CASE WHEN due=\'\' THEN 1 ELSE 0 END, due'),
     activity: all('SELECT * FROM activity ORDER BY id DESC LIMIT 60'),
-    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(), ...attachments.state(), ...modules.state(), ...recurring.state(), ...docTemplates.state(), ...files.state(), ...timeTrack.state(),
+    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(), ...attachments.state(), ...modules.state(), ...recurring.state(), ...docTemplates.state(), ...files.state(), ...timeTrack.state(), ...importer.state(),
   };
 }
 
@@ -567,7 +567,7 @@ async function route(req_, url, body) {
     inbox.stop();
     files.purgeAll(); attachments.purgeAll(); clearAllSecrets();
     for (const name of ['negocio.md', 'policy.json', 'activity.jsonl', 'rem.log']) rmSync(join(DATA, name), { force: true });
-    for (const t of ['time_entries', 'files', 'recurring_expenses', 'doc_templates', 'recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
+    for (const t of ['import_batches', 'time_entries', 'files', 'recurring_expenses', 'doc_templates', 'recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
     return { ok: true };
   }
   throw new HttpError(404, 'Ruta no encontrada');
