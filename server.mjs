@@ -32,7 +32,7 @@ import { createAutostart } from './lib/autostart.mjs';
 import { createMenubar } from './lib/menubar.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
-import { migrateSchema, assertDatabaseHealthy, cleanSoftRefs } from './lib/schema.mjs';
+import { migrateSchema, databaseHealth, cleanSoftRefs, fixForeignKeys } from './lib/schema.mjs';
 import { pruneBackups } from './lib/backups.mjs';
 import { clearAllSecrets } from './lib/secrets.mjs';
 
@@ -117,7 +117,12 @@ const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, save
 const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, settingsObj, agents, createExpense: (b) => C.expenses.create(b) });
 const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments, modules, notifier });
 cleanSoftRefs(db);
-assertDatabaseHealthy(db);
+// Modo reparación: con relaciones rotas o una base dañada el servidor arranca igual, pero solo deja restaurar una copia sana o reparar (con copia previa).
+let repair = null;
+const checkHealth = () => { const h = databaseHealth(db); repair = h.ok ? null : { damaged: !(h.quick.length === 1 && h.quick[0] === 'ok'), broken: h.foreignKeys.length, tables: [...new Set(h.foreignKeys.map((f) => f.table))] }; return !repair; };
+checkHealth();
+const startServices = () => { inbox.start(); scheduler.start(); menubar.start(); };
+const REPAIR_OPEN = new Set(['GET /api/lock', 'POST /api/unlock', 'POST /api/lock', 'GET /api/repair', 'POST /api/repair/restore', 'POST /api/repair/fix']);
 
 const icsToken = () => { let t = settingsObj().ics_token; if (!t) { t = randomBytes(16).toString('hex'); saveSetting('ics_token', t); } return t; };
 const icsText = () => buildIcs({ tasks: all('SELECT * FROM tasks'), documents: all('SELECT * FROM documents').map(docRow), payments: all('SELECT * FROM payments'), clients: all('SELECT * FROM clients'), recurring: all('SELECT * FROM recurring'), expenses: all('SELECT * FROM expenses WHERE pending=1'), settings: settingsObj(), today: today() });
@@ -280,9 +285,28 @@ function makeBackup(tag = 'auto') {
   return { name, size: statSync(file).size };
 }
 const listBackups = () => readdirSync(join(DATA, 'backups')).filter((f) => f.endsWith('.db')).sort().reverse().map((f) => ({ name: f, size: statSync(join(DATA, 'backups', f)).size }));
-{
+if (!repair) {
   const last = listBackups()[0];
   if (!last || !last.name.includes(today())) { try { makeBackup('auto'); } catch {} }
+}
+
+// ---------- modo reparación ----------
+const backupPath = (n) => { if (!/^negocio-[\w.:-]+\.db$/.test(String(n || '')) || !existsSync(join(DATA, 'backups', n))) throw new HttpError(404, 'Esa copia no existe'); return join(DATA, 'backups', n); };
+function leaveRepair(text) { log(text); if (checkHealth()) { startServices(); console.log('REM Negocio: datos reparados; servicios en marcha.'); } return { ok: !repair, repair }; }
+function repairRoute(m, p, body) {
+  if (m === 'GET' && p === '/api/repair') return { repair: !!repair, ...(repair || {}), backups: listBackups().slice(0, 40).map((b) => ({ ...b, summary: summarize(join(DATA, 'backups', b.name)) })).filter((b) => b.summary) };
+  if (m !== 'POST' || !['/api/repair/restore', '/api/repair/fix'].includes(p)) return;
+  if (!repair) throw new HttpError(409, 'Tus datos no necesitan reparación');
+  if (p === '/api/repair/restore') {
+    const file = backupPath(body.name); if (!summarize(file)) throw new HttpError(409, 'Esa copia también está dañada; elige otra');
+    const safety = makeBackup('antes-de-reparar'), keepPin = one('SELECT value FROM settings WHERE key=?', 'pin_hash');
+    try { restoreFrom(db, file); if (keepPin) saveSetting('pin_hash', JSON.parse(keepPin.value)); } catch (e) { throw new HttpError(500, 'No se pudo restaurar; nada ha cambiado: ' + e.message); }
+    return { ...leaveRepair(`Modo reparación: restaurada la copia ${body.name}`), safety: safety.name };
+  }
+  if (repair.damaged) throw new HttpError(409, 'La base de datos está dañada y no se puede reparar aquí: restaura una copia');
+  const safety = makeBackup('antes-de-reparar'); let out;
+  try { out = fixForeignKeys(db); } catch (e) { throw new HttpError(500, 'No se pudo reparar; nada ha cambiado: ' + e.message); }
+  return { ...leaveRepair(`Modo reparación: ${out.fixed} referencia(s) rota(s) corregida(s)`), ...out, safety: safety.name };
 }
 
 // ---------- estado ----------
@@ -379,6 +403,7 @@ const TABLE_OF = { clients: 'clients', items: 'items', expenses: 'expenses', tas
 
 async function route(req_, url, body) {
   const m = req_.method, p = url.pathname;
+  { const r = repairRoute(m, p, body); if (r !== undefined) return r; }
   if (m === 'GET' && p === '/api/state') return { ...state(), pdf: pdfAvailable(DATA), icsToken: icsToken() };
   if (m === 'POST' && p === '/api/hindsight') {
     if (body.disconnect) { hindsight.disconnect(); return hindsight.state().hindsight; }
@@ -471,10 +496,9 @@ async function route(req_, url, body) {
   if (m === 'POST' && p === '/api/calendar/rotate') { saveSetting('ics_token', randomBytes(16).toString('hex')); return { token: icsToken() }; }
   if (m === 'POST' && p === '/api/backups') return makeBackup('manual');
   { let g;
-    const named = (n) => { if (!/^negocio-[\w.:-]+\.db$/.test(String(n || '')) || !existsSync(join(DATA, 'backups', n))) throw new HttpError(404, 'Esa copia no existe'); return join(DATA, 'backups', n); };
-    if ((g = p.match(/^\/api\/backups\/([^/]+)\/summary$/)) && m === 'GET') { const s = summarize(named(decodeURIComponent(g[1]))); if (!s) throw new HttpError(409, 'La copia está dañada'); return s; }
+    if ((g = p.match(/^\/api\/backups\/([^/]+)\/summary$/)) && m === 'GET') { const s = summarize(backupPath(decodeURIComponent(g[1]))); if (!s) throw new HttpError(409, 'La copia está dañada'); return s; }
     if (m === 'POST' && p === '/api/backups/restore') {
-      const file = named(body.name); if (!summarize(file)) throw new HttpError(409, 'La copia está dañada');
+      const file = backupPath(body.name); if (!summarize(file)) throw new HttpError(409, 'La copia está dañada');
       const safety = makeBackup('antes-de-restaurar'); const keepPin = one('SELECT value FROM settings WHERE key=?', 'pin_hash'); try { restoreFrom(db, file); if (keepPin) saveSetting('pin_hash', JSON.parse(keepPin.value)); } catch (e) { throw new HttpError(500, 'No se pudo restaurar; tus datos siguen intactos: ' + e.message); }
       log(`Copia restaurada: ${body.name}`); return { ok: true, safety: safety.name, summary: summarize(file) };
     }
@@ -513,6 +537,7 @@ const server = createServer(async (req, res) => {
     const headers = { 'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'", 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' };
     if (url.pathname.startsWith('/api/')) {
       if (!lock.allowed(req, url)) throw new HttpError(401, 'locked');
+      if (repair && !REPAIR_OPEN.has(`${req.method} ${url.pathname}`)) throw new HttpError(503, 'repair');
       if (url.pathname === '/api/menubar' && req.method === 'GET') { const out = menubar.handle(url); res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(out)); return; }
       if (url.pathname === '/api/export.csv') return csv(url, res, headers);
       if (url.pathname === '/api/export.xlsx') { const kind = url.searchParams.get('kind') || 'todo'; const book = xlsxBook(kind); res.writeHead(200, { ...headers, 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="rem-negocio-${kind}-${today()}.xlsx"`, 'Cache-Control': 'no-store' }).end(book); return; }
@@ -594,5 +619,5 @@ function csv(url, res, headers) {
   res.writeHead(200, { ...headers, 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${kind}-${today()}.csv"` }).end(toCsv(rows));
 }
 
-server.listen(PORT, '127.0.0.1', () => { console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`); inbox.start(); scheduler.start(); menubar.start(); if (process.env.REM_PDF_WARM !== '0') warmPdf(DATA); });
+server.listen(PORT, '127.0.0.1', () => { console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`); if (repair) console.error(`AVISO: la base de datos no supera la comprobación de integridad (${repair.broken} relación(es) rota(s)${repair.damaged ? ', base dañada' : ''}). Abre la app para restaurar una copia o repararla.`); else startServices(); if (process.env.REM_PDF_WARM !== '0') warmPdf(DATA); });
 export { server, db };

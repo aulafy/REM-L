@@ -158,7 +158,8 @@ function watchIdle() {
 }
 (async function boot() {
   try { await Promise.all([reload(), loadViews()]); } catch (e) {
-    if (e.message === 'locked') return lockNow(); root.innerHTML = `<div class="welcome"><h1>No se pudo cargar</h1><p class="muted">${esc(e.message)}. ¿Está el servidor en marcha?</p></div>`; return; }
+    if (e.message === 'locked') return lockNow();
+    if (e.message === 'repair') return (await import('./repair.js')).showRepair(root); root.innerHTML = `<div class="welcome"><h1>No se pudo cargar</h1><p class="muted">${esc(e.message)}. ¿Está el servidor en marcha?</p></div>`; return; }
   const { registerActions } = await import('./actions.js'); registerActions();
   sig = signature(store.S); render(); watchIdle();
   if (location.hash === '' || location.hash === '#') history.replaceState(null, '', '#/hoy');
