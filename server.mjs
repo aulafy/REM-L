@@ -68,7 +68,7 @@ function cleanLines(lines) {
 
 function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM settings').map((r) => [r.key, JSON.parse(r.value)])); }
 function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
-const SETTING_KEYS = ['claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
+const SETTING_KEYS = ['cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
   'default_iva', 'default_irpf', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
 
 const llmlog = createLlmLog({ db, run, all, one, nowIso, settingsObj, HttpError });
@@ -331,7 +331,9 @@ async function route(req_, url, body) {
     for (const k of SETTING_KEYS) if (body[k] !== undefined) {
       let v = body[k];
       if (['default_iva', 'default_irpf', 'payment_days', 'quote_days'].includes(k)) v = rate(v);
-      else if (k === 'checklist_dismissed') v = !!v;
+      else if (k === 'checklist_dismissed' || k === 'cash_include_overdue' || k === 'cash_include_estimates') v = !!v;
+      else if (k === 'cash_balance') { if (v === '' || v === null) { run('DELETE FROM settings WHERE key IN (?,?)', 'cash_balance', 'cash_balance_date'); continue; } v = Math.round(Number(v)); if (!Number.isFinite(v) || Math.abs(v) > 1e11) throw bad('Saldo no válido'); }
+      else if (k === 'cash_balance_date') v = date(v, false);
       else if (k === 'llm_max_per_hour') v = Math.min(1000, Math.max(1, Math.round(Number(v)) || 60));
       else if (typeof v === 'string') v = k === 'logo' ? (v.length < 400000 && /^data:image\/(png|jpeg|svg\+xml|webp);base64,/.test(v) ? v : '') : str(v, 400);
       run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v));

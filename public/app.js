@@ -5,12 +5,12 @@ import { upgradeCombos } from './combo.js';
 
 const VIEWS = {};
 const NAV = [['hoy', 'Hoy'], ['mensajes', 'Mensajes'], ['clientes', 'Clientes'], ['dinero', 'Dinero']];
-const DINERO = ['facturas', 'presupuestos', 'gastos', 'informes', 'recurrentes'];
+const DINERO = ['facturas', 'presupuestos', 'gastos', 'informes', 'tesoreria', 'recurrentes'];
 const navKey = (k) => (DINERO.includes(k) ? 'dinero' : k === 'tareas' ? 'hoy' : k);
 const root = document.getElementById('root');
 
 async function loadViews() {
-  const mods = await Promise.all(['hoy', 'mensajes', 'clientes', 'documentos', 'gastos', 'tareas', 'informes', 'recurrentes', 'ajustes', 'onboarding'].map((n) => import(`./views/${n}.js`)));
+  const mods = await Promise.all(['hoy', 'mensajes', 'clientes', 'documentos', 'gastos', 'tareas', 'informes', 'tesoreria', 'recurrentes', 'ajustes', 'onboarding'].map((n) => import(`./views/${n}.js`)));
   for (const m of mods) Object.assign(VIEWS, m.views);
 }
 
@@ -46,7 +46,7 @@ function shell(S, key, content) {
         <button class="btn ghost icon" data-act="theme" aria-label="Cambiar entre tema claro y oscuro" title="Tema">${icon(theme === 'dark' ? 'sun' : 'moon')}</button>
         <span class="me" title="${st.company_name || ''}">${st.logo ? html`<img src="${st.logo}" alt="">` : (st.company_name || 'R')[0].toUpperCase()}</span><button class="btn primary" data-act="quick"><span class="hide-sm" style="display:contents">${icon('plus', 'sm')}</span> Nuevo</button>
       </header>
-      <main class="page" id="page" tabindex="-1">${S.agentsPaused ? html`<div class="notice warn" style="margin:6px 0 16px">${icon('alert')}<span>Los agentes están en pausa: no prepararán borradores ni propuestas. <a href="#" data-act="agentsResume"><b>Reanudar</b></a></span></div>` : ''}${DINERO.includes(key) ? html`<nav class="subtabs" aria-label="Dinero">${[['facturas', 'Facturas'], ['presupuestos', 'Presupuestos'], ['gastos', 'Gastos'], ['informes', 'Informes'], ['recurrentes', 'Recurrentes']].map(([k, l]) => html`<a href="#/${k}" ${key === k ? raw('aria-current="page"') : ''}>${l}${k === 'facturas' && c.facturas ? html` <span class="count alert">${c.facturas}</span>` : ''}</a>`)}</nav>` : ''}${content}</main>
+      <main class="page" id="page" tabindex="-1">${S.agentsPaused ? html`<div class="notice warn" style="margin:6px 0 16px">${icon('alert')}<span>Los agentes están en pausa: no prepararán borradores ni propuestas. <a href="#" data-act="agentsResume"><b>Reanudar</b></a></span></div>` : ''}${DINERO.includes(key) ? html`<nav class="subtabs" aria-label="Dinero">${[['facturas', 'Facturas'], ['presupuestos', 'Presupuestos'], ['gastos', 'Gastos'], ['informes', 'Informes'], ['tesoreria', 'Tesorería'], ['recurrentes', 'Recurrentes']].map(([k, l]) => html`<a href="#/${k}" ${key === k ? raw('aria-current="page"') : ''}>${l}${k === 'facturas' && c.facturas ? html` <span class="count alert">${c.facturas}</span>` : ''}</a>`)}</nav>` : ''}${content}</main>
     </div>
     <nav class="tabbar" aria-label="Navegación">
       ${[...NAV, ['ajustes', 'Ajustes']].map(([k, l]) => html`<a href="#/${k === 'dinero' ? 'facturas' : k}" ${nk === k ? raw('aria-current="page"') : ''}>${icon(k)}${l}${c.mensajes && k === 'mensajes' ? html`<i class="tabdot"></i>` : ''}</a>`)}

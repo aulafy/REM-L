@@ -39,6 +39,7 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 - **Facturas recurrentes:** «Repetir…» en una factura; cada periodo se prepara un **borrador** (nunca se emite solo).
 - **Cartas y contratos:** plantillas con variables (reclamación de pago, contrato de servicios, consentimiento de datos) desde la ficha del cliente → vista previa editable → PDF. Plantillas propias en Ajustes → Documentos.
 - **Calendario:** Tareas → Calendario: suscripción `.ics` con tareas, vencimientos de facturas, caducidad de presupuestos y recurrentes (enlace privado renovable, solo en tu Mac).
+- **Tesorería:** Dinero → Tesorería: previsión a 30/60/90 días con vencimientos, el retraso medio con que paga cada cliente, facturas recurrentes, gastos habituales, IVA del trimestre y, si lo apuntas, tu saldo bancario.
 - **Excel:** libro `.xlsx` con facturas, gastos, clientes e IVA trimestral (importes y fechas reales, filtros y totales con fórmulas).
 
 ## Tickets y documentos (OCR local)

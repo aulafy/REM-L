@@ -11,7 +11,7 @@ Estado a 18/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
 - Restaurar/importar copias · facturas recurrentes · cartas y contratos desde plantillas · calendario .ics · Excel .xlsx
 
 ## Siguiente bloque (en este orden)
-1. Previsión de tesorería (30/60/90 días)
+1. ~~Previsión de tesorería (30/60/90 días)~~ ✅ hecho: Dinero → Tesorería (cobros con retraso real por cliente, recurrentes, gastos habituales, IVA, saldo opcional)
 2. Gastos recurrentes
 3. Notificaciones del sistema (mensajes, vencidas, tareas de hoy)
 4. Historial único por cliente (mensajes, facturas, tareas, documentos)
