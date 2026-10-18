@@ -1,6 +1,6 @@
 # REM Negocio para Mac: asistente de puesta en marcha, copias e importación
 
-Estado (18/10/2026): **diseño aprobado; fase 1 implementada** (app SwiftUI, pasos 0-3 y 5-6, copias cifradas con verificación y restauración de prueba, salud, restauración, empaquetado). Pendientes: fase 2 (contactos, presets e importación con IA) y fase 3 (recorrido guiado, lector DBF, actualizaciones, notarización). Ver `mac/README.md`.
+Estado (18/10/2026): **diseño aprobado; fase 1 implementada** (app SwiftUI, pasos 0-3 y 5-6, copias cifradas con verificación y restauración de prueba, salud, restauración, empaquetado). Fase 2 implementada: importación de clientes (CSV, vCard, Contactos de macOS, Google, Outlook), lotes con deshacer y asistente con IA (plan declarativo validado, muestra enmascarada y consentimiento). Pendientes: presets por programa y Facturae (ver `docs/migraciones-espana.md`) y fase 3 (recorrido guiado, lector DBF, actualizaciones, notarización). Ver `mac/README.md`.
 
 Cambios respecto al diseño original: el asistente es nativo para todos los pasos de la fase 1 (también «Tu negocio» y «Cómo facturas», que llaman a la API local); «Traer tus datos» ofrece por ahora la importación CSV/Excel y anuncia lo que llega en la fase 2; la lista de comprobación vive en `GET /api/setup`.
 

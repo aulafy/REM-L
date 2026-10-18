@@ -215,24 +215,20 @@ struct BillingStep: View {
     }
 }
 
-// MARK: 4 · Traer tus datos (fase 2: contactos e importación asistida)
+// MARK: 4 · Traer tus datos
 struct DataStep: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
-        StepFrame(title: "Traer tus datos", subtitle: "Si vienes de otro programa o de una hoja de cálculo, puedes traer tus clientes, facturas y gastos.", primary: "Continuar", onPrimary: { try? await model.api.call("POST", "api/setup", ["data": true]); model.completed.insert(.data); model.next() }) {
-            GroupBox {
+        StepFrame(title: "Traer tus datos", subtitle: "Si vienes de otro programa o de una hoja de cálculo, trae tus clientes, facturas y gastos. Siempre con vista previa, copia antes de importar y botón de deshacer.", primary: "Continuar", onPrimary: { try? await model.api.call("POST", "api/setup", ["data": true]); model.completed.insert(.data); model.next() }) {
+            ContactsImportView()
+            GroupBox("Archivos de otros programas") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Ahora mismo puedes importar desde **CSV o Excel**: clientes, facturas emitidas y gastos, con vista previa y sin tocar nada hasta confirmar.")
-                    Button("Importar desde CSV o Excel ahora…") { Task { try? await model.api.call("POST", "api/setup", ["data": true]); model.completed.insert(.data); model.pendingHash = "#/ajustes"; await model.finish() } }
+                    Text("Clientes (Google, Outlook, vCard, Excel), **facturas emitidas** y **gastos** desde CSV o Excel. Si el archivo es raro, la IA te ayuda a entenderlo.")
+                    Button("Abrir el importador…") { Task { try? await model.api.call("POST", "api/setup", ["data": true]); model.completed.insert(.data); model.pendingHash = "#/ajustes"; await model.finish() } }
                 }.padding(6).frame(maxWidth: .infinity, alignment: .leading)
             }
-            GroupBox {
-                VStack(alignment: .leading, spacing: 6) {
-                    Label("Próximamente", systemImage: "sparkles").font(.headline)
-                    Text("Contactos de macOS y vCard, plantillas para los programas de facturación más usados y un asistente con IA que entiende exportaciones de software antiguo y propone cómo traerlas, siempre con vista previa y copia de seguridad antes.").foregroundStyle(.secondary)
-                }.padding(6).frame(maxWidth: .infinity, alignment: .leading)
-            }
-            Text("Si empiezas de cero, pulsa Continuar: más adelante puedes importar desde Ajustes → Datos y copias.").font(.callout).foregroundStyle(.secondary)
+            ClaudeKeyView()
+            Text("Si empiezas de cero, pulsa Continuar: puedes importar cuando quieras desde Ajustes → Datos y copias.").font(.callout).foregroundStyle(.secondary)
         }
     }
 }

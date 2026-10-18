@@ -37,7 +37,7 @@ P
 echo "▸ Firmando…"
 ENT="$OUT/.ent.plist"; cat > "$ENT" <<'E'
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict>
-<key>com.apple.security.cs.allow-jit</key><true/><key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/><key>com.apple.security.cs.disable-library-validation</key><true/>
+<key>com.apple.security.cs.allow-jit</key><true/><key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/><key>com.apple.security.cs.disable-library-validation</key><true/><key>com.apple.security.personal-information.addressbook</key><true/>
 </dict></plist>
 E
 if [ -n "${SIGN_ID:-}" ]; then

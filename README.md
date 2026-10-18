@@ -96,6 +96,10 @@ La estructura de relaciones, las reglas que evitan datos incoherentes, el **modo
 
 En Ajustes → Datos, **Borrar todos los datos** crea primero una copia de la base y elimina registros, ajustes, secretos del llavero y archivos adjuntos locales. La copia `.db` no contiene los adjuntos, por lo que la pantalla lo advierte como una operación irreversible para esos archivos.
 
+## Importar desde otros programas
+
+En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook —inglés y español—, vCard, CSV o Excel), **facturas emitidas** y **gastos**. Vista previa con duplicados y errores, copia automática antes de importar y **deshacer** por lote. Si el archivo es raro (títulos, otro programa, columnas con otros nombres), **«Ordenar con IA»** envía a Claude —con tu clave— solo una **muestra enmascarada** (la ves antes) y recibe un *plan declarativo* que REM valida y aplica en tu equipo: la IA propone, no ejecuta ni toca tus datos. Estrategia para los programas más usados en España: [docs/migraciones-espana.md](docs/migraciones-espana.md).
+
 ## App de Mac y copias cifradas
 
 En `mac/` hay una **app nativa para macOS** (SwiftUI) que lleva dentro el servidor y guía paso a paso: tu negocio, cómo facturas, copias de seguridad, acceso y arranque. Las copias son archivos **`.rembak` cifrados** (AES-256-GCM, clave derivada de tu frase de paso con scrypt) en la carpeta que elijas (USB, NAS, iCloud Drive); se hace una al día y otra al salir, se verifican descifrándolas, y el asistente **prueba una restauración** antes de darlas por buenas. Incluye una hoja de recuperación con un código por si olvidas la frase. Detalles en [mac/README.md](mac/README.md) y [docs/asistente-macos.md](docs/asistente-macos.md). Compilar: `scripts/build-mac-app.sh`.
