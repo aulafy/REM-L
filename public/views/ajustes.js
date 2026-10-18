@@ -4,7 +4,7 @@ import { openModal } from '../core.js';
 import { validNif } from '../calc.js';
 
 let tab = 'canales';
-const TABS = [['canales', 'Canales'], ['conocimiento', 'Conocimiento'], ['ia', 'IA y voz'], ['empresa', 'Empresa'], ['facturacion', 'Facturación'], ['catalogo', 'Catálogo'], ['datos', 'Datos y copias']];
+const TABS = [['canales', 'Canales'], ['conocimiento', 'Conocimiento'], ['agentes', 'Agentes'], ['ia', 'IA y voz'], ['empresa', 'Empresa'], ['facturacion', 'Facturación'], ['catalogo', 'Catálogo'], ['datos', 'Datos y copias']];
 export const openTab = (k) => { tab = k; };
 const v = (x) => x ?? '';
 
@@ -59,6 +59,12 @@ export const views = {
           ${S.knowledge.length ? html`<ul class="list">${S.knowledge.map((k) => html`<li class="link" data-act="editDoc" data-id="${k.id}"><span class="badge ic-only blue" style="padding:7px">${icon('book', 'sm')}</span><div class="grow"><div class="t">${k.title}</div><div class="d">${k.chunks} fragmentos · actualizado ${fdate(k.updated_at.slice(0, 10))}</div></div>${icon('edit', 'sm')}</li>`)}</ul>`
             : html`<div class="empty">${icon('book')}<h3>Cuéntale cómo trabajas</h3><p>Tarifas, horarios, zona de servicio, garantías, formas de pago, preguntas frecuentes… El asistente solo responderá con lo que le cuentes aquí.</p><button class="btn primary" data-act="newDoc" data-tpl="1">Empezar con una plantilla</button></div>`}
           <div class="card-b" style="border-top:1px solid var(--line)"><p class="muted" style="font-size:13px">Se guarda en tu equipo. ${S.channels.ai.embeddings ? 'Búsqueda semántica activada.' : 'Búsqueda por palabras clave (sin modelo). Añade un modelo de embeddings en IA y voz para entender sinónimos.'}</p></div></section>`,
+        agentes: html`<div class="stack">
+          <section class="card"><div class="card-h"><h2>Qué puede hacer el asistente por su cuenta</h2>${S.agentsPaused ? html`<span class="badge red more">En pausa</span>` : html`<span class="badge green more">Activo</span>`}</div><div class="card-b stack">
+            <p class="muted">Cada acción tiene un modo. <b>Nada irreversible ocurre sin ti</b>: enviar mensajes a clientes, emitir facturas, borrar o exportar datos están reservados a la persona y ninguna regla lo cambia.</p>
+            <div class="stack" style="gap:10px">${S.policyActions.map((p) => html`<div class="row" style="justify-content:space-between;gap:16px;flex-wrap:wrap"><div><b>${p.label}</b></div><select class="input" style="max-width:260px" data-act-change="policy" data-key="${p.key}" aria-label="Modo para: ${p.label}">${[['act', 'Hacerlo solo'], ['ask', 'Preguntarme antes'], ['handoff', 'Dejármelo a mí']].filter(([m]) => !(p.key === 'send_reply' && m === 'act')).map(([m, l]) => html`<option value="${m}" ${S.policy[p.key] === m ? raw('selected') : ''}>${l}</option>`)}</select></div>`)}</div></div>
+            <div class="card-h" style="border-top:1px solid var(--line);border-bottom:0"><span class="muted" style="font-size:13px">Aprobar una propuesta no crea una regla: solo esa vez.</span><span class="spacer"></span>${S.agentsPaused ? html`<button class="btn primary" data-act="agentsResume">Reanudar agentes</button>` : html`<button class="btn danger" data-act="agentsStop">${icon('x', 'sm')}Parar todo</button>`}</div></section>
+          <section class="card"><div class="card-h"><h2>Actividad reciente</h2></div>${S.activity.length ? html`<ul class="list">${S.activity.slice(0, 20).map((a) => html`<li><span class="badge ${a.decision === 'proceed' ? 'green' : a.decision === 'confirm' ? 'amber' : a.decision === 'rejected' ? 'grey' : 'violet'}">${{ proceed: 'Hecho', confirm: 'Pidió permiso', handoff: 'Te lo pasó', rejected: 'Descartado' }[a.decision] || a.decision}</span><div class="grow"><div class="t" style="white-space:normal">${a.summary || a.action}</div><div class="d">${a.agent} · ${a.reason}</div></div><span class="muted" style="font-size:12px">${new Date(a.ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span></li>`)}</ul>` : html`<div class="empty" style="padding:30px"><p>Todavía no hay actividad de los agentes.</p></div>`}</section></div>`,
         ia: html`<form data-save class="card"><div class="card-h"><h2>IA local</h2></div><div class="card-b stack"><div class="notice">${icon('sparkle')}<span>REM funciona completo sin IA. Con un modelo local (Ollama) el asistente redacta respuestas y contesta preguntas. <b>Nada sale de tu ordenador</b>; solo se admiten direcciones locales.</span></div>
           <div class="grid g2">${field({ name: 'ollama_url', label: 'Dirección de Ollama', value: v(s.ollama_url), placeholder: 'http://127.0.0.1:11434' })}${field({ name: 'ollama_model', label: 'Modelo de texto', value: v(s.ollama_model), placeholder: 'p. ej. qwen3:8b', hint: S.channels.ai.on ? 'Activado' : 'Rellena dirección y modelo para activarlo' })}
           ${field({ name: 'embed_model', label: 'Modelo de embeddings (opcional)', value: v(s.embed_model), placeholder: 'nomic-embed-text', hint: 'Mejora la búsqueda en tu conocimiento' })}</div>
@@ -83,6 +89,7 @@ export const views = {
       root.querySelector('#tg-form')?.addEventListener('submit', async (e) => { e.preventDefault(); const token = e.target.token.value.trim(); if (!token) return toast('Pega el token de tu bot.', 'err'); try { await mutate('POST', '/api/channels/telegram', { token }, 'Telegram conectado'); } catch {} });
       root.querySelector('#mail-form')?.addEventListener('submit', async (e) => { e.preventDefault(); const d = formValues(e.target), err = root.querySelector('#mail-err'); err.textContent = ''; const b = e.target.querySelector('button'); b.disabled = true; b.textContent = 'Conectando…';
         try { await mutate('POST', '/api/channels/email', d, 'Correo conectado'); } catch (x) { err.textContent = x.message; b.disabled = false; b.textContent = 'Conectar correo'; } });
+      root.querySelectorAll('[data-act-change="policy"]').forEach((sel) => sel.addEventListener('change', async () => { try { await mutate('PUT', '/api/policy', { [sel.dataset.key]: sel.value }, 'Regla guardada'); } catch {} }));
       root.querySelector('#logo-in')?.addEventListener('change', async (e) => { const f = e.target.files[0]; if (!f) return; try { await mutate('PUT', '/api/settings', { logo: await logoResize(f) }, 'Logotipo actualizado'); } catch (err) { toast(err.message, 'err'); } });
     },
   },
@@ -110,3 +117,6 @@ function docModal(d, tpl) {
 }
 on('newDoc', (el) => docModal(null, el.dataset.tpl));
 on('editDoc', (el) => docModal(store.S.knowledge.find((k) => k.id === Number(el.dataset.id))));
+
+on('agentsStop', async () => { if (await confirmBox({ title: 'Parar todo', text: 'Los agentes dejan de actuar y se vacía la cola de aprobación. Lo ya aplicado no se deshace. Puedes reanudarlos cuando quieras.', ok: 'Parar todo', danger: true })) await mutate('POST', '/api/agents/stop', { paused: true }, 'Agentes en pausa'); });
+on('agentsResume', () => mutate('POST', '/api/agents/stop', { paused: false }, 'Agentes reanudados'));

@@ -1,4 +1,4 @@
-import { store, on, go, openModal } from '../core.js';
+import { store, on, go, openModal, mutate } from '../core.js';
 import { esc, api } from '../util.js';
 import { ago, pending } from './mensajes.js';
 import { html, raw, eur, fdate, fdateShort, relDate, icon, badge, avatar, clientOf, paidOf, statusOf, docLabel } from '../util.js';
@@ -56,6 +56,9 @@ export const views = {
           <a class="card kpi" href="#/informes"><div class="l"><span class="kchip green">${icon('dinero', 'sm')}</span>Este mes</div><div class="v" style="${factMes - gastoMes < 0 ? 'color:var(--red)' : ''}">${eur(factMes - gastoMes)}</div><div class="s">${eur(factMes)} − ${eur(gastoMes)} gastos</div></a>
         </div>
         <div class="cols"><div class="stack">
+          ${S.approvals.length ? html`<section class="card" aria-labelledby="h-ap"><div class="card-h"><h2 id="h-ap">Pendiente de tu aprobación</h2><span class="badge violet">${S.approvals.length}</span></div>
+            <ul class="list">${S.approvals.slice(0, 5).map((a) => html`<li><span class="badge ic-only violet" style="padding:6px" aria-hidden="true">${icon('sparkle', 'sm')}</span><div class="grow"><div class="t">${a.summary}</div><div class="d">${a.agent === 'asistente' ? 'Propuesta del asistente' : a.agent} · ${a.decision === 'handoff' ? 'solo puedes hacerlo tú' : a.reason}</div></div>
+              ${a.decision === 'handoff' ? html`<button class="btn sm" data-act="rejectAp" data-id="${a.id}">Entendido</button>` : html`<button class="btn sm ghost" data-act="rejectAp" data-id="${a.id}">Descartar</button><button class="btn sm primary" data-act="approveAp" data-id="${a.id}">Aprobar</button>`}</li>`)}</ul></section>` : ''}
           <section class="card" aria-labelledby="h-msg"><div class="card-h"><h2 id="h-msg">Mensajes por responder</h2>${pending(S).length ? html`<span class="badge blue">${pending(S).length}</span>` : ''}<a class="more" href="#/mensajes">Abrir bandeja</a></div>
             ${msgs.length ? html`<ul class="list">${msgs.map((m) => html`<li class="link" data-href="#/mensajes/${m.id}">${avatar(m.peer_name)}<div class="grow"><div class="t">${m.peer_name}</div><div class="d" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.body.replace(/\s+/g, ' ').slice(0, 80)}</div></div>${m.draft ? html`<span class="chip ok">${icon('sparkle', 'sm')}Borrador</span>` : ''}<span class="when">${ago(m.created_at)}</span></li>`)}</ul>`
               : html`<div class="empty" style="padding:28px">${icon('check')}<h3>Bandeja al día</h3><p>${S.channels.telegram.on || S.channels.email.on ? 'No tienes mensajes pendientes.' : 'Conecta Telegram o tu correo para verlos aquí.'}</p></div>`}</section>
@@ -86,3 +89,6 @@ export async function askModal(q) {
 
 on('remind', (el) => { const S = store.S, d = S.documents.find((x) => x.id === Number(el.dataset.id)); const m = reminderText(S, d); messageModal({ title: 'Reclamar cobro', client: clientOf(S, d.client_id), ...m }); });
 on('followQuote', (el) => { const S = store.S, d = S.documents.find((x) => x.id === Number(el.dataset.id)); const m = quoteFollowText(S, d); messageModal({ title: 'Seguimiento del presupuesto', client: clientOf(S, d.client_id), ...m }); });
+
+on('approveAp', async (el) => { try { await mutate('POST', `/api/approvals/${el.dataset.id}/approve`, {}, 'Aprobado'); } catch {} });
+on('rejectAp', (el) => mutate('POST', `/api/approvals/${el.dataset.id}/reject`, {}));
