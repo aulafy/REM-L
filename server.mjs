@@ -36,6 +36,7 @@ import { migrateSchema, databaseHealth, cleanSoftRefs, fixForeignKeys, SCHEMA_VE
 import { pruneBackups } from './lib/backups.mjs';
 import { clearAllSecrets, getSecret, setSecret, delSecret } from './lib/secrets.mjs';
 import { createClientChannel } from './lib/clientchannel.mjs';
+import { createEmailCards } from './lib/emailcards.mjs';
 import { createBackupEngine } from './lib/backup-engine.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -106,6 +107,9 @@ const importer = createImporter({ db, run, one, all, tx, nowIso, log, settingsOb
 const clientChannel = createClientChannel({ db, run, one, all, nowIso, str, HttpError, log, settingsObj, saveSetting, getSecret, setSecret, delSecret, ingest: (m) => inbox.ingest(m),
   getQuote: (id) => { const d = getDoc(id); if (d.type !== 'presupuesto') throw new HttpError(409, 'Solo se envían presupuestos'); return d; },
   setQuoteStatus: (id, status) => { const d = getDoc(id); if (d.type === 'presupuesto' && ['borrador', 'enviado'].includes(d.status)) { run('UPDATE documents SET status=?, updated_at=? WHERE id=?', status, nowIso(), id); log(`El cliente ha ${status === 'aceptado' ? 'aceptado' : 'rechazado'} el presupuesto ${d.number} (REM Clientes)`, 'document', id); } return getDoc(id); } });
+const emailCards = createEmailCards({ db, run, one, nowIso, str, HttpError, log, settingsObj, getSecret, ingest: (m) => inbox.ingest(m),
+  getQuote: (id) => { const d = getDoc(id); if (d.type !== 'presupuesto') throw new HttpError(409, 'Solo se envían presupuestos'); return d; },
+  setQuoteStatus: (id, status) => { const d = getDoc(id); if (d.type === 'presupuesto' && ['borrador', 'enviado'].includes(d.status)) { run('UPDATE documents SET status=?, updated_at=? WHERE id=?', status, nowIso(), id); log(`El cliente ha ${status === 'aceptado' ? 'aceptado' : 'rechazado'} el presupuesto ${d.number} (correo)`, 'document', id); } return getDoc(id); } });
 const office = createOffice({ HttpError });
 const autostart = createAutostart({ script: fileURLToPath(import.meta.url), dataDir: DATA, port: PORT, HttpError });
 const menubar = createMenubar({ dataDir: DATA, port: PORT, settingsObj, saveSetting, counts: () => notifier.counts(), HttpError, log: (t) => log(t) });
@@ -121,6 +125,7 @@ agents.setOnApproval((s) => notifier.approval(s));
 const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError, modules, recurring, notifier });
 const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, settingsObj, agents, createExpense: (b) => C.expenses.create(b) });
 const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments, modules, notifier });
+inbox.setMailHook((x) => emailCards.inbound(x));
 inbox.setChannel('rem', { send: (m, text) => clientChannel.sendText(m, text) });
 cleanSoftRefs(db);
 // Modo reparación: con relaciones rotas o una base dañada el servidor arranca igual, pero solo deja restaurar una copia sana o reparar (con copia previa).
@@ -476,6 +481,7 @@ async function route(req_, url, body) {
   { const r = await autostart.route(m, p, body); if (r !== undefined) return r; }
   { const r = await menubar.route(m, p, body); if (r !== undefined) return r; }
   { const r = await clientChannel.route(m, p, body); if (r !== undefined) return r; }
+  { const r = await emailCards.route(m, p, body); if (r !== undefined) return r; }
   { const r = backupRoute(m, p, body); if (r !== undefined) return r; }
   { const r = setupRoute(m, p, body); if (r !== undefined) return r; }
   { const r = (await agents.route(m, p, body)) ?? (await inbox.route(m, p, body)); if (r !== undefined) return r; }

@@ -174,3 +174,13 @@ Idea aportada por el usuario (18/10/2026): en vez de un relé propio, que la com
 
 ### Decisión
 Para **validar el producto** el camino más rápido y barato es el **Nivel 0** (cero infraestructura, funciona con cualquier cliente) y mantener el relé como prototipo del Nivel 3. La app con aspecto de WhatsApp (Nivel 2) se decide cuando se vea qué usan de verdad los clientes. Pendiente: confirmar si implementamos el Nivel 0 ahora.
+
+### 14.1 Nivel 0 implementado (18/10/2026): correo estructurado
+
+Ya funciona sobre el correo conectado en Ajustes → Canales, sin servidor intermedio (`lib/emailcards.mjs`):
+
+- **Tarjetas HTML** (con versión de texto) para **presupuesto** (botones Aceptar/Rechazar), **solicitud de pago** (IBAN, enlace https y «Ya he pagado») y **estado del pedido** (con enlace de seguimiento https). Se envían desde el detalle del presupuesto («Enviar tarjeta por correo») y desde la conversación de Mensajes (canal email: «Pedir pago», «Estado del pedido»).
+- Los botones son enlaces `mailto:` hacia tu buzón; funcionan en cualquier cliente de correo. Si el cliente no ve botones, basta responder `ACEPTO` / `RECHAZO` / `PAGADO`.
+- **Respuesta segura**: cada botón lleva un token aleatorio de 128 bits en el asunto (`[REM:…]`), de un solo uso y con caducidad (30 días); solo se guarda su hash. Una respuesta cambia el estado únicamente si: el token existe y no se ha usado ni caducado, **el remitente es la dirección a la que se envió** y el servidor de correo certifica el origen (`Authentication-Results` con `dkim=pass` o `spf=pass`, sin ningún `fail`). En cualquier otro caso **no se aplica nada** y llega a Mensajes un aviso «⚠ NO se ha aplicado» con el motivo.
+- «Ya he pagado» nunca marca cobrado: solo avisa para que lo compruebes en el banco.
+- **Límites conocidos**: no hay cifrado de extremo a extremo (es correo); si el buzón del cliente está comprometido, el atacante puede responder como él; la certificación depende de que tu proveedor añada `Authentication-Results` (si no lo hace, nada se aplica automáticamente: es el comportamiento seguro).
