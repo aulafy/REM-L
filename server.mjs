@@ -101,7 +101,7 @@ const hindsight = createHindsight({ settingsObj, saveSetting, log: (e) => agents
 const modules = createModules({ db, run, one, all, nowIso, str, HttpError, settingsObj, saveSetting, agents });
 const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument, createExpense: (b) => C.expenses.create(b) });
 const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpError, log });
-const importer = createImporter({ db, run, one, all, tx, nowIso, log, settingsObj, addDays, makeBackup, HttpError, computeTotals, getSecret });
+const importer = createImporter({ db, run, one, all, tx, nowIso, log, settingsObj, addDays, makeBackup, HttpError, computeTotals, getSecret, nextNumber: (t, y, s) => nextNumber(t, y, s), defaultSeries: () => seriesList()[0].prefix });
 const office = createOffice({ HttpError });
 const autostart = createAutostart({ script: fileURLToPath(import.meta.url), dataDir: DATA, port: PORT, HttpError });
 const menubar = createMenubar({ dataDir: DATA, port: PORT, settingsObj, saveSetting, counts: () => notifier.counts(), HttpError, log: (t) => log(t) });
@@ -163,8 +163,8 @@ function nextNumber(type, year, series = 'F') {
   const prefix = type === 'presupuesto' ? 'P' : type === 'albaran' ? 'A' : type === 'rectificativa' ? 'R' : series || 'F';
   const t = type === 'rectificativa' ? 'factura' : type;
   const rows = all(`SELECT number FROM documents WHERE type=? AND number LIKE ?`, t, `${prefix}${year}-%`);
-  const max = rows.reduce((m, r) => Math.max(m, Number(r.number.split('-')[1]) || 0), 0);
-  return `${prefix}${year}-${String(max + 1).padStart(4, '0')}`;
+  const max = rows.reduce((m, r) => Math.max(m, Number(r.number.split('-')[1]) || 0), 0), floor = Number((settingsObj().series_next || {})[`${prefix}${year}`]) || 1; // «la siguiente debe ser…» tras importar de otro programa
+  return `${prefix}${year}-${String(Math.max(max + 1, floor)).padStart(4, '0')}`;
 }
 
 function saveTotals(d) {
@@ -496,6 +496,11 @@ async function route(req_, url, body) {
       run('INSERT INTO clients(name,nif,email,phone,address,city,zip,created_at) VALUES(?,?,?,?,?,?,?,?)', name, nif, str(r.email, 200), str(r.phone, 40), str(r.address, 300), str(r.city, 100), str(r.zip, 10), nowIso()); added++;
     } });
     log(`Importados ${added} clientes`); return { added, skipped };
+  }
+  if (m === 'POST' && p === '/api/invoice-numbering') {
+    const prefix = String(body.prefix || ''), year = String(body.year || ''), next = Math.round(Number(body.next));
+    if (!seriesList().some((x) => x.prefix === prefix)) throw bad('Esa serie no existe'); if (!/^\d{4}$/.test(year)) throw bad('Año no válido'); if (!Number.isInteger(next) || next < 1 || next > 999999) throw bad('Número no válido');
+    const cur = settingsObj().series_next || {}; saveSetting('series_next', { ...cur, [`${prefix}${year}`]: next }); log(`Numeración: la próxima factura de la serie ${prefix} ${year} será la ${prefix}${year}-${String(next).padStart(4, '0')} o la siguiente libre`); return { next: nextNumber('factura', year, prefix) };
   }
   if (m === 'POST' && p === '/api/documents') return createDocument(body);
   if (m === 'POST' && p === '/api/delivery-notes/invoice') return invoiceFromNotes(body);

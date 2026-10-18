@@ -65,13 +65,22 @@ async function askAI(kind, src, fileName, feedback = '') {
   });
 }
 
+// Tras importar facturas con numeración ajena: ofrecer que la siguiente factura de REM continúe la serie.
+function numberingModal(items) {
+  const pad = (n) => String(n).padStart(4, '0');
+  openModal({ title: 'Continuar tu numeración', body: `<div class="stack"><p style="margin:0">Las facturas que has importado usan otro formato de número, así que REM no sabría por dónde seguir. Elige cómo numerar la <b>siguiente factura</b> de cada año:</p>
+    <ul class="list">${items.map((x) => `<li><div class="grow"><div class="t">${x.year}: tu última factura importada es la ${esc(x.last)}</div><div class="d">La siguiente sería ${x.prefix}${x.year}-${pad(x.next)} (ahora empezaría en ${x.prefix}${x.year}-${pad(x.current)}).</div></div><button class="btn sm primary" data-num="${x.year}" data-next="${x.next}" data-prefix="${x.prefix}">Usar ${x.prefix}${x.year}-${pad(x.next)}</button></li>`).join('')}</ul>
+    <p class="muted" style="margin:0;font-size:12.5px">Lo puedes cambiar después en Ajustes → Facturación → Series.</p></div>`, footer: '<button class="btn" data-close>Ahora no</button>',
+    onMount: (el) => el.querySelectorAll('[data-num]').forEach((b) => b.addEventListener('click', async () => { b.disabled = true; try { await api('POST', '/api/invoice-numbering', { prefix: b.dataset.prefix, year: b.dataset.num, next: Number(b.dataset.next) }); b.textContent = 'Hecho'; toast('Numeración ajustada'); } catch (e) { toast(e.message, 'err'); b.disabled = false; } })) });
+}
+
 function wizard(kind, text, fileName, sheets = null, sheet = 0, extra = null) {
   let mapping = null, p = null, busy = false, plan = null, planInfo = null; if (sheets) text = sheets[sheet].csv;
   const src = () => (extra || { text }), canAI = !extra;
   const m = openModal({ title: `Importar ${LABEL[kind]}`, wide: true, body: '<div id="im-body" class="stack"><p class="muted">Leyendo el archivo…</p></div>', footer: '<button class="btn" data-close>Cancelar</button><button class="btn primary" id="im-ok" disabled>Importar</button>',
     onMount: (el, close) => { el.querySelector('#im-ok').addEventListener('click', async (e) => {
       const b = e.currentTarget; b.disabled = true; b.textContent = 'Importando…';
-      try { const r = await api('POST', '/api/import/commit', { kind, ...src(), mapping: plan ? undefined : mapping, plan: plan || undefined, source: fileName }); await reload(); close(); refresh(); toast(`${r.imported} ${NOUN[kind]} importados${kind === 'facturas' && r.clients ? ` · ${r.clients} clientes nuevos` : ''}. Se guardó una copia antes de importar y puedes deshacerlo en Ajustes → Datos y copias.`); }
+      try { const r = await api('POST', '/api/import/commit', { kind, ...src(), mapping: plan ? undefined : mapping, plan: plan || undefined, source: fileName }); await reload(); close(); refresh(); toast(`${r.imported} ${NOUN[kind]} importados${kind === 'facturas' && r.clients ? ` · ${r.clients} clientes nuevos` : ''}. Se guardó una copia antes de importar y puedes deshacerlo en Ajustes → Datos y copias.`); if (r.numbering?.length) numberingModal(r.numbering); }
       catch (err) { toast(err.message, 'err'); b.disabled = false; b.textContent = 'Importar'; }
     }); } });
   const root = m.el, body = () => root.querySelector('#im-body'), ok = () => root.querySelector('#im-ok');
@@ -96,7 +105,7 @@ function wizard(kind, text, fileName, sheets = null, sheet = 0, extra = null) {
       ${sheets && sheets.length > 1 ? `<label class="field"><span class="lbl">Hoja del libro</span><select class="input" id="im-sheet">${sheets.map((s, i) => `<option value="${i}" ${i === sheet ? 'selected' : ''}>${esc(s.name)} (${s.rows - 1} filas)</option>`).join('')}</select></label>` : ''}
       ${miss.length ? `<div class="notice warn">${icon('alert').toString()}<span>No encuentro ${esc(miss.join(', '))}. ${plan ? 'Pide otro intento o vuelve al mapeo manual.' : 'Elige la columna correspondiente abajo' + (canAI ? ' o prueba con IA.' : '.')}</span></div>`
       : `<div class="grid g3" style="gap:10px"><div class="stat"><b>${p.ok}</b><span class="muted">se importarán</span></div><div class="stat"><b>${p.duplicates}</b><span class="muted">ya existen</span></div><div class="stat"><b>${p.failed}</b><span class="muted">con errores</span></div></div>
-      <p class="muted" style="margin:0">${cl ? `Se crearán <b>${p.ok}</b> clientes` : `Suman <b>${eur(p.sum)}</b>${p.newClients ? ` · se crearán <b>${p.newClients}</b> clientes nuevos` : ''}`}${p.withWarnings ? ` · ${p.withWarnings} con avisos` : ''}.</p>`}
+      <p class="muted" style="margin:0">${cl ? `Se crearán <b>${p.ok}</b> clientes` : `Suman <b>${eur(p.sum)}</b>${p.newClients ? ` · se crearán <b>${p.newClients}</b> clientes nuevos` : ''}`}${p.merged ? ` · <b>${p.merged}</b> filas se unen como líneas de otras facturas` : ''}${p.withWarnings ? ` · ${p.withWarnings} con avisos` : ''}.</p>${p.numbering?.length ? `<div class="notice">${icon('check').toString()}<span>Tus números de factura tienen otro formato: al terminar te propondremos cómo continuar la numeración (${p.numbering.map((x) => `${x.year}: tras ${esc(x.last)}`).join(', ')}).</span></div>` : ''}`}
       ${plan ? '' : `<details ${miss.length ? 'open' : ''}><summary class="lbl" style="cursor:pointer">Columnas del archivo</summary><div class="grid g2" style="margin-top:10px">${FIELD_LABELS[kind].map(([k, l]) => `<label class="field"><span class="lbl">${l}</span><select class="input" data-map="${k}">${opts(p.mapping[k])}</select></label>`).join('')}</div></details>`}
       ${p.sample.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr>${head}</tr></thead><tbody>${p.sample.map(rowOf).join('')}</tbody></table></div><p class="muted" style="margin:0;font-size:12.5px">Primeras filas de muestra.</p>` : ''}
       ${p.problems.length ? `<details><summary class="lbl" style="cursor:pointer">Filas que no se importarán (${p.problems.length}${p.failed + p.duplicates > p.problems.length ? '+' : ''})</summary><ul class="list" style="margin:8px 0 0">${p.problems.map((x) => `<li style="padding:8px 0"><span class="badge ${x.duplicate ? 'grey' : 'red'}">Línea ${x.line}</span><span class="grow" style="white-space:normal">${esc(x.errors.join('. '))}</span></li>`).join('')}</ul></details>` : ''}
