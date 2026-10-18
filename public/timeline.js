@@ -18,7 +18,8 @@ export function timelineOf(S, clientId, { today = S.serverDate } = {}) {
   }
   const paid = (id) => S.payments.filter((p) => p.document_id === id).reduce((a, p) => a + p.amount, 0);
   for (const d of S.documents.filter((x) => x.client_id === clientId)) {
-    const link = `#/${d.type === 'factura' ? 'facturas' : 'presupuestos'}/${d.id}`, label = d.number || (d.type === 'factura' ? 'Borrador de factura' : 'Presupuesto');
+    const link = `#/${{ factura: 'facturas', albaran: 'albaranes' }[d.type] || 'presupuestos'}/${d.id}`, label = d.number || (d.type === 'factura' ? 'Borrador de factura' : 'Presupuesto');
+    if (d.type === 'albaran') { push({ id: `d${d.id}`, at: at(d.issue_date), kind: 'albaran', icon: 'facturas', title: `Albarán ${label} ${d.status === 'facturado' ? '(facturado)' : 'entregado'}`, detail: eur(d.total), href: link }); continue; }
     if (d.type === 'factura') {
       if (d.status === 'borrador') push({ id: `d${d.id}`, at: d.created_at, kind: 'borrador', icon: 'edit', title: `Borrador de factura creado`, detail: eur(d.total), href: link });
       else { push({ id: `d${d.id}`, at: at(d.issue_date), kind: d.corrects_id ? 'rectificativa' : 'factura', icon: 'facturas', title: `${d.corrects_id ? 'Factura rectificativa' : 'Factura'} ${label} emitida`, detail: eur(d.total), href: link });

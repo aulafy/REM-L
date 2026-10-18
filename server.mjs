@@ -137,7 +137,7 @@ function cleanSeries(v) {
     if (!/^[A-Z]{1,4}$/.test(prefix)) throw bad('El prefijo son de 1 a 4 letras (sin números)'); if (['P', 'R'].includes(prefix)) throw bad(`El prefijo ${prefix} está reservado (presupuestos y rectificativas)`); if (seen.has(prefix)) throw bad(`El prefijo ${prefix} está repetido`); seen.add(prefix); return { prefix, name }; });
 }
 function nextNumber(type, year, series = 'F') {
-  const prefix = type === 'presupuesto' ? 'P' : type === 'rectificativa' ? 'R' : series || 'F';
+  const prefix = type === 'presupuesto' ? 'P' : type === 'albaran' ? 'A' : type === 'rectificativa' ? 'R' : series || 'F';
   const t = type === 'rectificativa' ? 'factura' : type;
   const rows = all(`SELECT number FROM documents WHERE type=? AND number LIKE ?`, t, `${prefix}${year}-%`);
   const max = rows.reduce((m, r) => Math.max(m, Number(r.number.split('-')[1]) || 0), 0);
@@ -152,22 +152,22 @@ function docRow(r) { return { ...r, lines: JSON.parse(r.lines) }; }
 function getDoc(id) { const r = one('SELECT * FROM documents WHERE id=?', id); if (!r) throw new HttpError(404, 'No existe'); return docRow(r); }
 
 function createDocument(b) {
-  const type = b.type === 'presupuesto' ? 'presupuesto' : 'factura';
+  const type = ['presupuesto', 'albaran'].includes(b.type) ? b.type : 'factura';
   const s = settingsObj();
   const issue = date(b.issue_date ?? today());
   const lines = cleanLines(b.lines ?? []);
   const irpf = rate(b.irpf, s.default_irpf ?? 0);
   const d = { lines, irpf };
   const tot = saveTotals(d);
-  const due = b.due_date !== undefined ? date(b.due_date, false) : addDays(issue, type === 'presupuesto' ? (s.quote_days ?? 30) : (s.payment_days ?? 30));
-  const number = type === 'presupuesto' ? nextNumber('presupuesto', issue.slice(0, 4)) : '';
+  const due = type === 'albaran' ? '' : b.due_date !== undefined ? date(b.due_date, false) : addDays(issue, type === 'presupuesto' ? (s.quote_days ?? 30) : (s.payment_days ?? 30));
+  const number = type === 'presupuesto' || type === 'albaran' ? nextNumber(type, issue.slice(0, 4)) : '';
   const cid = b.client_id ? Number(b.client_id) : null;
   if (cid && !one('SELECT id FROM clients WHERE id=?', cid)) throw bad('Cliente no encontrado');
   const res = run(`INSERT INTO documents(type,status,number,client_id,issue_date,due_date,lines,irpf,notes,source_id,base,iva_total,irpf_total,total,created_at,updated_at,series)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, type, 'borrador', number, cid, issue, due, JSON.stringify(lines), irpf, str(b.notes, 2000), b.source_id ?? null,
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, type, type === 'albaran' ? 'pendiente' : 'borrador', number, cid, issue, due, JSON.stringify(lines), irpf, str(b.notes, 2000), b.source_id ?? null,
     tot.base, tot.iva_total, tot.irpf_total, tot.total, nowIso(), nowIso(), type === 'factura' ? pickSeries(b.series) : '');
   const id = Number(res.lastInsertRowid);
-  log(`Creado ${type === 'presupuesto' ? 'presupuesto ' + number : 'borrador de factura'}`, 'document', id);
+  log(`Creado ${type === 'presupuesto' ? 'presupuesto ' + number : type === 'albaran' ? 'albarán ' + number : 'borrador de factura'}`, 'document', id);
   return getDoc(id);
 }
 
@@ -179,7 +179,7 @@ function updateDocument(id, b) {
     run('UPDATE documents SET notes=?, due_date=?, updated_at=? WHERE id=?', str(b.notes ?? cur.notes, 2000), b.due_date !== undefined ? date(b.due_date, false) : cur.due_date, nowIso(), id);
     return getDoc(id);
   }
-  if (cur.status === 'facturado') throw new HttpError(409, 'Este presupuesto ya se facturó');
+  if (cur.status === 'facturado') throw new HttpError(409, 'Este documento ya se facturó');
   const lines = b.lines ? cleanLines(b.lines) : cur.lines;
   const irpf = b.irpf !== undefined ? rate(b.irpf) : cur.irpf;
   const tot = saveTotals({ lines, irpf });
@@ -206,6 +206,21 @@ function issueInvoice(id) {
     run('UPDATE documents SET status=?, number=?, updated_at=? WHERE id=?', 'emitida', number, nowIso(), id);
     log(`Emitida la factura ${number}`, 'document', id);
     return getDoc(id);
+  });
+}
+
+// Albaranes → UNA factura (borrador) del mismo cliente: cada albarán aporta una línea de cabecera y sus conceptos.
+function invoiceFromNotes(b) {
+  return tx(() => {
+    const ids = [...new Set((Array.isArray(b.ids) ? b.ids : []).map(Number))]; if (!ids.length || ids.length > 100) throw bad('Elige al menos un albarán');
+    const notes = ids.map((id) => getDoc(id)); if (notes.some((n) => n.type !== 'albaran')) throw bad('Solo se facturan albaranes');
+    if (notes.some((n) => n.status !== 'pendiente')) throw new HttpError(409, 'Alguno de los albaranes ya está facturado');
+    if (new Set(notes.map((n) => n.client_id)).size !== 1 || !notes[0].client_id) throw bad('Los albaranes deben ser del mismo cliente');
+    notes.sort((a, b) => a.issue_date.localeCompare(b.issue_date) || a.number.localeCompare(b.number));
+    const lines = notes.flatMap((n) => [{ desc: `Albarán ${n.number} · ${n.issue_date.split('-').reverse().join('/')}`, qty: 0, price: 0, iva: Number(settingsObj().default_iva ?? 21), discount: 0 }, ...n.lines]);
+    const inv = createDocument({ type: 'factura', client_id: notes[0].client_id, lines, notes: notes.some((n) => n.notes) ? notes.filter((n) => n.notes).map((n) => `${n.number}: ${n.notes}`).join('\n') : '' });
+    for (const n of notes) run("UPDATE documents SET status='facturado', source_id=?, updated_at=? WHERE id=?", inv.id, nowIso(), n.id);
+    log(`${notes.length === 1 ? 'Albarán ' + notes[0].number : notes.length + ' albaranes'} pasado(s) a factura`, 'document', inv.id); return inv;
   });
 }
 
@@ -346,10 +361,11 @@ async function route(req_, url, body) {
     log(`Importados ${added} clientes`); return { added, skipped };
   }
   if (m === 'POST' && p === '/api/documents') return createDocument(body);
+  if (m === 'POST' && p === '/api/delivery-notes/invoice') return invoiceFromNotes(body);
   if ((g = p.match(/^\/api\/documents\/(\d+)$/))) {
     const id = Number(g[1]);
     if (m === 'PUT') return updateDocument(id, body);
-    if (m === 'DELETE') { const d = getDoc(id); if (d.status !== 'borrador' && !(d.type === 'presupuesto' && d.status !== 'facturado')) throw new HttpError(409, 'Los documentos emitidos no se borran: usa una factura rectificativa'); files.removeFor('document', id); timeTrack.release(id); run('DELETE FROM documents WHERE id=?', id); log(`Eliminado ${d.number || 'borrador'}`); return { ok: true }; }
+    if (m === 'DELETE') { const d = getDoc(id); if (d.status !== 'borrador' && !(['presupuesto', 'albaran'].includes(d.type) && d.status !== 'facturado')) throw new HttpError(409, 'Los documentos emitidos no se borran: usa una factura rectificativa'); files.removeFor('document', id); timeTrack.release(id); run("UPDATE documents SET status='pendiente', source_id=NULL WHERE type='albaran' AND source_id=?", id); run('DELETE FROM documents WHERE id=?', id); log(`Eliminado ${d.number || 'borrador'}`); return { ok: true }; }
   }
   if ((g = p.match(/^\/api\/documents\/(\d+)\/(issue|rectify|convert|status|duplicate)$/)) && m === 'POST') {
     const id = Number(g[1]);

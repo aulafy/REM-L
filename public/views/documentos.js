@@ -7,9 +7,9 @@ import { downloadPdf } from '../pdfdl.js';
 import { filesCard, bindFiles } from '../filesui.js';
 import { messageModal, reminderText, quoteText, invoiceText } from '../messages.js';
 
-const KIND = { facturas: { type: 'factura', one: 'Factura', many: 'Facturas', newLabel: 'Nueva factura', nuevo: 'nueva' }, presupuestos: { type: 'presupuesto', one: 'Presupuesto', many: 'Presupuestos', newLabel: 'Nuevo presupuesto', nuevo: 'nuevo' } };
-const filters = { facturas: [['todas', 'Todas'], ['borrador', 'Borradores'], ['pendientes', 'Pendientes'], ['vencidas', 'Vencidas'], ['cobradas', 'Cobradas']], presupuestos: [['todos', 'Todos'], ['borrador', 'Borrador'], ['enviado', 'Enviados'], ['aceptado', 'Aceptados'], ['rechazado', 'Rechazados'], ['facturado', 'Facturados']] };
-const state = { facturas: { f: 'todas', q: '', sort: null }, presupuestos: { f: 'todos', q: '', sort: null } };
+const KIND = { facturas: { type: 'factura', one: 'Factura', many: 'Facturas', newLabel: 'Nueva factura', nuevo: 'nueva' }, presupuestos: { type: 'presupuesto', one: 'Presupuesto', many: 'Presupuestos', newLabel: 'Nuevo presupuesto', nuevo: 'nuevo' }, albaranes: { type: 'albaran', one: 'Albarán', many: 'Albaranes', newLabel: 'Nuevo albarán', nuevo: 'nuevo' } };
+const filters = { facturas: [['todas', 'Todas'], ['borrador', 'Borradores'], ['pendientes', 'Pendientes'], ['vencidas', 'Vencidas'], ['cobradas', 'Cobradas']], presupuestos: [['todos', 'Todos'], ['borrador', 'Borrador'], ['enviado', 'Enviados'], ['aceptado', 'Aceptados'], ['rechazado', 'Rechazados'], ['facturado', 'Facturados']], albaranes: [['todos', 'Todos'], ['pendiente', 'Pendientes de facturar'], ['facturado', 'Facturados']] };
+const state = { facturas: { f: 'todas', q: '', sort: null }, presupuestos: { f: 'todos', q: '', sort: null }, albaranes: { f: 'todos', q: '', sort: null } };
 const th = (key, k, label, cls = '') => { const s = state[key].sort, on = s && s.k === k; return html`<th class="${cls}" aria-sort="${on ? (s.dir === 1 ? 'ascending' : 'descending') : 'none'}"><button class="sortbtn" data-act="sortBy" data-t="${key}" data-k="${k}">${label}<span class="arr">${on ? (s.dir === 1 ? '↑' : '↓') : ''}</span></button></th>`; };
 const SORTS = { numero: (S, d) => d.number || '~', cliente: (S, d) => clientOf(S, d.client_id)?.name || '', fecha: (S, d) => d.issue_date, venc: (S, d) => d.due_date || '', total: (S, d) => d.total };
 let draft = null;
@@ -46,7 +46,7 @@ function makeView(key) {
     },
   };
 }
-export const views = { facturas: makeView('facturas'), presupuestos: makeView('presupuestos') };
+export const views = { facturas: makeView('facturas'), presupuestos: makeView('presupuestos'), albaranes: makeView('albaranes') };
 
 // ---------- listado ----------
 function list(S, key) {
@@ -59,14 +59,22 @@ function list(S, key) {
   return html`
     <div class="page-head"><div><h1>${K.many}</h1><p class="sub">${key === 'facturas' ? 'Emite, cobra y reclama sin salir de aquí.' : 'Prepara ofertas y conviértelas en factura con un clic.'}</p></div><div class="actions"><a class="btn primary" href="#/${key}/${K.nuevo}">${icon('plus', 'sm')}${K.newLabel}</a></div></div>
     ${key === 'facturas' ? html`<div class="notice warn" style="margin-bottom:14px">${icon('alert')}<span>REM Negocio es una herramienta de gestión interna: <b>no es software de facturación certificado</b> (Verifactu/SII). Para facturas oficiales usa un sistema conforme a la normativa.</span></div>` : ''}
+    ${key === 'albaranes' ? pendingNotes(S) : ''}
     <div class="toolbar"><input class="input" id="dq" type="search" placeholder="Buscar por número o cliente…" value="${st.q}" aria-label="Buscar"><div class="seg" role="group" aria-label="Filtrar por estado">${filters[key].map(([k, l]) => html`<button data-act="dfilter" data-key="${key}" data-k="${k}" aria-pressed="${st.f === k}">${l}</button>`)}</div></div>
-    <div class="card">${docs.length ? html`<div class="tbl-wrap"><table class="tbl cards"><thead><tr>${th(key, 'numero', 'Número')}${th(key, 'cliente', 'Cliente')}${th(key, 'fecha', 'Fecha', 'hide-sm')}${th(key, 'venc', key === 'facturas' ? 'Vencimiento' : 'Válido hasta', 'hide-sm')}<th>Estado</th>${th(key, 'total', 'Total', 'right')}</tr></thead><tbody>
+    <div class="card">${docs.length ? html`<div class="tbl-wrap"><table class="tbl cards"><thead><tr>${th(key, 'numero', 'Número')}${th(key, 'cliente', 'Cliente')}${th(key, 'fecha', 'Fecha', 'hide-sm')}${th(key, 'venc', key === 'facturas' ? 'Vencimiento' : key === 'albaranes' ? 'Entrega' : 'Válido hasta', 'hide-sm')}<th>Estado</th>${th(key, 'total', 'Total', 'right')}</tr></thead><tbody>
       ${docs.map((d) => { const stt = statusOf(S, d), c = clientOf(S, d.client_id); return html`<tr class="link" data-href="#/${key}/${d.id}" tabindex="0"><td class="name nowrap a-num">${d.number || html`<span class="muted">Borrador</span>`}</td>
         <td class="a-cli"><div class="cell-client">${c ? avatar(c.name) : ''}<div><span>${c?.name || html`<span class="muted">Sin cliente</span>`}</span></div></div></td><td class="hide-sm nowrap">${fdate(d.issue_date)}</td>
         <td class="hide-sm nowrap" style="${stt === 'vencida' ? 'color:var(--red)' : ''}">${d.status === 'borrador' ? '—' : fdate(d.due_date)}${stt === 'vencida' ? html`<br><small>${relDate(d.due_date, S.serverDate)}</small>` : ''}</td><td class="a-st">${badge(stt)}</td><td class="right num nowrap a-tot"><b>${eur(d.total)}</b></td></tr>`; })}</tbody></table></div>
       <div class="card-h" style="border-top:1px solid var(--line);border-bottom:0;background:var(--surface-2);border-radius:0 0 var(--r) var(--r)"><span class="muted">${plural(docs.length, 'documento', 'documentos')}</span><span class="spacer"></span>${pend ? html`<span class="muted">Pendiente: <b style="color:var(--ink)">${eur(pend)}</b></span><span class="muted">·</span>` : ''}<span class="muted">Total: <b style="color:var(--ink)">${eur(total)}</b></span></div>`
       : html`<div class="empty">${icon(key)}<h3>${st.q || !['todas', 'todos'].includes(st.f) ? 'Nada con ese filtro' : `Aún no hay ${K.many.toLowerCase()}`}</h3><p>${st.q || !['todas', 'todos'].includes(st.f) ? 'Cambia el filtro o la búsqueda.' : key === 'facturas' ? 'Crea tu primera factura: se numera sola y calcula el IVA por ti.' : 'Crea un presupuesto y, si te lo aceptan, conviértelo en factura.'}</p><a class="btn primary" href="#/${key}/${K.nuevo}">${K.newLabel}</a></div>`}</div>`;
 }
+function pendingNotes(S) {
+  const by = new Map(); for (const n of S.documents.filter((x) => x.type === 'albaran' && x.status === 'pendiente' && x.client_id)) (by.get(n.client_id) || by.set(n.client_id, []).get(n.client_id)).push(n);
+  if (!by.size) return '';
+  return html`<section class="card" style="margin-bottom:16px"><div class="card-h"><h2>Pendientes de facturar</h2></div><ul class="list">${[...by.entries()].map(([cid, l]) => html`<li>${avatar(clientOf(S, cid)?.name || '')}<div class="grow"><div class="t">${clientOf(S, cid)?.name}</div><div class="d">${plural(l.length, 'albarán', 'albaranes')} · ${eur(l.reduce((a, n) => a + n.total, 0))} (IVA incluido)</div></div><button class="btn sm primary" data-act="billNotes" data-id="${cid}">${icon('facturas', 'sm')}Facturar ${l.length > 1 ? 'todos' : ''}</button></li>`)}</ul></section>`;
+}
+on('billNotes', async (el) => { const ids = store.S.documents.filter((x) => x.type === 'albaran' && x.status === 'pendiente' && x.client_id === Number(el.dataset.id)).map((x) => x.id); try { const inv = await mutate('POST', '/api/delivery-notes/invoice', { ids }, 'Borrador de factura preparado'); go(`#/facturas/${inv.id}`); } catch {} });
+on('billNote', async (el) => { try { const inv = await mutate('POST', '/api/delivery-notes/invoice', { ids: [Number(el.dataset.id)] }, 'Borrador de factura preparado'); go(`#/facturas/${inv.id}`); } catch {} });
 on('dfilter', (el) => { state[el.dataset.key].f = el.dataset.k; window.dispatchEvent(new Event('rem-render')); });
 
 // ---------- editor ----------
@@ -84,24 +92,24 @@ function editor(S, key, d) {
   const isInv = key === 'facturas';
   return html`
     <a class="crumb" href="#/${d ? key + '/' + d.id : key}">${icon('back', 'sm')}${d ? docLabel(d) : K.many}</a>
-    <div class="page-head"><div><h1>${d ? (d.number ? `Editar ${d.number}` : 'Editar borrador') : K.newLabel}</h1><p class="sub">${isInv ? 'Se guarda como borrador hasta que la emitas: entonces recibe su número y ya no se puede cambiar.' : 'Se numera automáticamente al crearlo.'}</p></div></div>
+    <div class="page-head"><div><h1>${d ? (d.number ? `Editar ${d.number}` : 'Editar borrador') : K.newLabel}</h1><p class="sub">${isInv ? 'Se guarda como borrador hasta que la emitas: entonces recibe su número y ya no se puede cambiar.' : key === 'albaranes' ? 'Documento de entrega: se numera solo y luego lo pasas a factura (solo o junto a otros del mismo cliente).' : 'Se numera automáticamente al crearlo.'}</p></div></div>
     <div class="editor" id="editor">
       <div class="stack">
         <section class="card"><div class="card-b grid g2">
           <div class="field" style="grid-column:1/-1"><label for="e-client">Cliente</label><div class="row"><select class="input" id="e-client" data-f="client_id" data-combo><option value="">— Elige un cliente —</option>${S.clients.filter((c) => !c.archived || c.id === draft.client_id).map((c) => html`<option value="${c.id}" ${String(c.id) === String(draft.client_id) ? raw('selected') : ''}>${c.name}</option>`)}</select><button class="btn" data-act="quickClient" type="button">${icon('plus', 'sm')}Nuevo</button></div></div>
           <div class="field"><label for="e-date">Fecha</label><input class="input" id="e-date" type="date" data-f="issue_date" value="${draft.issue_date}"></div>
-          <div class="field"><label for="e-due">${isInv ? 'Vencimiento' : 'Válido hasta'}</label><input class="input" id="e-due" type="date" data-f="due_date" value="${draft.due_date}"></div>
+          ${key === 'albaranes' ? '' : html`<div class="field"><label for="e-due">${isInv ? 'Vencimiento' : 'Válido hasta'}</label><input class="input" id="e-due" type="date" data-f="due_date" value="${draft.due_date}"></div>`}
           ${isInv && (S.settings.invoice_series || []).length > 1 ? html`<div class="field"><label for="e-series">Serie</label><select class="input" id="e-series" data-f="series">${S.settings.invoice_series.map((x) => html`<option value="${x.prefix}" ${(draft.series || S.settings.invoice_series[0].prefix) === x.prefix ? raw('selected') : ''}>${x.name} (${x.prefix})</option>`)}</select><span class="hint">Cada serie lleva su propia numeración.</span></div>` : ''}</div></section>
         <section class="card"><div class="card-h"><h2>Conceptos</h2><span class="spacer"></span>${S.items.length ? html`<select class="input" id="e-cat" style="width:auto;min-height:34px" aria-label="Añadir del catálogo"><option value="">Añadir del catálogo…</option>${S.items.map((i) => html`<option value="${i.id}">${i.name} · ${eur(i.price)}</option>`)}</select>` : ''}</div>
           <div class="card-b"><table class="lines"><thead><tr><th style="width:44%">Descripción</th><th style="width:9%">Cant.</th><th style="width:15%">Precio</th><th style="width:11%">IVA</th><th style="width:9%">Dto. %</th><th class="right" style="width:12%;text-align:right">Importe</th><th></th></tr></thead>
             <tbody id="lines">${draft.lines.map((l, i) => lineRow(l, i, t.detail[i]?.net))}</tbody></table>
             <button class="btn sm" data-act="addLine" type="button" style="margin-top:10px">${icon('plus', 'sm')}Añadir línea</button></div></section>
-        <section class="card"><div class="card-b grid g2"><div class="field" style="grid-column:1/-1"><label for="e-notes">Notas ${isInv ? 'para el cliente' : 'y condiciones'}</label><textarea class="input" id="e-notes" data-f="notes" rows="3" placeholder="${isInv ? 'Forma de pago, referencias…' : 'Plazo de entrega, condiciones de pago…'}">${draft.notes}</textarea></div>
+        <section class="card"><div class="card-b grid g2"><div class="field" style="grid-column:1/-1"><label for="e-notes">Notas ${isInv ? 'para el cliente' : 'y condiciones'}</label><textarea class="input" id="e-notes" data-f="notes" rows="3" placeholder="${isInv ? 'Forma de pago, referencias…' : key === 'albaranes' ? 'Dónde y cuándo se entregó, quién recibió…' : 'Plazo de entrega, condiciones de pago…'}">${draft.notes}</textarea></div>
           <div class="field"><label for="e-irpf">Retención IRPF</label><select class="input" id="e-irpf" data-f="irpf">${[[0, 'Sin retención'], [7, '7 %'], [15, '15 % (profesionales)'], [19, '19 %']].map(([v, l]) => html`<option value="${v}" ${Number(draft.irpf) === v ? raw('selected') : ''}>${l}</option>`)}</select><span class="hint">Solo si eres autónomo y facturas a una empresa.</span></div></div></section>
       </div>
       <aside class="editor-side stack"><section class="card totals"><div class="card-b" id="totals">${totalsBlock(t)}</div>
         <div class="card-b" style="padding-top:0"><div class="stack" style="gap:8px">
-          ${isInv ? html`<button class="btn primary" data-act="saveIssue" type="button" style="width:100%">${icon('check', 'sm')}Emitir factura</button>` : html`<button class="btn primary" data-act="saveDraft" data-go="1" type="button" style="width:100%">${icon('check', 'sm')}Guardar presupuesto</button>`}
+          ${isInv ? html`<button class="btn primary" data-act="saveIssue" type="button" style="width:100%">${icon('check', 'sm')}Emitir factura</button>` : html`<button class="btn primary" data-act="saveDraft" data-go="1" type="button" style="width:100%">${icon('check', 'sm')}${key === 'albaranes' ? 'Guardar albarán' : 'Guardar presupuesto'}</button>`}
           ${isInv ? html`<button class="btn" data-act="saveDraft" data-go="1" type="button" style="width:100%">Guardar borrador</button>` : ''}
           ${d ? html`<button class="btn ghost danger" data-act="deleteDoc" data-id="${d.id}" type="button">${icon('trash', 'sm')}Eliminar</button>` : ''}</div></div></section></aside>
     </div>`;
@@ -164,19 +172,19 @@ on('saveIssue', async () => {
 on('deleteDoc', async (el) => {
   const d = store.S.documents.find((x) => x.id === Number(el.dataset.id));
   if (!(await confirmBox({ title: 'Eliminar documento', text: `Se eliminará ${docLabel(d)}. Esta acción no se puede deshacer.`, ok: 'Eliminar', danger: true }))) return;
-  draft = null; await mutate('DELETE', `/api/documents/${d.id}`, undefined, 'Eliminado'); go(`#/${d.type === 'factura' ? 'facturas' : 'presupuestos'}`);
+  draft = null; await mutate('DELETE', `/api/documents/${d.id}`, undefined, 'Eliminado'); go(`#/${{ factura: 'facturas', albaran: 'albaranes' }[d.type] || 'presupuestos'}`);
 });
 
 // ---------- detalle y hoja imprimible ----------
 function sheet(S, d) {
   const c = clientOf(S, d.client_id) || {}, s = S.settings, t = computeTotals(d.lines, d.irpf), isInv = d.type === 'factura', st = statusOf(S, d);
-  const title = d.corrects_id ? 'Factura rectificativa' : isInv ? 'Factura' : 'Presupuesto';
+  const note = d.type === 'albaran', title = d.corrects_id ? 'Factura rectificativa' : isInv ? 'Factura' : note ? 'Albarán de entrega' : 'Presupuesto';
   return html`<article class="sheet" aria-label="${title} ${d.number}">
     <div class="sh"><div>${s.logo ? html`<img class="logo" src="${s.logo}" alt="">` : ''}<h2>${title}</h2><div class="small" style="font-size:14px;margin-top:2px"><b style="color:#1c1b22">${d.number || 'Borrador'}</b></div>
       ${st === 'cobrada' ? html`<div style="margin-top:12px"><span class="stamp" style="border-color:#15803d;color:#15803d">Cobrada</span></div>` : st === 'rectificada' ? html`<div style="margin-top:12px"><span class="stamp" style="border-color:#6b6a75;color:#6b6a75">Rectificada</span></div>` : ''}</div>
       <div style="text-align:right"><b>${s.company_name || 'Tu empresa'}</b><br>${s.company_nif ? html`NIF ${s.company_nif}<br>` : ''}${s.company_address || ''}${s.company_address ? html`<br>` : ''}${[s.company_zip, s.company_city].filter(Boolean).join(' ')}${s.company_email ? html`<br>${s.company_email}` : ''}${s.company_phone ? html`<br>${s.company_phone}` : ''}</div></div>
-    <div class="sh" style="margin-bottom:0"><div><div class="small">${isInv ? 'Facturar a' : 'Presupuesto para'}</div><b>${c.name || '—'}</b>${c.nif ? html`<br>NIF ${c.nif}` : ''}${c.address ? html`<br>${c.address}` : ''}${c.city ? html`<br>${[c.zip, c.city].filter(Boolean).join(' ')}` : ''}</div>
-      <div style="text-align:right"><div class="small">Fecha</div>${fdate(d.issue_date)}<div class="small" style="margin-top:8px">${isInv ? 'Vencimiento' : 'Válido hasta'}</div>${fdate(d.due_date)}</div></div>
+    <div class="sh" style="margin-bottom:0"><div><div class="small">${isInv ? 'Facturar a' : note ? 'Entregado a' : 'Presupuesto para'}</div><b>${c.name || '—'}</b>${c.nif ? html`<br>NIF ${c.nif}` : ''}${c.address ? html`<br>${c.address}` : ''}${c.city ? html`<br>${[c.zip, c.city].filter(Boolean).join(' ')}` : ''}</div>
+      <div style="text-align:right"><div class="small">Fecha</div>${fdate(d.issue_date)}${note ? '' : html`<div class="small" style="margin-top:8px">${isInv ? 'Vencimiento' : 'Válido hasta'}</div>${fdate(d.due_date)}`}</div></div>
     <table><thead><tr><th>Concepto</th><th class="r">Cant.</th><th class="r">Precio</th><th class="r">IVA</th><th class="r">Importe</th></tr></thead><tbody>
       ${d.lines.map((l, i) => html`<tr><td>${l.desc}${l.discount ? html`<div class="small">Descuento ${String(l.discount).replace('.', ',')} %</div>` : ''}</td><td class="r">${String(l.qty).replace('.', ',')}</td><td class="r">${eurPlain(l.price)}</td><td class="r">${l.iva} %</td><td class="r">${eur(t.detail[i].net)}</td></tr>`)}</tbody></table>
     <div class="sum"><div><span>Base imponible</span><span>${eur(t.base)}</span></div>${t.ivaGroups.filter((g) => g.base).map((g) => html`<div><span>IVA ${g.rate} % <span class="small">s/ ${eur(g.base)}</span></span><span>${eur(g.iva)}</span></div>`)}
@@ -189,7 +197,7 @@ function sheet(S, d) {
 function detail(S, key, d) {
   const K = KIND[key], isInv = d.type === 'factura', st = statusOf(S, d), paid = paidOf(S, d.id), pending = d.total - paid, pays = S.payments.filter((p) => p.document_id === d.id);
   const src = d.source_id ? S.documents.find((x) => x.id === d.source_id) : null, cor = d.corrects_id ? S.documents.find((x) => x.id === d.corrects_id) : null;
-  const child = !isInv ? S.documents.find((x) => x.source_id === d.id) : null, rect = S.documents.find((x) => x.corrects_id === d.id);
+  const notes = isInv ? S.documents.filter((x) => x.type === 'albaran' && x.source_id === d.id) : [], child = d.type === 'presupuesto' ? S.documents.find((x) => x.source_id === d.id) : null, rect = S.documents.find((x) => x.corrects_id === d.id);
   const btn = (act, icn, label, cls = '') => html`<button class="btn ${cls}" data-act="${act}" data-id="${d.id}" style="width:100%;justify-content:flex-start">${icon(icn, 'sm')}${label}</button>`;
   return html`
     <a class="crumb" href="#/${key}">${icon('back', 'sm')}${K.many}</a>
@@ -202,6 +210,9 @@ function detail(S, key, d) {
             ${d.status === 'emitida' && pending > 0 && d.total > 0 ? btn('addPayment', 'coins', 'Registrar cobro', 'primary') : ''}
             ${d.status === 'emitida' && d.total > 0 ? btn('sendInvoice', 'mail', 'Enviar al cliente') : ''}
             ${st === 'vencida' || (d.status === 'emitida' && pending > 0 && d.total > 0 && st !== 'cobrada') ? btn('remind', 'alert', 'Reclamar el pago') : ''}`
+          : d.type === 'albaran' ? html`
+            ${d.status === 'pendiente' ? btn('billNote', 'facturas', 'Pasar a factura', 'primary') : ''}
+            ${d.status === 'pendiente' ? html`<a class="btn" href="#/albaranes/${d.id}/editar" style="width:100%;justify-content:flex-start">${icon('edit', 'sm')}Editar</a>` : ''}`
           : html`
             ${d.status === 'borrador' ? btn('sendQuote', 'mail', 'Enviar al cliente', 'primary') : ''}
             ${['enviado'].includes(d.status) ? btn('quoteStatus', 'check', 'Marcar como aceptado', 'primary') : ''}
@@ -221,7 +232,7 @@ function detail(S, key, d) {
           ${pays.length ? html`<ul class="list" style="margin:0 -18px -18px">${pays.map((p) => html`<li><div class="grow"><div class="t">${eur(p.amount)}</div><div class="d">${fdate(p.date)} · ${p.method}</div></div><button class="btn ghost icon sm" data-act="deletePayment" data-id="${p.id}" aria-label="Anular cobro">${icon('x', 'sm')}</button></li>`)}</ul>` : html`<p class="muted">Todavía no se ha registrado ningún cobro.</p>`}</div></section>` : ''}
         ${extCard(S, 'documents', d.id)}
         ${filesCard(S, 'document', d.id, { title: 'Archivos adjuntos' })}
-        ${src || cor || child || rect ? html`<section class="card"><div class="card-h"><h2>Relacionado</h2></div><ul class="list">${[src && [src, 'Presupuesto de origen'], cor && [cor, 'Factura que rectifica'], child && [child, 'Factura generada'], rect && [rect, 'Rectificada por']].filter(Boolean).map(([x, l]) => html`<li class="link" data-href="#/${x.type === 'factura' ? 'facturas' : 'presupuestos'}/${x.id}"><div class="grow"><div class="t">${x.number || 'Borrador'}</div><div class="d">${l}</div></div>${icon('arrow', 'sm')}</li>`)}</ul></section>` : ''}
+        ${src || cor || child || rect || notes.length ? html`<section class="card"><div class="card-h"><h2>Relacionado</h2></div><ul class="list">${[src && [src, d.type === 'albaran' ? 'Factura generada' : 'Presupuesto de origen'], cor && [cor, 'Factura que rectifica'], child && [child, 'Factura generada'], rect && [rect, 'Rectificada por'], ...notes.map((n) => [n, 'Albarán incluido'])].filter(Boolean).map(([x, l]) => html`<li class="link" data-href="#/${{ factura: 'facturas', albaran: 'albaranes' }[x.type] || 'presupuestos'}/${x.id}"><div class="grow"><div class="t">${x.number || 'Borrador'}</div><div class="d">${l}</div></div>${icon('arrow', 'sm')}</li>`)}</ul></section>` : ''}
       </aside></div>`;
 }
 const pdfOf = (d) => { const sh = document.querySelector('.sheet'); return sh ? { html: sh.outerHTML, filename: d.number || 'documento' } : null; };
@@ -231,7 +242,7 @@ on('sendInvoice', (el) => { const S = store.S, d = docOf(el); messageModal({ tit
 on('sendQuote', (el) => { const S = store.S, d = docOf(el); messageModal({ title: 'Enviar presupuesto', client: clientOf(S, d.client_id), ...quoteText(S, d), pdf: pdfOf(d), onDone: async () => { if (d.status === 'borrador') await mutate('POST', `/api/documents/${d.id}/status`, { status: 'enviado' }); } }); });
 on('quoteStatus', (el) => mutate('POST', `/api/documents/${el.dataset.id}/status`, { status: el.dataset.s || 'aceptado' }, 'Estado actualizado'));
 on('convert', async (el) => { const inv = await mutate('POST', `/api/documents/${el.dataset.id}/convert`, {}, 'Borrador de factura creado'); go(`#/facturas/${inv.id}`); });
-on('duplicate', async (el) => { const d = docOf(el), n = await mutate('POST', `/api/documents/${d.id}/duplicate`, {}, 'Documento duplicado'); go(`#/${d.type === 'factura' ? 'facturas' : 'presupuestos'}/${n.id}${n.type === 'presupuesto' ? '/editar' : ''}`); });
+on('duplicate', async (el) => { const d = docOf(el), n = await mutate('POST', `/api/documents/${d.id}/duplicate`, {}, 'Documento duplicado'); go(`#/${{ factura: 'facturas', albaran: 'albaranes' }[d.type] || 'presupuestos'}/${n.id}${n.type !== 'factura' ? '/editar' : ''}`); });
 on('rectify', async (el) => {
   const d = docOf(el);
   if (!(await confirmBox({ title: 'Rectificar factura', text: `Se creará una factura rectificativa por el importe contrario y ${d.number} quedará marcada como rectificada. Después podrás emitir una factura correcta.`, ok: 'Crear rectificativa', danger: true }))) return;

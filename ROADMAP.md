@@ -32,7 +32,7 @@ Estado a 18/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
 11. ~~Control de horas por cliente → factura~~ ✅ hecho: Dinero → Horas (apuntar, cronómetro, tarifa por hora, «Facturar horas» crea un borrador con una línea por entrada; borrar el borrador libera las horas)
 12. ~~Resúmenes trimestrales 130 / 115 / 347~~ ✅ hecho: Dinero → Modelos con 130 (acumulado, 20 %, retenciones, pagos anteriores), 303 (IVA por tipos), 115 (alquileres 19 %) y 347 (> 3.005,06 € con desglose trimestral, NIF de proveedor), CSV y aviso de que son orientativos; no presenta nada
 13. ~~Series de facturación configurables~~ ✅ hecho: Ajustes → Facturación → Series (prefijo de 1-4 letras, contador anual propio, predeterminada), selector en cada factura; P y R reservados
-14. Albaranes → factura
+14. ~~Albaranes → factura~~ ✅ hecho: Dinero → Albaranes (numeración A, pendiente/facturado, hoja de entrega); varios albaranes del mismo cliente pasan a UN borrador de factura con una cabecera por albarán; al borrar el borrador se liberan
 15. Tareas con repetición, prioridad y subtareas
 16. Arranque automático + icono en barra de menús · bloqueo con PIN
 

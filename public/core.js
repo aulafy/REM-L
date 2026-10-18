@@ -101,7 +101,7 @@ export function openPalette() {
     { g: 'Crear', t: 'Nuevo cliente', run: () => ACT.newClient(), i: 'plus' }, { g: 'Crear', t: 'Nuevo gasto', run: () => ACT.newExpense(), i: 'plus' }, { g: 'Crear', t: 'Nueva tarea', run: () => ACT.newTask(), i: 'plus' },
     ...(S.messages || []).filter((m) => m.direction === 'in').slice(0, 60).map((m) => ({ g: 'Mensajes', t: m.peer_name, s: m.body.slice(0, 40), href: '#/mensajes/' + m.id, i: 'mensajes', k: m.body + ' ' + (m.subject || '') })),
     ...S.clients.filter((c) => !c.archived).map((c) => ({ g: 'Clientes', t: c.name, s: c.nif || c.city, href: '#/clientes/' + c.id, i: 'clientes', k: c.email })),
-    ...S.documents.map((d) => { const c = S.clients.find((x) => x.id === d.client_id); return { g: d.type === 'factura' ? 'Facturas' : 'Presupuestos', t: (d.number || 'Borrador') + (c ? ' · ' + c.name : ''), s: '', href: `#/${d.type === 'factura' ? 'facturas' : 'presupuestos'}/${d.id}`, i: d.type === 'factura' ? 'facturas' : 'presupuestos' }; }),
+    ...S.documents.map((d) => { const c = S.clients.find((x) => x.id === d.client_id); return { g: { factura: 'Facturas', albaran: 'Albaranes' }[d.type] || 'Presupuestos', t: (d.number || 'Borrador') + (c ? ' · ' + c.name : ''), s: '', href: `#/${{ factura: 'facturas', albaran: 'albaranes' }[d.type] || 'presupuestos'}/${d.id}`, i: d.type === 'factura' ? 'facturas' : 'presupuestos' }; }),
   ];
   let sel = 0, shown = [];
   const m = openModal({ cls: 'palette', label: 'Buscar', body: `<input id="pq" placeholder="Busca clientes, facturas, o escribe una acción…" autocomplete="off" aria-label="Buscar"><ul id="pl" role="listbox"></ul>`,

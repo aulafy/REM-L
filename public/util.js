@@ -30,13 +30,13 @@ export const avatar = (name, size = '') => html`<span class="avatar ${size}" sty
 // ---------- estados ----------
 export const STATUS = {
   borrador: ['Borrador', 'grey'], emitida: ['Emitida', 'blue'], cobrada: ['Cobrada', 'green'], parcial: ['Cobro parcial', 'amber'], vencida: ['Vencida', 'red'],
-  rectificada: ['Rectificada', 'grey'], enviado: ['Enviado', 'blue'], aceptado: ['Aceptado', 'green'], rechazado: ['Rechazado', 'red'], caducado: ['Caducado', 'amber'], facturado: ['Facturado', 'violet'],
+  rectificada: ['Rectificada', 'grey'], enviado: ['Enviado', 'blue'], aceptado: ['Aceptado', 'green'], rechazado: ['Rechazado', 'red'], caducado: ['Caducado', 'amber'], facturado: ['Facturado', 'violet'], pendiente: ['Pendiente de facturar', 'amber'],
 };
 export const badge = (st) => html`<span class="badge ${STATUS[st]?.[1] || 'grey'}">${STATUS[st]?.[0] || st}</span>`;
 export const paidOf = (S, id) => S.payments.filter((p) => p.document_id === id).reduce((a, p) => a + p.amount, 0);
 export const statusOf = (S, d) => docStatus(d, paidOf(S, d.id), S.serverDate);
 export const clientOf = (S, id) => S.clients.find((c) => c.id === id);
-export const docLabel = (d) => (d.number || (d.type === 'presupuesto' ? 'Presupuesto' : 'Borrador de factura'));
+export const docLabel = (d) => (d.number || (d.type === 'presupuesto' ? 'Presupuesto' : d.type === 'albaran' ? 'Albarán' : 'Borrador de factura'));
 
 // ---------- iconos (trazo, 24×24) ----------
 const P = {
