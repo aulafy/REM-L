@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.mjs",
-    "test": "REM_PDF_WARM=0 REM_BIN_DIR=\"${TMPDIR:-/tmp}/rem-test-bin\" node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\""
+    "test": "REM_PDF_WARM=0 REM_BIN_DIR=\"${TMPDIR:-/tmp}/rem-test-bin\" node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\"",
+    "stress": "node --disable-warning=ExperimentalWarning scripts/stress.mjs"
   },
   "license": "SEE LICENSE IN LICENSE"
 }

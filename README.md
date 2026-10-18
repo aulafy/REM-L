@@ -103,6 +103,9 @@ En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook �
 ## Tarjetas por correo (nivel 0)
 Presupuestos con botones Aceptar/Rechazar, solicitudes de pago y avisos de estado por **email normal**, con respuesta verificada (token de un solo uso + remitente + SPF/DKIM). Ver `docs/app-clientes.md` §14.1.
 
+## Test masivo
+`npm run stress` (opciones: `--clients 5000 --invoices 10000 --customers 1000 --only a|b`) levanta una empresa y un relé reales y comprueba: **A)** miles de clientes y facturas con escrituras concurrentes (numeración sin duplicados ni huecos, totales, cobros, exportaciones, copia y `integrity_check`); **B)** miles de clientes de REM Clientes cifrando mensajes a la vez (sin pérdidas ni duplicados, cada cliente recibe solo lo suyo, presupuestos aceptados/rechazados en masa, relé ciego, abuso y suplantación). Referencia en un Mac: 10.000 facturas emitidas en ~26 s; 5.000 mensajes cifrados en ~2,6 s. Límite conocido: con 5.000 clientes y 10.000 facturas, `/api/state` pesa ~6 MB y tarda ~1,4 s (pendiente: paginar).
+
 ## Rellenar los datos desde tu web (opcional)
 En Ajustes → Datos de tu empresa (y en el asistente inicial) puedes pegar la dirección de tu web: REM lee unas pocas páginas (portada, contacto, aviso legal), extrae nombre, teléfono, dirección, horario y NIF (de los datos estructurados `schema.org`, los enlaces y el aviso legal) y te los muestra para que **marques lo que quieres guardar**. Opcionalmente, un modelo local o Claude resume la descripción y el horario si faltan. Seguridad: solo http/https, bloquea redes privadas (también tras redirecciones), respeta `robots.txt`, límites de tamaño/tiempo y el NIF solo se acepta con dígito de control válido. Código: `lib/webprofile.mjs`, `public/webprofile.js`.
 

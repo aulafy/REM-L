@@ -1,7 +1,7 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, mkdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -26,7 +26,7 @@ class Customer {
 
 before(async () => {
   dir = mkdtempSync(join(tmpdir(), 'rem-cc-')); const rp = await port(), p = await port(); rbase = `http://127.0.0.1:${rp}`; base = `http://127.0.0.1:${p}`;
-  relay = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'relay/server.mjs'], { env: { ...process.env, RELAY_PORT: String(rp), RELAY_DATA_DIR: join(dir, 'relay'), RELAY_INVITES: 'piloto-1,piloto-2', RELAY_RATE_CUST: '6', RELAY_MAX_WAIT: '3' }, stdio: 'pipe' });
+  relay = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'relay/server.mjs'], { env: { ...process.env, RELAY_PORT: String(rp), RELAY_DATA_DIR: join(dir, 'relay'), RELAY_INVITES: 'piloto-1,piloto-2', RELAY_RATE_CUST: '6', RELAY_MAX_WAIT: '3', RELAY_ACK_GRACE_MS: '0' }, stdio: 'pipe' });
   rem = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server.mjs'], { env: { ...process.env, REM_PORT: String(p), REM_DATA_DIR: join(dir, 'rem'), REM_NO_KEYCHAIN: '1', REM_PDF_WARM: '0', REM_RELAY_WAIT: '2' }, stdio: 'pipe' }); procs.push(relay, rem);
   for (let i = 0; i < 60; i++) { try { await fetch(rbase + '/healthz'); await fetch(base + '/api/state'); break; } catch { await new Promise((r) => setTimeout(r, 100)); } }
 });
@@ -82,6 +82,15 @@ test('pago y envío: datos de pago de la empresa en la tarjeta, enlace solo http
   await call('POST', '/api/client-channel/status', { client_id: cl.id, state: 'En reparto', tracking: { carrier: 'Correos', code: 'PQ1', url: 'https://correos.example/seguimiento?c=PQ1' } }); assert.equal((await c.next('status')).tracking.url, 'https://correos.example/seguimiento?c=PQ1');
   assert.equal((await call('POST', '/api/client-channel/status', { cfp: 'Z'.repeat(22), state: 'x' })).status, 404, 'cliente que nunca escribió');
 });
+test('relé: lo entregado se borra (acuse de recibo) y los ids no se reutilizan al vaciarse la cola', async () => {
+  const c = await new Customer(globalThis.__biz, globalThis.__pub, 'Lucía').init(); await c.post({ t: 'hello', name: 'Lucía' });
+  const rdb = () => new DatabaseSync(join(dir, 'relay', 'relay.db'), { readOnly: true }), count = (t) => { const d = rdb(); const n = d.prepare(`SELECT COUNT(*) n FROM ${t} WHERE biz=?`).get(globalThis.__biz).n; d.close(); return n; };
+  await until(() => count('inbox') === 0, 10000).catch((e) => { throw new Error('inbox=' + count('inbox') + ' ' + e.message); }); // REM lo leyó y confirmó: ya no está en el relé
+  const maxId = () => { const d = rdb(); const m = d.prepare("SELECT seq FROM sqlite_sequence WHERE name='inbox'").get().seq; d.close(); return m; }; const before = maxId();
+  const pz = await c.post({ t: 'text', id: 'z1', text: 'mensaje tras vaciar la cola', ts: Date.now() }); assert.equal(pz.status, 200, JSON.stringify(pz.json)); await until(async () => (await state()).messages.find((m) => /tras vaciar la cola/.test(m.body)), 10000); assert.ok(maxId() > before, 'el id sigue creciendo');
+  await call('POST', `/api/messages/${(await state()).messages.find((m) => /tras vaciar la cola/.test(m.body)).id}/send`, { text: 'recibido' }); assert.equal((await c.next('text')).text, 'recibido'); await c.poll(0); assert.equal(count('outbox') >= 0, true);
+  const d = rdb(), left = d.prepare('SELECT COUNT(*) n FROM outbox WHERE biz=? AND cfp=?').get(globalThis.__biz, c.cfp).n; d.close(); assert.equal(left, 0, 'lo que el cliente ya leyó se borra del relé');
+});
 test('límites y abuso: ritmo por cliente, tamaño, bloqueo, huella falsa y empresa que no acepta mensajes', async () => {
   const biz = globalThis.__biz, c = await new Customer(biz, globalThis.__pub, 'Spammer').init(); let last; for (let i = 0; i < 8; i++) last = await c.post({ t: 'text', id: 's' + i, text: 'hola ' + i }); assert.equal(last.status, 429);
   const big = await new Customer(biz, globalThis.__pub, 'Grande').init(); const env = await seal(big.key, { t: 'text', text: 'x'.repeat(70000) }, { biz, cfp: big.cfp, dir: 'c2b' }); assert.equal((await rj('POST', `/v1/biz/${biz}/inbox`, { cfp: big.cfp, cpub: toB64u(big.id.pubRaw), env })).status, 413);
@@ -93,4 +102,15 @@ test('límites y abuso: ritmo por cliente, tamaño, bloqueo, huella falsa y empr
 test('desactivar el canal: el relé deja de aceptar mensajes y REM deja de leer', async () => {
   assert.equal((await call('POST', '/api/client-channel/disable', {})).json.on, false); assert.equal((await rj('GET', `/v1/biz/${globalThis.__biz}`)).json.accepting, false);
   assert.equal((await call('POST', `/api/messages/${globalThis.__mid}/send`, { text: 'hola' })).status, 409);
+});
+
+test('relé: migra una base antigua sin AUTOINCREMENT conservando los mensajes pendientes y la numeración', async () => {
+  const mdir = join(dir, 'relay-old'); mkdirSync(mdir, { recursive: true }); const old = new DatabaseSync(join(mdir, 'relay.db'));
+  old.exec(`CREATE TABLE biz(id TEXT PRIMARY KEY, pub TEXT NOT NULL, token_hash TEXT NOT NULL, profile TEXT NOT NULL DEFAULT '{}', created_at INTEGER NOT NULL);
+    CREATE TABLE inbox(id INTEGER PRIMARY KEY, biz TEXT NOT NULL, cfp TEXT NOT NULL, cpub TEXT NOT NULL, iv TEXT NOT NULL, ct TEXT NOT NULL, cname TEXT DEFAULT '', ts INTEGER NOT NULL);
+    CREATE TABLE outbox(id INTEGER PRIMARY KEY, biz TEXT NOT NULL, cfp TEXT NOT NULL, iv TEXT NOT NULL, ct TEXT NOT NULL, ts INTEGER NOT NULL);`);
+  old.prepare('INSERT INTO inbox(id,biz,cfp,cpub,iv,ct,ts) VALUES(41,?,?,?,?,?,?)').run('B'.repeat(22), 'C'.repeat(22), 'P', 'iv', 'ct', Date.now()); old.close();
+  const p = await port(), child = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'relay/server.mjs'], { env: { ...process.env, RELAY_PORT: String(p), RELAY_DATA_DIR: mdir, RELAY_INVITES: 'x' }, stdio: 'pipe' }); procs.push(child);
+  await until(async () => { try { return (await fetch(`http://127.0.0.1:${p}/healthz`)).ok; } catch { return false; } }); child.kill(); await new Promise((r) => setTimeout(r, 300));
+  const d = new DatabaseSync(join(mdir, 'relay.db'), { readOnly: true }); assert.match(d.prepare("SELECT sql FROM sqlite_master WHERE name='inbox'").get().sql, /AUTOINCREMENT/i); assert.equal(d.prepare('SELECT COUNT(*) n FROM inbox').get().n, 1); assert.equal(d.prepare("SELECT seq FROM sqlite_sequence WHERE name='inbox'").get().seq, 41); d.close();
 });

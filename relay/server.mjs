@@ -11,18 +11,20 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 const HERE = dirname(fileURLToPath(import.meta.url)), PUB = join(HERE, 'public');
 const env = process.env, PORT = Number(env.RELAY_PORT || 4800), DATA = env.RELAY_DATA_DIR || join(HERE, 'data');
 const INVITES = new Set(String(env.RELAY_INVITES || '').split(',').map((x) => x.trim()).filter(Boolean)), OPEN = env.RELAY_OPEN === '1';
-const RETENTION_MS = Number(env.RELAY_RETENTION_DAYS || 14) * 864e5, MAX_CT = 48 * 1024, MAX_QUEUE_BIZ = 2000, MAX_QUEUE_CUST = 300, MAX_WAIT = Number(env.RELAY_MAX_WAIT || 25);
+const RETENTION_MS = Number(env.RELAY_RETENTION_DAYS || 14) * 864e5, MAX_CT = 48 * 1024, MAX_QUEUE_BIZ = Number(env.RELAY_MAX_QUEUE_BIZ || 2000), MAX_QUEUE_CUST = 300, MAX_WAIT = Number(env.RELAY_MAX_WAIT || 25);
 const LIMIT = { ip: Number(env.RELAY_RATE_IP || 60), cust: Number(env.RELAY_RATE_CUST || 30) }; // envíos por minuto
 
 mkdirSync(DATA, { recursive: true });
 const db = new DatabaseSync(join(DATA, 'relay.db'));
 db.exec(`PRAGMA journal_mode=WAL;
 CREATE TABLE IF NOT EXISTS biz(id TEXT PRIMARY KEY, pub TEXT NOT NULL, token_hash TEXT NOT NULL, profile TEXT NOT NULL DEFAULT '{}', created_at INTEGER NOT NULL);
-CREATE TABLE IF NOT EXISTS inbox(id INTEGER PRIMARY KEY, biz TEXT NOT NULL, cfp TEXT NOT NULL, cpub TEXT NOT NULL, iv TEXT NOT NULL, ct TEXT NOT NULL, cname TEXT DEFAULT '', ts INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS inbox(id INTEGER PRIMARY KEY AUTOINCREMENT, biz TEXT NOT NULL, cfp TEXT NOT NULL, cpub TEXT NOT NULL, iv TEXT NOT NULL, ct TEXT NOT NULL, cname TEXT DEFAULT '', ts INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS ix_inbox ON inbox(biz, id);
-CREATE TABLE IF NOT EXISTS outbox(id INTEGER PRIMARY KEY, biz TEXT NOT NULL, cfp TEXT NOT NULL, iv TEXT NOT NULL, ct TEXT NOT NULL, ts INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS outbox(id INTEGER PRIMARY KEY AUTOINCREMENT, biz TEXT NOT NULL, cfp TEXT NOT NULL, iv TEXT NOT NULL, ct TEXT NOT NULL, ts INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS ix_outbox ON outbox(biz, cfp, id);
 CREATE TABLE IF NOT EXISTS blocked(biz TEXT NOT NULL, cfp TEXT NOT NULL, PRIMARY KEY(biz, cfp));`);
+// Migración: sin AUTOINCREMENT, al vaciarse la cola se reutilizarían los ids y la empresa ignoraría mensajes nuevos
+for (const t of ['inbox', 'outbox']) { const sql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?").get(t)?.sql || ''; if (sql && !/AUTOINCREMENT/i.test(sql)) { const mx = db.prepare(`SELECT COALESCE(MAX(id),0) m FROM ${t}`).get().m; db.exec(`ALTER TABLE ${t} RENAME TO ${t}_old; ${sql.replace(/id INTEGER PRIMARY KEY/i, 'id INTEGER PRIMARY KEY AUTOINCREMENT').replace(`TABLE ${t}`, `TABLE ${t}`)}; INSERT INTO ${t} SELECT * FROM ${t}_old; DROP TABLE ${t}_old; INSERT OR REPLACE INTO sqlite_sequence(name,seq) VALUES('${t}',${mx}); CREATE INDEX IF NOT EXISTS ix_${t} ON ${t}(${t === 'inbox' ? 'biz, id' : 'biz, cfp, id'});`); } }
 const q = (sql, ...p) => db.prepare(sql).all(...p), one = (sql, ...p) => db.prepare(sql).get(...p), run = (sql, ...p) => db.prepare(sql).run(...p);
 
 class Http extends Error { constructor(status, message) { super(message); this.status = status; } }
@@ -80,6 +82,7 @@ async function api(req, url, body) {
   }
   if (m === 'GET' && (g = p.match(/^\/v1\/biz\/([A-Za-z0-9_-]{22})\/inbox$/))) {            // empresa lee
     const id = g[1]; auth(req, id); const since = Number(url.searchParams.get('since') || 0), wait = Math.min(MAX_WAIT, Number(url.searchParams.get('wait') || 0));
+    if (since > 0) run('DELETE FROM inbox WHERE biz=? AND id<=?', id, since); // acuse de recibo: lo ya entregado a la empresa se borra del relé
     let rows = q('SELECT id,cfp,cpub,iv,ct,cname,ts FROM inbox WHERE biz=? AND id>? ORDER BY id LIMIT 100', id, since); if (!rows.length && wait > 0) { await waitFor('in:' + id, wait * 1000); rows = q('SELECT id,cfp,cpub,iv,ct,cname,ts FROM inbox WHERE biz=? AND id>? ORDER BY id LIMIT 100', id, since); }
     return { items: rows.map((r) => ({ id: r.id, cfp: r.cfp, cpub: r.cpub, env: { iv: r.iv, ct: r.ct }, cname: r.cname, ts: r.ts })) };
   }
@@ -90,6 +93,7 @@ async function api(req, url, body) {
   }
   if (m === 'GET' && (g = p.match(/^\/v1\/c\/([A-Za-z0-9_-]{22})\/([A-Za-z0-9_-]{22})\/outbox$/))) {   // cliente lee
     const [, id, cfp] = g, since = Number(url.searchParams.get('since') || 0), wait = Math.min(MAX_WAIT, Number(url.searchParams.get('wait') || 0)); limit('p:' + (req.socket.remoteAddress || ''), 240);
+    if (since > 0) run('DELETE FROM outbox WHERE biz=? AND cfp=? AND id<=? AND ts<?', id, cfp, since, Date.now() - Number(env.RELAY_ACK_GRACE_MS ?? 60000)); // lo que el cliente ya leyó se borra (la huella actúa como capacidad: prototipo)
     const get = () => q('SELECT id,iv,ct,ts FROM outbox WHERE biz=? AND cfp=? AND id>? ORDER BY id LIMIT 100', id, cfp, since); let rows = get(); if (!rows.length && wait > 0) { await waitFor(`out:${id}:${cfp}`, wait * 1000); rows = get(); }
     return { items: rows.map((r) => ({ id: r.id, env: { iv: r.iv, ct: r.ct }, ts: r.ts })) };
   }
