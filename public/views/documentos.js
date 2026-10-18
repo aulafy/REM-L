@@ -209,6 +209,7 @@ function detail(S, key, d) {
             ${d.status === 'enviado' || d.status === 'rechazado' ? btn('sendQuote', 'mail', 'Reenviar') : ''}
             ${d.status !== 'facturado' ? html`<a class="btn" href="#/presupuestos/${d.id}/editar" style="width:100%;justify-content:flex-start">${icon('edit', 'sm')}Editar</a>` : ''}`}
           <button class="btn" data-act="dlPdf" data-id="${d.id}" style="width:100%;justify-content:flex-start">${icon('download', 'sm')}Descargar PDF</button>
+          ${d.type === 'presupuesto' ? html`<a class="btn" href="/api/documents/${d.id}/pptx" download style="width:100%;justify-content:flex-start">${icon('download', 'sm')}Descargar propuesta (PowerPoint)</a>` : ''}
           <button class="btn" data-act="print" style="width:100%;justify-content:flex-start">${icon('print', 'sm')}Imprimir</button>
           ${btn('duplicate', 'copy', 'Duplicar')}
           ${isInv && !d.corrects_id && d.status !== 'rectificada' ? btn('repeatInvoice', 'refresh', 'Repetir…') : ''}

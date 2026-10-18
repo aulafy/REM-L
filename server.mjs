@@ -24,6 +24,7 @@ import { createFiles } from './lib/files.mjs';
 import { createImporter } from './lib/importer.mjs';
 import { createOffice } from './lib/office.mjs';
 import { buildDocx } from './lib/docx.mjs';
+import { proposalDeck } from './lib/pptx.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
@@ -432,6 +433,12 @@ const server = createServer(async (req, res) => {
         const pdf = htmlToPdf(b.html, DATA, readFileSync(join(PUBLIC, 'pdf.css'), 'utf8')); if (!pdf) throw new HttpError(501, 'Este equipo no puede generar PDF; usa Imprimir');
         res.writeHead(200, { ...headers, 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${String(b.filename || 'documento').replace(/[^\w.\- ]+/g, '_').slice(0, 80)}.pdf"`, 'Cache-Control': 'no-store' }).end(pdf); return;
       }
+      { const g = req.method === 'GET' && url.pathname.match(/^\/api\/documents\/(\d+)\/pptx$/);
+        if (g) {
+          const d = getDoc(Number(g[1])); if (d.type !== 'presupuesto') throw new HttpError(409, 'La propuesta se genera desde un presupuesto');
+          const deck = proposalDeck({ doc: d, client: d.client_id ? one('SELECT * FROM clients WHERE id=?', d.client_id) : null, s: settingsObj(), totals: { base: d.base, ivaTotal: d.iva_total, irpfTotal: d.irpf_total, total: d.total } });
+          res.writeHead(200, { ...headers, 'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'Content-Disposition': `attachment; filename="Propuesta ${String(d.number || 'presupuesto').replace(/[^\w.\-]+/g, '_')}.pptx"`, 'Cache-Control': 'no-store' }).end(deck); return;
+        } }
       if (url.pathname === '/api/docx' && req.method === 'POST') {
         if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
         const chunks = []; let n = 0; for await (const c of req) { n += c.length; if (n > 1e6) throw bad('Demasiado grande'); chunks.push(c); }

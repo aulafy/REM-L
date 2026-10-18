@@ -25,7 +25,7 @@ Estado a 18/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
    - Importar facturas y gastos desde `.xlsx` (elige hoja; fechas e importes por formato de celda)
    - Límites: de PowerPoint solo texto y notas (sin imágenes ni diagramas); `.ppt` y `.xls` antiguos no soportados; Excel: hojas ocultas ignoradas, máx. 20 000 filas y 100 columnas
 8. ~~Generar `.docx` de cartas y contratos~~ ✅ hecho: botón «Descargar Word» junto al PDF en el documento de cada cliente (estilos reales de Word, viñetas, negrita/cursiva, A4; verificado con python-docx; sin dependencias)
-9. (Más adelante) Propuesta comercial en `.pptx` a partir de un presupuesto
+9. ~~Propuesta comercial en `.pptx` a partir de un presupuesto~~ ✅ hecho: «Descargar propuesta (PowerPoint)» en cada presupuesto — 5 diapositivas 16:9 editables (portada, qué incluye, inversión con tabla y totales, condiciones, siguientes pasos); verificado con python-pptx y Quick Look
 
 ## Después
 10. Cuentas a pagar (gastos con vencimiento y pagado)
