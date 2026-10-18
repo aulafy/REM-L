@@ -68,7 +68,8 @@ test('el borrador se aplica y la tarea propuesta espera tu aprobación', async (
   const m = await msg('¿Cuánto cuesta?'); const x = await until(async () => { const y = (await state()).messages.find((z) => z.id === m.id); return y.draft ? y : null; });
   assert.equal(x.draft, 'Hola, gracias.');
   const st = await state(); const ap = st.approvals.find((a) => a.action === 'create_task'); assert.ok(ap); assert.equal(st.tasks.some((t) => t.title === 'Llamar al cliente'), false);
-  assert.equal((await call('POST', `/api/approvals/${ap.id}/approve`, {})).status, 200);
+  const attempts = await Promise.all([call('POST', `/api/approvals/${ap.id}/approve`, {}), call('POST', `/api/approvals/${ap.id}/approve`, {})]);
+  assert.deepEqual(attempts.map((r) => r.status).sort(), [200, 409], 'dos aprobaciones concurrentes solo ejecutan una vez');
   assert.equal((await state()).tasks.filter((t) => t.title === 'Llamar al cliente').length, 1);
   assert.equal((await call('POST', `/api/approvals/${ap.id}/approve`, {})).status, 409, 'no se aprueba dos veces');
 });
@@ -106,6 +107,11 @@ test('política: handoff no es aprobable y ask sobre el borrador lo manda a la c
   assert.equal((await call('POST', `/api/approvals/${tk.id}/approve`, {})).status, 409, 'handoff: solo lo hace la persona');
   assert.equal((await call('POST', `/api/approvals/${dr.id}/approve`, {})).status, 200);
   assert.equal((await state()).messages.find((z) => z.id === m.id).draft, 'Hola, gracias.');
+  const newer = await msg('Quiero otra versión'); await settled(newer.id); await new Promise((r) => setTimeout(r, 100));
+  const stale = (await state()).approvals.find((a) => a.action === 'draft_reply' && a.params.message_id === newer.id); assert.ok(stale);
+  await call('POST', `/api/messages/${newer.id}/draft`, { draft: 'Mi texto manual' });
+  assert.equal((await call('POST', `/api/approvals/${stale.id}/approve`, {})).status, 409, 'no pisa un borrador editado después');
+  const current = await state(); assert.equal(current.messages.find((z) => z.id === newer.id).draft, 'Mi texto manual'); assert.equal(current.approvals.some((a) => a.id === stale.id), false, 'la propuesta obsoleta sale de la cola');
   assert.equal((await call('PUT', '/api/policy', { create_task: 'nonsense' })).status, 400);
 });
 

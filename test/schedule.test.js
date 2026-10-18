@@ -78,6 +78,10 @@ test('Noche: se detiene a las 15 propuestas y avisa; mover una tarea exige aprob
   const b = st.briefings.find((x) => x.kind === 'noche'); assert.ok(b.items.some((i) => i.kind === 'aviso'));
   const ap = st.approvals.find((a) => a.agent === 'noche'); await call('POST', `/api/approvals/${ap.id}/approve`, {});
   assert.notEqual((await state()).tasks.find((t) => t.id === ap.params.task_id).due, '2020-01-01');
+  const stale = st.approvals.find((a) => a.agent === 'noche' && a.id !== ap.id), task = st.tasks.find((t) => t.id === stale.params.task_id);
+  assert.equal((await call('PUT', `/api/tasks/${task.id}`, { due: '2099-01-01' })).status, 200);
+  assert.equal((await call('POST', `/api/approvals/${stale.id}/approve`, {})).status, 409, 'no aplica una fecha propuesta sobre una tarea ya cambiada');
+  const current = await state(); assert.equal(current.tasks.find((t) => t.id === task.id).due, '2099-01-01'); assert.equal(current.approvals.some((a) => a.id === stale.id), false);
 });
 
 test('Parar todo detiene a los agentes; la hora se valida', async () => {
