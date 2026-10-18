@@ -17,6 +17,8 @@ import { createAttachments } from './lib/attachments.mjs';
 import { createModules } from './lib/modules.mjs';
 import { createRecurring } from './lib/recurring.mjs';
 import { createDocTemplates } from './lib/doctemplates.mjs';
+import { buildIcs } from './lib/calendar.mjs';
+import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -78,6 +80,9 @@ const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpEr
 const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError, modules });
 const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, settingsObj, agents, createExpense: (b) => C.expenses.create(b) });
 const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments, modules });
+
+const icsToken = () => { let t = settingsObj().ics_token; if (!t) { t = randomBytes(16).toString('hex'); saveSetting('ics_token', t); } return t; };
+const icsText = () => buildIcs({ tasks: all('SELECT * FROM tasks'), documents: all('SELECT * FROM documents').map(docRow), payments: all('SELECT * FROM payments'), clients: all('SELECT * FROM clients'), recurring: all('SELECT * FROM recurring'), settings: settingsObj(), today: today() });
 
 function nextNumber(type, year) {
   const prefix = type === 'presupuesto' ? 'P' : type === 'rectificativa' ? 'R' : 'F';
@@ -241,7 +246,7 @@ const TABLE_OF = { clients: 'clients', items: 'items', expenses: 'expenses', tas
 
 async function route(req_, url, body) {
   const m = req_.method, p = url.pathname;
-  if (m === 'GET' && p === '/api/state') return { ...state(), pdf: pdfAvailable(DATA) };
+  if (m === 'GET' && p === '/api/state') return { ...state(), pdf: pdfAvailable(DATA), icsToken: icsToken() };
   if (m === 'POST' && p === '/api/hindsight') {
     if (body.disconnect) { hindsight.disconnect(); return hindsight.state().hindsight; }
     try { await hindsight.connect(str(body.url, 200) || 'http://127.0.0.1:8888'); } catch (e) { throw new HttpError(400, 'No se pudo conectar con Hindsight: ' + e.message); }
@@ -312,6 +317,7 @@ async function route(req_, url, body) {
     return settingsObj();
   }
   if (m === 'POST' && p === '/api/ai/draft') return aiDraft(body);
+  if (m === 'POST' && p === '/api/calendar/rotate') { saveSetting('ics_token', randomBytes(16).toString('hex')); return { token: icsToken() }; }
   if (m === 'POST' && p === '/api/backups') return makeBackup('manual');
   { let g;
     const named = (n) => { if (!/^negocio-[\w.:-]+\.db$/.test(String(n || '')) || !existsSync(join(DATA, 'backups', n))) throw new HttpError(404, 'Esa copia no existe'); return join(DATA, 'backups', n); };
@@ -356,6 +362,10 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && /^\/api\/backups\/[^/]+\/file$/.test(url.pathname)) {
         const n = decodeURIComponent(url.pathname.split('/')[3]); if (!/^negocio-[\w.:-]+\.db$/.test(n) || !existsSync(join(DATA, 'backups', n))) throw new HttpError(404, 'No existe');
         res.writeHead(200, { ...headers, 'Content-Type': 'application/octet-stream', 'Content-Disposition': `attachment; filename="${n}"`, 'Cache-Control': 'no-store' }).end(readFileSync(join(DATA, 'backups', n))); return;
+      }
+      if (url.pathname === '/api/calendar.ics' && req.method === 'GET') {
+        if (url.searchParams.get('t') !== icsToken()) throw new HttpError(403, 'Enlace no válido');
+        res.writeHead(200, { ...headers, 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'inline; filename="rem-negocio.ics"', 'Cache-Control': 'no-store' }).end(icsText()); return;
       }
       if (url.pathname === '/api/pdf' && req.method === 'POST') {
         if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
