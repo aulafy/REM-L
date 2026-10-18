@@ -131,6 +131,7 @@ test('el prompt incluye negocio.md, notas del cliente, historial del hilo y solo
   const st0 = await state(); const last = st0.messages.find((m) => m.body === 'vale, el jueves entonces');
   // ligar los mensajes al cliente a mano para que entre su memoria y notas
   assert.equal((await call('POST', `/api/messages/${first.id}/client`, { client_id: c.id })).status, 200);
+  await settled(first.id); await settled(last.id); // que los borradores anteriores terminen antes de medir el prompt del siguiente
   mode = 'memory'; calls = 0; seen.length = 0;
   const m3 = (await call('POST', '/api/messages/manual', { channel: 'whatsapp', peer_name: 'Rosa', peer_addr: '+34600', body: '¿Y a qué hora?' })).json; await settled(m3.id); await new Promise((r) => setTimeout(r, 300));
   const p = seen.at(-1);
