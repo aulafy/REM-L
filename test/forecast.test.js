@@ -45,3 +45,13 @@ test('saldo: serie diaria, saldo final y el punto más bajo', () => {
   const ev = f.events; assert.deepEqual(ev.map((e) => [e.date, e.amount]), [['2026-10-22', 30000], ['2026-10-25', -90000]]); assert.equal(f.totals.end, 50000 + 30000 - 90000); assert.equal(f.totals.min, -10000); assert.equal(f.totals.minDate, '2026-10-25');
   assert.equal(forecast(mk(), { horizon: 30 }).series.length, 0, 'sin saldo no hay serie'); assert.equal(f.weeks.length, 5); assert.equal(f.weeks[0].in, 30000); assert.equal(f.weeks[1].out, 90000);
 });
+
+test('gastos recurrentes definidos: se proyectan con su fecha y evitan duplicar los detectados', () => {
+  const exp = (id, date) => ({ id, date, supplier: 'Alquileres Levante', concept: 'Alquiler', total: 79000, base: 65000 });
+  const S = mk({ expenses: [exp(1, '2026-08-20'), exp(2, '2026-09-20')], recurringExpenses: [{ id: 1, active: true, supplier: 'Alquileres Levante', concept: 'Alquiler', total: 79000, every: 'month', anchor: 20, next_date: '2026-10-20', estimated: false }, { id: 2, active: true, supplier: '', concept: 'Seguro', total: 12000, every: 'year', anchor: 3, next_date: '2026-11-03', estimated: true }, { id: 3, active: false, supplier: '', concept: 'Pausado', total: 5000, every: 'month', anchor: 1, next_date: '2026-10-25', estimated: false }] });
+  const f = forecast(S, { horizon: 60 }); const g = f.events.filter((e) => e.kind === 'gasto');
+  assert.deepEqual(g.map((e) => [e.date, e.label, e.amount]), [['2026-10-20', 'Alquiler', -79000], ['2026-11-03', 'Seguro', -12000], ['2026-11-20', 'Alquiler', -79000]], 'sin duplicados con la detección automática y sin los pausados');
+  assert.match(g[1].note, /estimado/);
+  const past = mk({ recurringExpenses: [{ id: 1, active: true, supplier: '', concept: 'Cuota', total: 5000, every: 'month', anchor: 5, next_date: '2026-06-05', estimated: false }] });
+  assert.deepEqual(forecast(past, { horizon: 40 }).events.filter((e) => e.kind === 'gasto').map((e) => e.date), ['2026-11-05'], 'las fechas pasadas se saltan hasta la próxima');
+});

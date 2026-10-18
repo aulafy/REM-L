@@ -36,6 +36,7 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 ## Más herramientas básicas
 
 - **Copias de seguridad:** automática diaria; en Ajustes → Datos puedes **restaurar** (guarda antes una copia de lo actual), **descargar** e **importar** copias (.db).
+- **Gastos recurrentes:** alquiler, cuotas, seguros… se registran solos cada periodo (y los que falten si la app estuvo cerrada); botón «Repetir» en cualquier gasto.
 - **Facturas recurrentes:** «Repetir…» en una factura; cada periodo se prepara un **borrador** (nunca se emite solo).
 - **Cartas y contratos:** plantillas con variables (reclamación de pago, contrato de servicios, consentimiento de datos) desde la ficha del cliente → vista previa editable → PDF. Plantillas propias en Ajustes → Documentos.
 - **Calendario:** Tareas → Calendario: suscripción `.ics` con tareas, vencimientos de facturas, caducidad de presupuestos y recurrentes (enlace privado renovable, solo en tu Mac).

@@ -76,7 +76,7 @@ setLlmHooks({ log: llmlog.record, check: llmlog.check });
 const agents = createAgents({ db, run, one, all, dataDir: DATA, nowIso, HttpError, settingsObj, saveSetting });
 const hindsight = createHindsight({ settingsObj, saveSetting, log: (e) => agents.log(e) });
 const modules = createModules({ db, run, one, all, nowIso, str, HttpError, settingsObj, saveSetting, agents });
-const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument });
+const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument, createExpense: (b) => C.expenses.create(b) });
 const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpError, log });
 const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError, modules });
 const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, settingsObj, agents, createExpense: (b) => C.expenses.create(b) });
@@ -363,7 +363,7 @@ async function route(req_, url, body) {
     if (body.confirm !== 'BORRAR') throw bad('Confirmación necesaria');
     makeBackup('antes-de-borrar');
     inbox.stop();
-    for (const t of ['doc_templates', 'recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
+    for (const t of ['recurring_expenses', 'doc_templates', 'recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
     return { ok: true };
   }
   throw new HttpError(404, 'Ruta no encontrada');

@@ -42,3 +42,16 @@ test('pausar, generar a mano y eliminar', async () => {
   const man = await call('POST', `/api/recurring/${r.id}/run`, {}); assert.equal(man.status, 200); assert.equal(man.json.status, 'borrador'); assert.equal((await state()).recurring[0].next_date, s.serverDate, 'generar a mano no mueve el calendario');
   assert.equal((await call('DELETE', `/api/recurring/${r.id}`)).status, 200); assert.equal((await state()).recurring.length, 0); assert.equal((await call('POST', `/api/recurring/999/run`, {})).status, 404);
 });
+
+test('gastos recurrentes: se registran solos, uno por cada periodo que faltó, y no duplican', async () => {
+  const s = await state(), src = s.expenses[0], today = s.serverDate;
+  assert.equal((await call('POST', '/api/recurring-expenses', { concept: 'Cuota', total: 0, every: 'month', next_date: today })).status, 400); assert.equal((await call('POST', '/api/recurring-expenses', { from_expense_id: 99999, every: 'month', next_date: today })).status, 404);
+  const first = new Date(); first.setDate(1); first.setMonth(first.getMonth() - 2); const start = first.toLocaleDateString('sv-SE');
+  const r = (await call('POST', '/api/recurring-expenses', { supplier: 'Gestoría', concept: 'Cuota autónomos', category: 'impuestos y tasas', total: 30000, iva: 0, every: 'month', next_date: start, estimated: true })).json; assert.equal(r.anchor, 1);
+  const before = (await state()).expenses.length; assert.ok((await call('POST', '/api/recurring/check', {})).json.generated >= 3);
+  const st = await state(); const mine = st.expenses.filter((e) => e.concept === 'Cuota autónomos'); assert.equal(mine.length, 3, 'abril... un gasto por periodo atrasado'); assert.deepEqual(mine.map((e) => e.date).sort()[0], start); assert.ok(mine.every((e) => e.total === 30000 && e.base === 30000 && /estimado/.test(e.notes)));
+  const r2 = st.recurringExpenses.find((x) => x.id === r.id); assert.ok(r2.next_date > today); assert.equal(st.expenses.length, before + 3); assert.equal((await call('POST', '/api/recurring/check', {})).json.generated, 0, 'no se repite');
+  const fromExp = (await call('POST', '/api/recurring-expenses', { from_expense_id: src.id, every: 'quarter', next_date: '2099-01-01' })).json; assert.equal(fromExp.total, src.total); assert.equal(fromExp.concept, src.concept);
+  await call('PUT', `/api/recurring-expenses/${r.id}`, { active: false, next_date: start }); await call('POST', '/api/recurring/check', {}); assert.equal((await state()).expenses.filter((e) => e.concept === 'Cuota autónomos').length, 3, 'en pausa no genera');
+  assert.equal((await call('DELETE', `/api/recurring-expenses/${r.id}`)).status, 200); assert.equal((await state()).recurringExpenses.length, 1);
+});

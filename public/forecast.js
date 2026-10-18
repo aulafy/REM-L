@@ -19,11 +19,12 @@ export function paymentDelays(S) {
 }
 
 // Gastos que se repiten (mismo proveedor, ~30 días entre ellos) → próximas fechas; el resto, como media.
-export function expensePatterns(S, today) {
+export function expensePatterns(S, today, skip = new Set()) {
   const since = addDays(today, -120), recent = S.expenses.filter((e) => e.date >= since && e.date <= today);
   const groups = new Map(); for (const e of recent) { const k = (e.supplier || e.concept).toLowerCase().trim(); (groups.get(k) || groups.set(k, []).get(k)).push(e); }
   const recurring = [], used = new Set();
   for (const [k, list] of groups) {
+    if (skip.has(k)) { list.forEach((e) => used.add(e.id)); continue; }
     const s = list.sort((a, b) => a.date.localeCompare(b.date)); if (s.length < 2) continue;
     const gaps = s.slice(1).map((e, i) => days(s[i].date, e.date)); if (!gaps.every((g) => g >= 26 && g <= 35)) continue;
     const last = s[s.length - 1]; recurring.push({ key: k, label: last.supplier || last.concept, amount: last.total, lastDate: last.date, day: Number(last.date.slice(8, 10)) }); s.forEach((e) => used.add(e.id));
@@ -59,7 +60,9 @@ export function forecast(S, { horizon = 30, today = S.serverDate, includeOverdue
   // 3) Gastos habituales + media del resto + 4) IVA
   const outflows = [];
   if (includeEstimates) {
-    const pat = expensePatterns(S, today);
+    const explicit = (S.recurringExpenses || []).filter((r) => r.active), skip = new Set(explicit.map((r) => (r.supplier || r.concept).toLowerCase().trim()));
+    for (const r of explicit) { let d = r.next_date, n = 0; while (d < today && n++ < 60) d = advanceDate(d, r.every, r.anchor); n = 0; while (d <= end && n++ < 40) { push({ date: d, amount: -r.total, kind: 'gasto', label: r.concept, who: r.supplier || '', note: r.estimated ? 'Gasto recurrente (importe estimado)' : 'Gasto recurrente', href: '#/recurrentes', certain: !r.estimated }); d = advanceDate(d, r.every, r.anchor); } }
+    const pat = expensePatterns(S, today, skip);
     for (const r of pat.recurring) { let d = r.lastDate, n = 0; for (;;) { d = advanceDate(d, 'month', r.day); n++; if (d > end || n > 6) break; if (d >= today) push({ date: d, amount: -r.amount, kind: 'gasto', label: r.label, who: '', note: 'Gasto que se repite cada mes', href: '#/gastos', certain: false }); } }
     if (pat.otherPerMonth > 0) { let d = addDays(today, 15); while (d <= end) { push({ date: d, amount: -Math.round(pat.otherPerMonth / 2), kind: 'gasto_medio', label: 'Otros gastos', who: '', note: 'Media de tus últimos meses, repartida quincenalmente', href: '#/gastos', certain: false }); d = addDays(d, 15); } }
     const y = Number(today.slice(0, 4));
