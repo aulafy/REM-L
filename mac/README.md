@@ -22,5 +22,11 @@ REM_APP_DIR=.. REM_DATA_DIR=/tmp/rem-prueba .build/release/RemNegocio --snap-dir
 ```
 Nota: en macOS 26+ `@State` es una macro que exige el plugin de Xcode; por eso las vistas usan `@Loc` (`Loc.swift`), un equivalente que compila también con las Command Line Tools.
 
+## Distribución
+```sh
+scripts/build-mac-app.sh && scripts/make-dmg.sh      # .dmg con acceso directo a Aplicaciones (NOTARY_PROFILE=… para notarizar y grapar)
+```
+`.github/workflows/ci.yml` pasa las pruebas y compila en cada subida; `.github/workflows/mac-release.yml` publica una versión (universal, firmada y notarizada) al subir una etiqueta `v*`: **sin probar** hasta que existan los secretos de Apple (ver el encabezado del archivo). El menú **REM Negocio → Buscar actualizaciones…** consulta la última versión publicada en GitHub (solo cuando se pulsa) y abre la descarga.
+
 ## Seguridad
 El servidor recibe un token aleatorio por arranque (`REM_ADMIN_TOKEN`) y la app lo envía en `X-REM-Admin`; con eso puede usar la API aunque haya PIN. Solo escucha en 127.0.0.1.

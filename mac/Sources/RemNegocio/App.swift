@@ -22,7 +22,7 @@ struct RemNegocioApp: App {
                 Button("Salud de tu instalación…") { model.showHealth = true }.keyboardShortcut("h", modifiers: [.command, .shift])
                 Button("Restaurar desde una copia…") { model.showRestore = true }
             }
-            CommandGroup(after: .appInfo) { Button("Abrir el asistente de puesta en marcha") { model.reopenWizard() } }
+            CommandGroup(after: .appInfo) { Button("Abrir el asistente de puesta en marcha") { model.reopenWizard() }; Button("Buscar actualizaciones…") { Task { await Updates.check() } } }
         }
     }
 }

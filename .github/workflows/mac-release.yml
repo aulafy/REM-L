@@ -1,0 +1,48 @@
+# Publica «REM Negocio» para Mac al subir una etiqueta v*: compila universal, firma con Developer ID, notariza y adjunta el .dmg a la versión.
+# Secretos necesarios en el repositorio (Settings → Secrets and variables → Actions):
+#   MAC_CERT_P12        certificado «Developer ID Application» exportado como .p12, en base64
+#   MAC_CERT_PASSWORD   contraseña del .p12
+#   MAC_SIGN_ID         nombre del certificado, p. ej. «Developer ID Application: Tu Nombre (TEAMID)»
+#   NOTARY_APPLE_ID     Apple ID para notarizar
+#   NOTARY_TEAM_ID      ID de equipo
+#   NOTARY_PASSWORD     contraseña específica de app de ese Apple ID
+# SIN PROBAR hasta que existan esos secretos: se ha escrito siguiendo la documentación de notarytool y codesign.
+name: Publicar para Mac
+on:
+  push: { tags: ['v*'] }
+jobs:
+  release:
+    runs-on: macos-14
+    permissions: { contents: write }
+    env: { NODE_VERSION: 22.12.0 }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node oficial universal (arm64 + x86_64)
+        run: |
+          set -euo pipefail
+          for a in arm64 x64; do curl -sSfL "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-darwin-$a.tar.gz" | tar xz; done
+          lipo -create "node-v$NODE_VERSION-darwin-arm64/bin/node" "node-v$NODE_VERSION-darwin-x64/bin/node" -output "$RUNNER_TEMP/node-universal"
+          echo "NODE_BIN=$RUNNER_TEMP/node-universal" >> "$GITHUB_ENV"
+      - name: Pruebas
+        run: npm test
+      - name: Importar el certificado
+        env: { CERT_P12: '${{ secrets.MAC_CERT_P12 }}', CERT_PASSWORD: '${{ secrets.MAC_CERT_PASSWORD }}' }
+        run: |
+          set -euo pipefail
+          KC="$RUNNER_TEMP/build.keychain-db"; echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p ci "$KC"; security set-keychain-settings -lut 21600 "$KC"; security unlock-keychain -p ci "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci "$KC"; security list-keychains -d user -s "$KC" login.keychain-db
+      - name: Compilar, firmar y empaquetar
+        env: { SIGN_ID: '${{ secrets.MAC_SIGN_ID }}', ARCHS: 'arm64 x86_64' }
+        run: scripts/build-mac-app.sh dist && scripts/make-dmg.sh dist "dist/REM-Negocio-${GITHUB_REF_NAME}.dmg"
+      - name: Notarizar y grapar
+        env: { APPLE_ID: '${{ secrets.NOTARY_APPLE_ID }}', TEAM_ID: '${{ secrets.NOTARY_TEAM_ID }}', APP_PASSWORD: '${{ secrets.NOTARY_PASSWORD }}' }
+        run: |
+          set -euo pipefail
+          DMG="dist/REM-Negocio-${GITHUB_REF_NAME}.dmg"
+          xcrun notarytool submit "$DMG" --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APP_PASSWORD" --wait
+          xcrun stapler staple "$DMG"
+      - name: Publicar la versión
+        env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+        run: gh release create "$GITHUB_REF_NAME" "dist/REM-Negocio-${GITHUB_REF_NAME}.dmg" --title "REM Negocio ${GITHUB_REF_NAME}" --generate-notes
