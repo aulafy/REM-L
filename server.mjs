@@ -32,9 +32,10 @@ import { createAutostart } from './lib/autostart.mjs';
 import { createMenubar } from './lib/menubar.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
-import { migrateSchema, databaseHealth, cleanSoftRefs, fixForeignKeys } from './lib/schema.mjs';
+import { migrateSchema, databaseHealth, cleanSoftRefs, fixForeignKeys, SCHEMA_VERSION } from './lib/schema.mjs';
 import { pruneBackups } from './lib/backups.mjs';
-import { clearAllSecrets } from './lib/secrets.mjs';
+import { clearAllSecrets, getSecret, setSecret } from './lib/secrets.mjs';
+import { createBackupEngine } from './lib/backup-engine.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(ROOT, 'public');
@@ -88,7 +89,7 @@ function cleanLines(lines) {
 
 function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM settings').map((r) => [r.key, JSON.parse(r.value)])); }
 // Lo que ve el navegador: sin el hash del PIN ni el token de la barra de menús.
-function pubSettings() { const { pin_hash, menubar_token, ...s } = settingsObj(); return { ...s, pin_on: !!pin_hash }; }
+function pubSettings() { const { pin_hash, menubar_token, backup_cfg, ...s } = settingsObj(); return { ...s, pin_on: !!pin_hash }; }
 function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
 const SETTING_KEYS = ['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details', 'notify_quiet_from', 'notify_quiet_to', 'notify_digest_time', 'cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
   'default_iva', 'default_irpf', 'hourly_rate', 'invoice_series', 'lock_idle_min', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
@@ -104,7 +105,7 @@ const importer = createImporter({ db, run, one, all, tx, nowIso, log, settingsOb
 const office = createOffice({ HttpError });
 const autostart = createAutostart({ script: fileURLToPath(import.meta.url), dataDir: DATA, port: PORT, HttpError });
 const menubar = createMenubar({ dataDir: DATA, port: PORT, settingsObj, saveSetting, counts: () => notifier.counts(), HttpError, log: (t) => log(t) });
-const lock = createLock({ settingsObj, saveSetting, run, HttpError, log });
+const lock = createLock({ settingsObj, saveSetting, run, HttpError, log, adminToken: process.env.REM_ADMIN_TOKEN || '' });
 const timeTrack = createTime({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument, settingsObj });
 const files = createFiles({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, log });
 const notifier = createNotifier({ settingsObj, saveSetting, log: (e) => agents.log(e), count: () => {
@@ -121,7 +122,8 @@ cleanSoftRefs(db);
 let repair = null;
 const checkHealth = () => { const h = databaseHealth(db); repair = h.ok ? null : { damaged: !(h.quick.length === 1 && h.quick[0] === 'ok'), broken: h.foreignKeys.length, tables: [...new Set(h.foreignKeys.map((f) => f.table))] }; return !repair; };
 checkHealth();
-const startServices = () => { inbox.start(); scheduler.start(); menubar.start(); };
+let backupTimer = null;
+const startServices = () => { inbox.start(); scheduler.start(); menubar.start(); clearInterval(backupTimer); setTimeout(() => backupEngine.tick(), 20000).unref?.(); backupTimer = setInterval(() => backupEngine.tick(), 60000); backupTimer.unref?.(); };
 const REPAIR_OPEN = new Set(['GET /api/lock', 'POST /api/unlock', 'POST /api/lock', 'GET /api/repair', 'POST /api/repair/restore', 'POST /api/repair/fix']);
 
 const icsToken = () => { let t = settingsObj().ics_token; if (!t) { t = randomBytes(16).toString('hex'); saveSetting('ics_token', t); } return t; };
@@ -290,6 +292,51 @@ if (!repair) {
   if (!last || !last.name.includes(today())) { try { makeBackup('auto'); } catch {} }
 }
 
+// ---------- copias cifradas (carpeta elegida) y puesta en marcha ----------
+const backupEngine = createBackupEngine({ db, dataDir: DATA, settingsObj, saveSetting, getSecret, setSecret, log, HttpError, today, nowIso, appVersion: JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf8')).version, schemaVersion: SCHEMA_VERSION });
+function backupRoute(m, p, body) {
+  if (!p.startsWith('/api/backup/')) return;
+  if (m === 'GET' && p === '/api/backup/config') return backupEngine.config();
+  if (m === 'GET' && p === '/api/backup/list') return { items: backupEngine.entries(), config: backupEngine.config() };
+  if (m === 'GET' && p === '/api/backup/health') return backupEngine.health();
+  if (m === 'POST' && p === '/api/backup/setup') return backupEngine.setup(body);
+  if (m === 'POST' && p === '/api/backup/enabled') { backupEngine.setEnabled(body.on); return backupEngine.config(); }
+  if (m === 'POST' && p === '/api/backup/run') return backupEngine.run(body.kind === 'manual' ? 'manual' : body.kind === 'safety' ? 'safety' : 'daily');
+  if (m === 'POST' && p === '/api/backup/verify') return backupEngine.verifyLatest();
+  if (m === 'POST' && p === '/api/backup/test-restore') return backupEngine.testRestore();
+  if (m === 'POST' && p === '/api/backup/restore') {
+    const tmp = join(DATA, 'tmp-restore-' + Date.now()); let out;
+    try {
+      out = backupEngine.extract(String(body.file || ''), String(body.secret || ''), tmp); const sum = summarize(out.db); if (!sum) throw new HttpError(409, 'La copia no es compatible con esta versión o está dañada');
+      const safety = makeBackup('antes-de-restaurar'), keepPin = one('SELECT value FROM settings WHERE key=?', 'pin_hash'), keepCfg = one('SELECT value FROM settings WHERE key=?', 'backup_cfg');
+      try { restoreFrom(db, out.db); if (keepPin) saveSetting('pin_hash', JSON.parse(keepPin.value)); if (keepCfg) saveSetting('backup_cfg', JSON.parse(keepCfg.value)); out.restoreFiles(); } catch (e) { throw new HttpError(500, 'No se pudo restaurar; tus datos siguen intactos: ' + e.message); }
+      log(`Copia cifrada restaurada: ${body.file}`); return { ok: true, safety: safety.name, summary: sum };
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }
+  throw new HttpError(404, 'No existe');
+}
+
+// Estado del asistente de puesta en marcha (lo rellena la app de Mac; la lista se calcula con datos reales).
+function setupRoute(m, p, body) {
+  if (p !== '/api/setup') return;
+  const st = settingsObj().setup_state || {};
+  if (m === 'POST') {
+    const next = { ...st }; for (const k of ['welcome', 'business', 'billing', 'backup', 'access', 'data', 'tour']) if (body[k] !== undefined) next[k] = !!body[k];
+    if (body.finished !== undefined) next.finished = body.finished ? nowIso() : '';
+    if (Number.isInteger(body.step) && body.step >= 0 && body.step < 20) next.step = body.step;
+    saveSetting('setup_state', next); return setupRoute('GET', p, {});
+  }
+  const s = settingsObj(), b = backupEngine.config();
+  const checklist = [
+    { id: 'business', title: 'Datos de tu negocio', done: !!(s.company_name && s.company_nif) },
+    { id: 'billing', title: 'Cómo facturas', done: !!st.billing },
+    { id: 'backup', title: 'Copias de seguridad probadas', done: !!(b.configured && b.lastOk && b.restoreTestedAt) },
+    { id: 'access', title: 'Acceso y arranque', done: !!(s.pin_hash || st.access) },
+    { id: 'data', title: 'Tus datos dentro', done: !!(st.data || (all('SELECT COUNT(*) n FROM clients').at(0)?.n || 0) > 0) },
+  ];
+  return { state: st, checklist, ready: checklist.every((c) => c.done), finished: !!st.finished };
+}
+
 // ---------- modo reparación ----------
 const backupPath = (n) => { if (!/^negocio-[\w.:-]+\.db$/.test(String(n || '')) || !existsSync(join(DATA, 'backups', n))) throw new HttpError(404, 'Esa copia no existe'); return join(DATA, 'backups', n); };
 function leaveRepair(text) { log(text); if (checkHealth()) { startServices(); console.log('REM Negocio: datos reparados; servicios en marcha.'); } return { ok: !repair, repair }; }
@@ -423,6 +470,8 @@ async function route(req_, url, body) {
   { const r = await timeTrack.route(m, p, body); if (r !== undefined) return r; }
   { const r = await autostart.route(m, p, body); if (r !== undefined) return r; }
   { const r = await menubar.route(m, p, body); if (r !== undefined) return r; }
+  { const r = backupRoute(m, p, body); if (r !== undefined) return r; }
+  { const r = setupRoute(m, p, body); if (r !== undefined) return r; }
   { const r = (await agents.route(m, p, body)) ?? (await inbox.route(m, p, body)); if (r !== undefined) return r; }
   let g;
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {
