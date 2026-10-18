@@ -43,6 +43,7 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 - **Modelos fiscales (orientativos):** Dinero → Modelos calcula con tus datos las cifras del 130, 303, 115 y 347 por trimestre/año, con CSV para tu asesor. No presenta nada ante Hacienda.
 - **Albaranes:** crea albaranes de entrega (numeración A) y pásalos a factura de uno en uno o en bloque por cliente; la factura lleva una cabecera por albarán.
 - **Tareas:** con prioridad, repetición (la siguiente aparece al completar la actual) y subtareas con progreso.
+- **Acceso y arranque:** bloqueo con PIN (4-12 cifras, se guarda con scrypt, se bloquea solo tras inactividad y limita los intentos; no cifra el disco), arranque automático al iniciar sesión en macOS y un icono en la barra de menús con los contadores de lo pendiente.
 - **Series de facturación:** crea series con su propio prefijo y numeración anual (F, TA…) en Ajustes → Facturación y elige la serie al crear cada factura.
 - **Horas por cliente:** en Dinero → Horas apuntas el tiempo (o usas el cronómetro) con tu tarifa por hora y, con «Facturar horas», se crea un borrador de factura con una línea por entrada. Si borras ese borrador, las horas quedan libres otra vez.
 - **Cuentas a pagar:** al apuntar un gasto puedes marcarlo «Pendiente de pago» con su vencimiento. Ves cuánto debes (y lo vencido) en Gastos y en Hoy, lo marcas «Pagado» con un clic, entra en la previsión de Tesorería el día que vence, en tu calendario (.ics), en el resumen de la mañana y en el Excel/CSV. Los gastos de antes cuentan como pagados.

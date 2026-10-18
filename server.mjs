@@ -26,6 +26,9 @@ import { createOffice } from './lib/office.mjs';
 import { buildDocx } from './lib/docx.mjs';
 import { proposalDeck } from './lib/pptx.mjs';
 import { createTime } from './lib/timetrack.mjs';
+import { createLock } from './lib/lock.mjs';
+import { createAutostart } from './lib/autostart.mjs';
+import { createMenubar } from './lib/menubar.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
@@ -79,9 +82,11 @@ function cleanLines(lines) {
 }
 
 function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM settings').map((r) => [r.key, JSON.parse(r.value)])); }
+// Lo que ve el navegador: sin el hash del PIN ni el token de la barra de menús.
+function pubSettings() { const { pin_hash, menubar_token, ...s } = settingsObj(); return { ...s, pin_on: !!pin_hash }; }
 function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
 const SETTING_KEYS = ['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details', 'notify_quiet_from', 'notify_quiet_to', 'notify_digest_time', 'cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
-  'default_iva', 'default_irpf', 'hourly_rate', 'invoice_series', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
+  'default_iva', 'default_irpf', 'hourly_rate', 'invoice_series', 'lock_idle_min', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
 
 const llmlog = createLlmLog({ db, run, all, one, nowIso, settingsObj, HttpError });
 setLlmHooks({ log: llmlog.record, check: llmlog.check });
@@ -92,6 +97,9 @@ const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, l
 const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpError, log });
 const importer = createImporter({ db, run, one, all, tx, nowIso, log, settingsObj, addDays, makeBackup, HttpError, computeTotals });
 const office = createOffice({ HttpError });
+const autostart = createAutostart({ script: fileURLToPath(import.meta.url), dataDir: DATA, port: PORT, HttpError });
+const menubar = createMenubar({ dataDir: DATA, port: PORT, settingsObj, saveSetting, counts: () => notifier.counts(), HttpError, log: (t) => log(t) });
+const lock = createLock({ settingsObj, saveSetting, run, HttpError, log });
 const timeTrack = createTime({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument, settingsObj });
 const files = createFiles({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, log });
 const notifier = createNotifier({ settingsObj, saveSetting, log: (e) => agents.log(e), count: () => {
@@ -272,7 +280,7 @@ function state() {
   const docs = all('SELECT * FROM documents ORDER BY issue_date DESC, id DESC').map(docRow);
   const pays = all('SELECT * FROM payments ORDER BY date DESC, id DESC');
   return {
-    settings: settingsObj(),
+    settings: pubSettings(), startup: { autostart: autostart.status(), menubar: menubar.status() },
     clients: all('SELECT * FROM clients ORDER BY name COLLATE NOCASE'),
     items: all('SELECT * FROM items ORDER BY name COLLATE NOCASE'),
     documents: docs, payments: pays,
@@ -356,6 +364,8 @@ async function route(req_, url, body) {
   { const r = await importer.route(m, p, body); if (r !== undefined) return r; }
   { const r = await office.route(m, p, body); if (r !== undefined) return r; }
   { const r = await timeTrack.route(m, p, body); if (r !== undefined) return r; }
+  { const r = await autostart.route(m, p, body); if (r !== undefined) return r; }
+  { const r = await menubar.route(m, p, body); if (r !== undefined) return r; }
   { const r = (await agents.route(m, p, body)) ?? (await inbox.route(m, p, body)); if (r !== undefined) return r; }
   let g;
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {
@@ -412,6 +422,7 @@ async function route(req_, url, body) {
     for (const k of SETTING_KEYS) if (body[k] !== undefined) {
       let v = body[k];
       if (['default_iva', 'default_irpf', 'payment_days', 'quote_days'].includes(k)) v = rate(v);
+      else if (k === 'lock_idle_min') v = Math.min(240, Math.max(0, Math.round(Number(v)) || 0));
       else if (k === 'invoice_series') v = cleanSeries(v);
       else if (k === 'hourly_rate') v = Math.max(0, Math.round(Number(v) || 0));
       else if (['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details'].includes(k)) v = !!v;
@@ -423,7 +434,7 @@ async function route(req_, url, body) {
       else if (typeof v === 'string') v = k === 'logo' ? (v.length < 400000 && /^data:image\/(png|jpeg|svg\+xml|webp);base64,/.test(v) ? v : '') : str(v, 400);
       run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v));
     }
-    return settingsObj();
+    return pubSettings();
   }
   if (m === 'POST' && p === '/api/ai/draft') return aiDraft(body);
   if (m === 'POST' && p === '/api/notify/test') return { ok: await notifier.test() };
@@ -434,7 +445,7 @@ async function route(req_, url, body) {
     if ((g = p.match(/^\/api\/backups\/([^/]+)\/summary$/)) && m === 'GET') { const s = summarize(named(decodeURIComponent(g[1]))); if (!s) throw new HttpError(409, 'La copia está dañada'); return s; }
     if (m === 'POST' && p === '/api/backups/restore') {
       const file = named(body.name); if (!summarize(file)) throw new HttpError(409, 'La copia está dañada');
-      const safety = makeBackup('antes-de-restaurar'); try { restoreFrom(db, file); } catch (e) { throw new HttpError(500, 'No se pudo restaurar; tus datos siguen intactos: ' + e.message); }
+      const safety = makeBackup('antes-de-restaurar'); const keepPin = one('SELECT value FROM settings WHERE key=?', 'pin_hash'); try { restoreFrom(db, file); if (keepPin) saveSetting('pin_hash', JSON.parse(keepPin.value)); } catch (e) { throw new HttpError(500, 'No se pudo restaurar; tus datos siguen intactos: ' + e.message); }
       log(`Copia restaurada: ${body.name}`); return { ok: true, safety: safety.name, summary: summarize(file) };
     }
     if (m === 'POST' && p === '/api/backups/import') {
@@ -464,6 +475,8 @@ const server = createServer(async (req, res) => {
     if (!['127.0.0.1', 'localhost', '[::1]'].includes(host)) { res.writeHead(403).end('Forbidden'); return; }
     const headers = { 'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'", 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' };
     if (url.pathname.startsWith('/api/')) {
+      if (!lock.allowed(req, url)) throw new HttpError(401, 'locked');
+      if (url.pathname === '/api/menubar' && req.method === 'GET') { const out = menubar.handle(url); res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(out)); return; }
       if (url.pathname === '/api/export.csv') return csv(url, res, headers);
       if (url.pathname === '/api/export.xlsx') { const kind = url.searchParams.get('kind') || 'todo'; const book = xlsxBook(kind); res.writeHead(200, { ...headers, 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="rem-negocio-${kind}-${today()}.xlsx"`, 'Cache-Control': 'no-store' }).end(book); return; }
       if (req.method === 'GET' && /^\/api\/attachments\/\d+\/file$/.test(url.pathname)) {
@@ -520,8 +533,8 @@ const server = createServer(async (req, res) => {
       if (req.method !== 'GET' && req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
       let body = {};
       if (req.method !== 'GET' && req.method !== 'DELETE') { const chunks = []; let n = 0; for await (const c of req) { n += c.length; if (n > 16e6) throw bad('Demasiado grande'); chunks.push(c); } try { body = JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch { throw bad('JSON no válido'); } }
-      const out = await route(req, url, body);
-      res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(out));
+      const out = lock.route(req, req.method, url.pathname, body) ?? await route(req, url, body);
+      res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(req._cookie ? { 'Set-Cookie': req._cookie } : {}) }).end(JSON.stringify(out));
       return;
     }
     let f = normalize(url.pathname === '/' ? '/index.html' : url.pathname).replace(/^(\.\.[/\\])+/, '');
@@ -531,6 +544,7 @@ const server = createServer(async (req, res) => {
   } catch (e) {
     const status = e instanceof HttpError ? e.status : /UNIQUE/.test(String(e.message)) ? 409 : 500;
     if (status === 500) console.error(e);
+    if (res.headersSent) { try { res.end(); } catch { /* la conexión ya se cerró */ } return; } // fallo después de empezar a responder: no volver a escribir cabeceras
     res.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: status === 500 ? 'Error interno' : e.message }));
   }
 });
@@ -547,5 +561,5 @@ function csv(url, res, headers) {
   res.writeHead(200, { ...headers, 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${kind}-${today()}.csv"` }).end('﻿' + rows.map((r) => r.map(q).join(';')).join('\r\n'));
 }
 
-server.listen(PORT, '127.0.0.1', () => { console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`); inbox.start(); scheduler.start(); if (process.env.REM_PDF_WARM !== '0') warmPdf(DATA); });
+server.listen(PORT, '127.0.0.1', () => { console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`); inbox.start(); scheduler.start(); menubar.start(); if (process.env.REM_PDF_WARM !== '0') warmPdf(DATA); });
 export { server, db };

@@ -1,5 +1,5 @@
-import { store, ACT, reload, go, toast, openPalette, openModal, refresh } from './core.js';
-import { html, raw, icon, esc, statusOf, paidOf } from './util.js';
+import { store, ACT, on, reload, go, toast, openPalette, openModal, refresh } from './core.js';
+import { html, raw, icon, esc, api, statusOf, paidOf } from './util.js';
 import { today } from './calc.js';
 import { upgradeCombos } from './combo.js';
 
@@ -43,7 +43,7 @@ function shell(S, key, content) {
       <header class="top" id="top">
         <button class="search-btn" data-act="palette" aria-label="Buscar o crear">${icon('search', 'sm')}<span>Buscar…</span><kbd>⌘K</kbd></button>
         <span class="grow"></span>
-        <button class="btn ghost icon" data-act="theme" aria-label="Cambiar entre tema claro y oscuro" title="Tema">${icon(theme === 'dark' ? 'sun' : 'moon')}</button>
+        ${st.pin_on ? html`<button class="btn ghost icon" data-act="lockNow" aria-label="Bloquear la aplicación" title="Bloquear">${icon('lock')}</button>` : ''}<button class="btn ghost icon" data-act="theme" aria-label="Cambiar entre tema claro y oscuro" title="Tema">${icon(theme === 'dark' ? 'sun' : 'moon')}</button>
         <span class="me" title="${st.company_name || ''}">${st.logo ? html`<img src="${st.logo}" alt="">` : (st.company_name || 'R')[0].toUpperCase()}</span><button class="btn primary" data-act="quick"><span class="hide-sm" style="display:contents">${icon('plus', 'sm')}</span> Nuevo</button>
       </header>
       <main class="page" id="page" tabindex="-1">${S.agentsPaused ? html`<div class="notice warn" style="margin:6px 0 16px">${icon('alert')}<span>Los agentes están en pausa: no prepararán borradores ni propuestas. <a href="#" data-act="agentsResume"><b>Reanudar</b></a></span></div>` : ''}${DINERO.includes(key) ? html`<nav class="subtabs" aria-label="Dinero">${[['facturas', 'Facturas'], ['presupuestos', 'Presupuestos'], ['albaranes', 'Albaranes'], ['gastos', 'Gastos'], ['horas', 'Horas'], ['informes', 'Informes'], ['modelos', 'Modelos'], ['tesoreria', 'Tesorería'], ['recurrentes', 'Recurrentes']].map(([k, l]) => html`<a href="#/${k}" ${key === k ? raw('aria-current="page"') : ''}>${l}${k === 'facturas' && c.facturas ? html` <span class="count alert">${c.facturas}</span>` : ''}</a>`)}</nav>` : ''}${content}</main>
@@ -146,9 +146,20 @@ setInterval(async () => {
   } catch {}
 }, 6000);
 
+// ---- bloqueo con PIN ----
+let lockMod = null;
+const lockNow = async () => { lockMod ??= await import('./lock.js'); store.S = null; lockMod.showLock(root); };
+window.addEventListener('rem-locked', lockNow);
+on('lockNow', async () => { try { await api('POST', '/api/lock', {}); } catch {} lockNow(); });
+function watchIdle() {
+  const min = Number(store.S.settings.lock_idle_min ?? 15); if (!store.S.settings.pin_on || !min) return;
+  let last = Date.now(); for (const ev of ['pointerdown', 'keydown', 'scroll', 'touchstart']) window.addEventListener(ev, () => { last = Date.now(); }, { passive: true });
+  setInterval(async () => { if (store.S && Date.now() - last > min * 60000) { try { await api('POST', '/api/lock', {}); } catch {} lockNow(); } }, 15000);
+}
 (async function boot() {
-  try { await Promise.all([reload(), loadViews()]); } catch (e) { root.innerHTML = `<div class="welcome"><h1>No se pudo cargar</h1><p class="muted">${esc(e.message)}. ¿Está el servidor en marcha?</p></div>`; return; }
+  try { await Promise.all([reload(), loadViews()]); } catch (e) {
+    if (e.message === 'locked') return lockNow(); root.innerHTML = `<div class="welcome"><h1>No se pudo cargar</h1><p class="muted">${esc(e.message)}. ¿Está el servidor en marcha?</p></div>`; return; }
   const { registerActions } = await import('./actions.js'); registerActions();
-  sig = signature(store.S); render();
+  sig = signature(store.S); render(); watchIdle();
   if (location.hash === '' || location.hash === '#') history.replaceState(null, '', '#/hoy');
 })();

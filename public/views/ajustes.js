@@ -7,7 +7,7 @@ import { importCard, toBase64 } from '../importui.js';
 
 let tab = 'canales';
 const NEG_TPL = `# Mi negocio\n\n## Qué hacemos\n(Describe tu actividad en dos líneas.)\n\n## Cómo hablamos con los clientes\n- Trato: tuteo, cercano y profesional.\n- Respuestas cortas; siempre una propuesta de siguiente paso.\n\n## Nunca\n- Prometer descuentos ni fechas sin confirmarlo conmigo.\n- Dar precios que no estén en las tarifas.\n- Hablar de otros clientes.\n\n## Objetivos\n- Responder a todos en menos de 2 horas laborables.\n- Cobrar las facturas a 30 días.\n`;
-const TABS = [['canales', 'Canales'], ['avisos', 'Avisos'], ['negocio', 'Mi negocio'], ['conocimiento', 'Conocimiento'], ['memoria', 'Memoria'], ['agentes', 'Agentes'], ['modulos', 'Módulos'], ['documentos', 'Documentos'], ['ia', 'IA y voz'], ['empresa', 'Empresa'], ['facturacion', 'Facturación'], ['catalogo', 'Catálogo'], ['datos', 'Datos y copias']];
+const TABS = [['canales', 'Canales'], ['avisos', 'Avisos'], ['negocio', 'Mi negocio'], ['conocimiento', 'Conocimiento'], ['memoria', 'Memoria'], ['agentes', 'Agentes'], ['modulos', 'Módulos'], ['documentos', 'Documentos'], ['ia', 'IA y voz'], ['empresa', 'Empresa'], ['facturacion', 'Facturación'], ['catalogo', 'Catálogo'], ['acceso', 'Acceso y arranque'], ['datos', 'Datos y copias']];
 export const openTab = (k) => { tab = k; };
 const v = (x) => x ?? '';
 
@@ -42,6 +42,7 @@ export const views = {
           <div style="grid-column:1/-1">${field({ name: 'invoice_footer', label: 'Pie de las facturas', rows: 2, value: v(s.invoice_footer), hint: 'Ej.: datos del Registro Mercantil, texto de protección de datos…' })}</div>
           <div style="grid-column:1/-1">${field({ name: 'quote_footer', label: 'Pie de los presupuestos', rows: 2, value: v(s.quote_footer) })}</div></div>
           <div class="card-h" style="border-top:1px solid var(--line);border-bottom:0"><span class="spacer"></span><button class="btn primary" type="submit">Guardar cambios</button></div></form>${seriesCard(S)}</div>`,
+        acceso: accesoView(S),
         catalogo: html`<section class="card"><div class="card-h"><h2>Artículos y servicios</h2><button class="btn sm more" data-act="newItem">${icon('plus', 'sm')}Nuevo</button></div>
           ${S.items.length ? html`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th class="right">Precio</th><th class="hide-sm">IVA</th><th></th></tr></thead><tbody>${S.items.map((i) => html`<tr><td><span class="name">${i.name}</span><br><small class="muted">${i.description}</small></td><td class="right num">${eur(i.price)} <small class="muted">/ ${i.unit}</small></td><td class="hide-sm">${i.iva} %</td>
             <td class="right nowrap"><button class="btn ghost icon sm" data-act="editItem" data-id="${i.id}" aria-label="Editar ${i.name}">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="deleteItem" data-id="${i.id}" aria-label="Eliminar ${i.name}">${icon('trash', 'sm')}</button></td></tr>`)}</tbody></table></div>`
@@ -139,6 +140,8 @@ export const views = {
         <div style="max-width:780px">${body}</div>`;
     },
     mount(root, S) {
+      root.querySelector('#lock-idle')?.addEventListener('change', (e) => mutate('PUT', '/api/settings', { lock_idle_min: Number(e.target.value) }, 'Guardado'));
+      if (store.S.startup?.menubar?.building) setTimeout(async () => { if (tab === 'acceso') { await reload(); refresh(); } }, 3000);
       const form = root.querySelector('form[data-save]');
       form?.addEventListener('submit', async (e) => {
         e.preventDefault(); const d = formValues(form);
@@ -289,3 +292,34 @@ on('newSeries', () => seriesModal(null));
 on('editSeries', (el) => seriesModal(Number(el.dataset.i)));
 on('seriesDefault', async (el) => { const list = curSeries(), [x] = list.splice(Number(el.dataset.i), 1); list.unshift(x); await saveSeries(list, `«${x.name}» es ahora la serie principal`); });
 on('delSeries', async (el) => { const list = curSeries(), x = list[Number(el.dataset.i)]; if (await confirmBox({ title: 'Quitar serie', text: `Se quita «${x.name}» (${x.prefix}) de las opciones. Las facturas ya emitidas conservan su número.`, ok: 'Quitar', danger: true })) { list.splice(Number(el.dataset.i), 1); await saveSeries(list, 'Serie quitada'); } });
+
+// ---------- acceso y arranque ----------
+function accesoView(S) {
+  const pin = !!S.settings.pin_on, idle = S.settings.lock_idle_min ?? 15, au = S.startup?.autostart || {}, mb = S.startup?.menubar || {};
+  return html`<div class="stack">
+    <section class="card"><div class="card-h"><h2>Bloqueo con PIN</h2>${pin ? html`<span class="pill-on more">● Activo</span>` : html`<span class="badge grey more">Desactivado</span>`}</div><div class="card-b stack">
+      <p class="muted" style="margin:0">Pide un PIN para abrir la aplicación, útil si otras personas usan este ordenador o su navegador. <b>No cifra</b> los datos guardados en el disco: para eso usa el cifrado de disco del sistema (FileVault).</p>
+      ${pin ? html`<div class="row wrap"><label for="lock-idle" class="muted">Bloquear tras</label><select class="input" id="lock-idle" style="max-width:190px"><option value="0" ${idle === 0 ? raw('selected') : ''}>Nunca (solo manual)</option>${[5, 15, 30, 60].map((n) => html`<option value="${n}" ${idle === n ? raw('selected') : ''}>${n} min sin usarla</option>`)}</select><span class="spacer"></span>
+        <button class="btn" data-act="lockNow">${icon('lock', 'sm')}Bloquear ahora</button><button class="btn" data-act="pinChange">Cambiar PIN</button><button class="btn danger" data-act="pinRemove">Quitar PIN</button></div>`
+        : html`<div><button class="btn primary" data-act="pinSet">${icon('lock', 'sm')}Activar PIN</button></div>`}
+      <p class="muted" style="margin:0;font-size:12.5px">Tras 5 intentos fallidos hay que esperar unos segundos. Si olvidas el PIN, se puede quitar parando REM Negocio y borrando el ajuste «pin_hash» de la base de datos (pide ayuda a tu informático).</p></div></section>
+    <section class="card"><div class="card-h"><h2>Arrancar al iniciar sesión</h2>${au.enabled ? html`<span class="pill-on more">● Activado</span>` : ''}</div><div class="card-b stack">
+      <p class="muted" style="margin:0">REM Negocio se pondrá en marcha solo cuando inicies sesión en el Mac, para que los mensajes de Telegram y correo lleguen aunque no abras la app. Se aplica desde el próximo inicio de sesión.</p>
+      ${au.supported ? html`<div><button class="btn ${au.enabled ? '' : 'primary'}" data-act="autostartToggle" data-on="${au.enabled ? 0 : 1}">${au.enabled ? 'Desactivar arranque automático' : 'Activar arranque automático'}</button></div>` : html`<p class="muted" style="margin:0">Solo disponible en macOS.</p>`}</div></section>
+    <section class="card"><div class="card-h"><h2>Icono en la barra de menús</h2>${mb.on && mb.running ? html`<span class="pill-on more">● Visible</span>` : mb.building ? html`<span class="badge amber more">Preparando…</span>` : ''}</div><div class="card-b stack">
+      <p class="muted" style="margin:0">Un icono junto al reloj con los mensajes por responder, facturas vencidas y tareas de hoy, y un acceso directo para abrir la app. Solo muestra números, no datos.</p>
+      ${mb.error ? html`<div class="notice warn">${icon('alert')}<span>${mb.error}</span></div>` : ''}
+      ${mb.supported ? html`<div><button class="btn ${mb.on ? '' : 'primary'}" data-act="menubarToggle" data-on="${mb.on ? 0 : 1}" ${mb.building ? raw('disabled') : ''}>${mb.on ? 'Quitar el icono' : 'Mostrar el icono'}</button>${!mb.ready && !mb.on ? html`<span class="muted" style="margin-left:12px;font-size:12.5px">La primera vez se prepara en unos segundos.</span>` : ''}</div>` : html`<p class="muted" style="margin:0">Necesita macOS con las herramientas de línea de comandos de Xcode.</p>`}</div></section></div>`;
+}
+function pinModal(kind) {
+  const change = kind === 'change';
+  formModal({ title: change ? 'Cambiar PIN' : 'Activar PIN', submit: change ? 'Cambiar PIN' : 'Activar PIN',
+    fields: [...(change ? [`<div style="grid-column:1/-1">${field({ name: 'current', label: 'PIN actual', type: 'password', required: true, attrs: 'inputmode="numeric" maxlength="12" autofocus autocomplete="off"' })}</div>`] : []),
+      field({ name: 'pin', label: 'PIN nuevo', type: 'password', required: true, hint: 'De 4 a 12 cifras', attrs: `inputmode="numeric" maxlength="12" autocomplete="off" ${change ? '' : 'autofocus'}` }), field({ name: 'pin2', label: 'Repítelo', type: 'password', required: true, attrs: 'inputmode="numeric" maxlength="12" autocomplete="off"' })].join(''),
+    onSubmit: async (v, close) => { if (v.pin !== v.pin2) throw new Error('Los dos PIN no coinciden.'); await mutate('POST', '/api/pin', { pin: v.pin, current: v.current }, change ? 'PIN cambiado' : 'PIN activado'); close(); } });
+}
+on('pinSet', () => pinModal('set'));
+on('pinChange', () => pinModal('change'));
+on('pinRemove', () => formModal({ title: 'Quitar el PIN', submit: 'Quitar PIN', fields: field({ name: 'current', label: 'PIN actual', type: 'password', required: true, attrs: 'inputmode="numeric" maxlength="12" autofocus autocomplete="off"' }), onSubmit: async (v, close) => { await mutate('POST', '/api/pin/remove', { current: v.current }, 'PIN desactivado'); close(); } }));
+on('autostartToggle', (el) => mutate('POST', '/api/autostart', { on: el.dataset.on === '1' }, el.dataset.on === '1' ? 'Se iniciará con tu sesión' : 'Arranque automático desactivado'));
+on('menubarToggle', (el) => mutate('POST', '/api/menubar-app', { on: el.dataset.on === '1' }, el.dataset.on === '1' ? 'Preparando el icono…' : 'Icono quitado'));
