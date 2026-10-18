@@ -40,13 +40,20 @@ export function expenseModal(e = null) {
   sel?.addEventListener('change', sync); sync();
 }
 
+export const REPEAT_LABELS = { day: 'Cada día', week: 'Cada semana', month: 'Cada mes', quarter: 'Cada trimestre', year: 'Cada año' };
+export const PRIORITY_LABELS = { 2: 'Alta', 1: 'Normal', 0: 'Baja' };
 export function taskModal(t = null, preset = {}) {
-  const S = store.S;
+  const S = store.S, parent = t?.parent_id ?? preset.parent_id ?? null, pt = parent ? S.tasks.find((x) => x.id === parent) : null;
   formModal({
-    title: t ? 'Editar tarea' : 'Nueva tarea', submit: t ? 'Guardar' : 'Añadir tarea',
-    fields: [field({ name: 'title', label: '¿Qué hay que hacer?', value: val(t?.title ?? preset.title), required: true, attrs: 'autofocus' }), field({ name: 'due', label: 'Fecha límite', type: 'date', value: t?.due ?? preset.due ?? '' }),
-      field({ name: 'client_id', label: 'Cliente (opcional)', combo: true, options: [['', '— Ninguno —'], ...S.clients.filter((c) => !c.archived).map((c) => [c.id, c.name])], value: t?.client_id ?? preset.client_id ?? '' })].join(''),
-    onSubmit: async (v, close) => { await mutate(t ? 'PUT' : 'POST', t ? `/api/tasks/${t.id}` : '/api/tasks', { ...t, ...v, document_id: t?.document_id ?? preset.document_id }, t ? 'Tarea actualizada' : 'Tarea añadida'); close(); },
+    title: t ? 'Editar tarea' : pt ? `Subtarea de «${pt.title}»` : 'Nueva tarea', submit: t ? 'Guardar' : pt ? 'Añadir subtarea' : 'Añadir tarea',
+    fields: [`<div style="grid-column:1/-1">${field({ name: 'title', label: '¿Qué hay que hacer?', value: val(t?.title ?? preset.title), required: true, attrs: 'autofocus' })}</div>`, field({ name: 'due', label: 'Fecha límite', type: 'date', value: t?.due ?? preset.due ?? '' }),
+      field({ name: 'priority', label: 'Prioridad', options: [[2, 'Alta'], [1, 'Normal'], [0, 'Baja']], value: t?.priority ?? 1 }),
+      ...(parent ? [] : [field({ name: 'repeat', label: 'Repetir', options: [['', 'No se repite'], ...Object.entries(REPEAT_LABELS)], value: t?.repeat || '', hint: 'Al completarla se crea la siguiente' })]),
+      `<div style="grid-column:1/-1">${field({ name: 'client_id', label: 'Cliente (opcional)', combo: true, options: [['', '— Ninguno —'], ...S.clients.filter((c) => !c.archived).map((c) => [c.id, c.name])], value: t?.client_id ?? preset.client_id ?? pt?.client_id ?? '' })}</div>`].join(''),
+    onSubmit: async (v, close) => {
+      if (v.repeat && !v.due) throw new Error('Pon una fecha límite para que la tarea se repita.');
+      await mutate(t ? 'PUT' : 'POST', t ? `/api/tasks/${t.id}` : '/api/tasks', { ...t, ...v, priority: Number(v.priority), repeat: parent ? '' : v.repeat || '', parent_id: parent, document_id: t?.document_id ?? preset.document_id }, t ? 'Tarea actualizada' : 'Tarea añadida'); close();
+    },
   });
 }
 
@@ -81,6 +88,7 @@ export function registerActions() {
   on('newClient', () => clientModal());
   on('editClient', (el) => clientModal(byId(el, 'clients')));
   on('newExpense', () => expenseModal());
+  on('newSubtask', (el) => taskModal(null, { parent_id: Number(el.dataset.id) }));
   on('editExpense', (el) => expenseModal(byId(el, 'expenses')));
   on('payExpense', async (el) => { const e = byId(el, 'expenses'); await mutate('PUT', `/api/expenses/${e.id}`, { pending: false, paid_date: today() }, `«${e.concept}» marcado como pagado`); });
   on('newTask', (el) => taskModal(null, el?.dataset?.client ? { client_id: el.dataset.client } : {}));

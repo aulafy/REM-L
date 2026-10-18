@@ -1,16 +1,21 @@
 import { store, openModal, mutate, toast, confirmBox } from '../core.js';
 import { html, raw, fdateShort, relDate, icon, clientOf } from '../util.js';
+import { REPEAT_LABELS } from '../actions.js';
 
 let showDone = false;
 export const views = {
   tareas: {
     title: () => 'Tareas',
     render(S) {
-      const t = S.serverDate, open = S.tasks.filter((k) => !k.done), done = S.tasks.filter((k) => k.done);
+      const t = S.serverDate, tops = S.tasks.filter((k) => !k.parent_id), kids = (k) => S.tasks.filter((x) => x.parent_id === k.id), byPri = (a, b) => (b.priority ?? 1) - (a.priority ?? 1) || (a.due || '9').localeCompare(b.due || '9');
+      const open = tops.filter((k) => !k.done).sort(byPri), done = tops.filter((k) => k.done);
       const groups = [['Vencidas', open.filter((k) => k.due && k.due < t), 'red'], ['Hoy', open.filter((k) => k.due === t), 'amber'], ['Próximas', open.filter((k) => k.due > t), ''], ['Sin fecha', open.filter((k) => !k.due), '']].filter((g) => g[1].length);
-      const row = (k) => html`<li><input type="checkbox" class="check" data-act="toggleTask" data-id="${k.id}" ${k.done ? raw('checked') : ''} aria-label="${k.done ? 'Reabrir' : 'Completar'}: ${k.title}">
-        <div class="grow"><div class="t ${k.done ? 'done-t' : ''}" style="white-space:normal">${k.title}</div><div class="d" style="${!k.done && k.due && k.due < t ? 'color:var(--red)' : ''}">${k.due ? `${fdateShort(k.due)} · ${relDate(k.due, t)}` : 'Sin fecha'}${k.client_id ? html` · <a href="#/clientes/${k.client_id}">${clientOf(S, k.client_id)?.name}</a>` : ''}</div></div>
-        <button class="btn ghost icon sm" data-act="editTask" data-id="${k.id}" aria-label="Editar">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="deleteTask" data-id="${k.id}" aria-label="Eliminar">${icon('trash', 'sm')}</button></li>`;
+      const sub = (k) => html`<li class="subtask"><input type="checkbox" class="check" data-act="toggleTask" data-id="${k.id}" ${k.done ? raw('checked') : ''} aria-label="${k.done ? 'Reabrir' : 'Completar'}: ${k.title}"><div class="grow"><div class="t ${k.done ? 'done-t' : ''}" style="white-space:normal">${k.title}</div>${k.due ? html`<div class="d">${fdateShort(k.due)}</div>` : ''}</div><button class="btn ghost icon sm" data-act="editTask" data-id="${k.id}" aria-label="Editar subtarea">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="deleteTask" data-id="${k.id}" aria-label="Eliminar subtarea">${icon('trash', 'sm')}</button></li>`;
+      const row = (k) => { const ks = kids(k); return html`<li class="taskrow"><div class="row" style="gap:12px;align-items:flex-start;width:100%"><input type="checkbox" class="check" data-act="toggleTask" data-id="${k.id}" ${k.done ? raw('checked') : ''} aria-label="${k.done ? 'Reabrir' : 'Completar'}: ${k.title}">
+        <div class="grow"><div class="t ${k.done ? 'done-t' : ''}" style="white-space:normal">${k.title}${k.priority === 2 ? html` <span class="badge red">Alta</span>` : k.priority === 0 ? html` <span class="badge grey">Baja</span>` : ''}${k.repeat ? html` <span class="badge blue" title="Al completarla se crea la siguiente">${icon('refresh', 'sm')} ${REPEAT_LABELS[k.repeat]}</span>` : ''}${ks.length ? html` <span class="badge grey">${ks.filter((x) => x.done).length}/${ks.length}</span>` : ''}</div>
+          <div class="d" style="${!k.done && k.due && k.due < t ? 'color:var(--red)' : ''}">${k.due ? `${fdateShort(k.due)} · ${relDate(k.due, t)}` : 'Sin fecha'}${k.client_id ? html` · <a href="#/clientes/${k.client_id}">${clientOf(S, k.client_id)?.name}</a>` : ''}</div></div>
+        ${!k.done ? html`<button class="btn ghost icon sm" data-act="newSubtask" data-id="${k.id}" aria-label="Añadir subtarea a ${k.title}" title="Añadir subtarea">${icon('plus', 'sm')}</button>` : ''}<button class="btn ghost icon sm" data-act="editTask" data-id="${k.id}" aria-label="Editar">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="deleteTask" data-id="${k.id}" aria-label="Eliminar">${icon('trash', 'sm')}</button></div>
+        ${ks.length ? html`<ul class="list subtasks">${ks.map(sub)}</ul>` : ''}</li>`; };
       return html`
         <div class="page-head"><div><h1>Tareas</h1><p class="sub">${open.length ? `${open.length} pendientes` : 'Nada pendiente'}</p></div><div class="actions"><button class="btn" data-act="calendar">${icon('calendar', 'sm')}Calendario</button><button class="btn primary" data-act="newTask">${icon('plus', 'sm')}Nueva tarea</button></div></div>
         ${groups.length ? html`<div class="stack">${groups.map(([name, items, tone]) => html`<section class="card"><div class="card-h"><h2>${name}</h2><span class="badge ${tone || 'grey'}">${items.length}</span></div><ul class="list">${items.map(row)}</ul></section>`)}</div>`

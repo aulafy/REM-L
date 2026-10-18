@@ -5,7 +5,7 @@ import { readFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, statSync,
 import { join, extname, dirname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
-import { computeTotals, today, addDays, docStatus } from './public/calc.js';
+import { computeTotals, today, addDays, docStatus, advanceDate } from './public/calc.js';
 import { createInbox } from './lib/inbox.mjs';
 import { createAgents } from './lib/agents.mjs';
 import { speak, setLlmHooks } from './lib/ai.mjs';
@@ -54,6 +54,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_doc_number ON documents(type, number) WHERE
 // Cuentas a pagar: pending=1 → factura de proveedor sin pagar (vence en `due`); los gastos de siempre cuentan como pagados.
 for (const [c, d] of [['pending', 'INTEGER DEFAULT 0'], ['due', "TEXT DEFAULT ''"], ['paid_date', "TEXT DEFAULT ''"]]) if (!db.prepare('PRAGMA table_info(expenses)').all().some((x) => x.name === c)) db.exec(`ALTER TABLE expenses ADD COLUMN ${c} ${d}`);
 if (!db.prepare('PRAGMA table_info(documents)').all().some((x) => x.name === 'series')) db.exec("ALTER TABLE documents ADD COLUMN series TEXT DEFAULT ''");
+for (const [c, d] of [['priority', 'INTEGER DEFAULT 1'], ['repeat', "TEXT DEFAULT ''"], ['parent_id', 'INTEGER REFERENCES tasks(id) ON DELETE CASCADE']]) if (!db.prepare('PRAGMA table_info(tasks)').all().some((x) => x.name === c)) db.exec(`ALTER TABLE tasks ADD COLUMN ${c} ${d}`);
 if (!db.prepare('PRAGMA table_info(expenses)').all().some((x) => x.name === 'supplier_nif')) db.exec("ALTER TABLE expenses ADD COLUMN supplier_nif TEXT DEFAULT ''");
 
 const nowIso = () => new Date().toISOString();
@@ -307,8 +308,8 @@ const C = {
   items: crud('items', ['name', 'description', 'price', 'iva', 'unit'], { name: req('el nombre'), description: S(500), price: int, iva: (v) => rate(v, 21), unit: S(20) }),
   expenses: crud('expenses', ['date', 'supplier', 'concept', 'category', 'base', 'iva', 'total', 'notes', 'pending', 'due', 'paid_date', 'supplier_nif'],
     { date: (v) => date(v), supplier: S(200), concept: req('el concepto'), category: S(40), base: int, iva: (v) => rate(v, 21), total: int, notes: S(1000), pending: (v) => (v ? 1 : 0), due: (v) => date(v, false), paid_date: (v) => date(v, false), supplier_nif: (v) => str(v, 20).toUpperCase().replace(/[\s.-]/g, '') }),
-  tasks: crud('tasks', ['title', 'due', 'client_id', 'document_id', 'done'],
-    { title: req('el título'), due: (v) => date(v, false), client_id: (v) => (v ? Number(v) : null), document_id: (v) => (v ? Number(v) : null), done: (v) => (v ? 1 : 0) }, { stamp: true }),
+  tasks: crud('tasks', ['title', 'due', 'client_id', 'document_id', 'done', 'priority', 'repeat', 'parent_id'],
+    { title: req('el título'), due: (v) => date(v, false), client_id: (v) => (v ? Number(v) : null), document_id: (v) => (v ? Number(v) : null), done: (v) => (v ? 1 : 0), priority: (v) => (v === undefined || v === null || v === '' ? 1 : [0, 1, 2].includes(Number(v)) ? Number(v) : (() => { throw bad('Prioridad no válida'); })()), repeat: (v) => { v = String(v ?? ''); if (v && !REPEATS.includes(v)) throw bad('Repetición no válida'); return v; }, parent_id: (v) => (v ? Number(v) : null) }, { stamp: true }),
 };
 // Pendiente de pago → necesita vencimiento (por defecto, 30 días tras la fecha del gasto); al pagarlo se guarda cuándo.
 function expenseBody(b, cur) {
@@ -316,6 +317,25 @@ function expenseBody(b, cur) {
   if (pending) { o.pending = 1; o.paid_date = ''; o.due = o.due ? o.due : cur?.due || addDays(o.date || cur?.date || today(), 30); }
   else { o.pending = 0; if (cur?.pending && !o.paid_date) o.paid_date = today(); if (o.due === undefined) o.due = cur?.due || ''; }
   return o;
+}
+// Tareas: prioridad (0 baja, 1 normal, 2 alta), repetición y subtareas (un solo nivel).
+const REPEATS = ['day', 'week', 'month', 'quarter', 'year'];
+function taskBody(b, cur) {
+  const o = { ...b }, parent = o.parent_id === undefined ? cur?.parent_id : o.parent_id, repeat = o.repeat === undefined ? cur?.repeat || '' : o.repeat, due = o.due === undefined ? cur?.due || '' : o.due;
+  if (parent) {
+    const p = one('SELECT id, parent_id FROM tasks WHERE id=?', Number(parent)); if (!p) throw bad('La tarea principal no existe'); if (p.parent_id) throw bad('Una subtarea no puede tener subtareas'); if (cur && p.id === cur.id) throw bad('Una tarea no puede ser subtarea de sí misma');
+    if (cur && one('SELECT 1 FROM tasks WHERE parent_id=?', cur.id)) throw bad('Esta tarea tiene subtareas: no puede ser subtarea');
+    o.repeat = '';
+  } else if (repeat && !due) throw bad('Pon una fecha para que la tarea se repita');
+  return o;
+}
+// Al completar una tarea que se repite nace la siguiente (desde su fecha, y siempre en el futuro), con sus subtareas sin hacer.
+function spawnNext(t) {
+  const anchor = Number((t.due || today()).slice(8, 10)), step = (d) => (t.repeat === 'day' ? addDays(d, 1) : t.repeat === 'week' ? addDays(d, 7) : advanceDate(d, t.repeat, anchor));
+  let d = t.due || today(), n = 0; do { d = step(d); n++; } while (d <= today() && n < 400);
+  const nid = Number(run('INSERT INTO tasks(title,due,client_id,document_id,done,priority,repeat,parent_id,created_at) VALUES(?,?,?,?,0,?,?,NULL,?)', t.title, d, t.client_id, t.document_id, t.priority, t.repeat, nowIso()).lastInsertRowid);
+  for (const s of all('SELECT * FROM tasks WHERE parent_id=? ORDER BY id', t.id)) run("INSERT INTO tasks(title,due,client_id,document_id,done,priority,repeat,parent_id,created_at) VALUES(?,?,?,?,0,?,'',?,?)", s.title, s.due ? d : '', s.client_id, s.document_id, s.priority, nid, nowIso());
+  log(`Tarea repetida: «${t.title}» → ${d}`, 'tasks', nid); return nid;
 }
 const TABLE_OF = { clients: 'clients', items: 'items', expenses: 'expenses', tasks: 'tasks' };
 
@@ -340,9 +360,10 @@ async function route(req_, url, body) {
   let g;
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {
     const [, name, id] = g;
+    if (name === 'tasks' && (m === 'POST' || m === 'PUT')) body = taskBody(body, id ? one('SELECT * FROM tasks WHERE id=?', Number(id)) : null);
     if (name === 'expenses' && (m === 'POST' || m === 'PUT')) body = expenseBody(body, id ? one('SELECT * FROM expenses WHERE id=?', Number(id)) : null);
     if (m === 'POST' && !id) { const row = C[name].create(body); log(`Nuevo ${{ clients: 'cliente', items: 'artículo', expenses: 'gasto', tasks: 'tarea' }[name]}: ${row.name || row.concept || row.title}`, name, row.id); return row; }
-    if (m === 'PUT' && id) return C[name].update(Number(id), body);
+    if (m === 'PUT' && id) { const before = name === 'tasks' ? one('SELECT * FROM tasks WHERE id=?', Number(id)) : null, row = C[name].update(Number(id), body); if (before && !before.done && row.done && row.repeat && !row.parent_id) row.next_id = spawnNext(row); return row; }
     if (m === 'DELETE' && id) {
       if (name === 'clients' && one('SELECT 1 FROM documents WHERE client_id=?', Number(id))) { run('UPDATE clients SET archived=1 WHERE id=?', Number(id)); return { archived: true }; }
       if (name === 'clients') files.removeFor('client', Number(id));
