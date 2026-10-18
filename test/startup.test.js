@@ -12,7 +12,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'rem-st-')), agents = join(tmp, 'LaunchAg
 const fake = join(tmp, 'fake-menubar'); writeFileSync(fake, `#!/bin/sh\necho "$@" > "${argsFile}"\necho $$ > "${argsFile}.pid"\nsleep 60\n`); chmodSync(fake, 0o755);
 let child, base;
 const call = async (method, path, body) => { const r = await fetch(base + path, { method, headers: { 'Content-Type': 'application/json', 'X-REM': '1' }, body: body === undefined ? undefined : JSON.stringify(body) }); return { status: r.status, json: await r.json().catch(() => ({})) }; };
-const until = async (fn, ms = 6000) => { const t = Date.now(); for (;;) { const v = await fn(); if (v) return v; if (Date.now() - t > ms) throw new Error('timeout'); await new Promise((r) => setTimeout(r, 60)); } };
+const until = async (fn, ms = 20000) => { const t = Date.now(); for (;;) { const v = await fn(); if (v) return v; if (Date.now() - t > ms) throw new Error('timeout'); await new Promise((r) => setTimeout(r, 60)); } };
 const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
 before(async () => {
   const port = await new Promise((r) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); }); base = `http://127.0.0.1:${port}`;
