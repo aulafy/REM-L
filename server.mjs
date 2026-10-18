@@ -318,10 +318,18 @@ const crud = (table, cols, coerce, extra = {}) => ({
   update: (id, b) => { const cur = one(`SELECT * FROM ${table} WHERE id=?`, id); if (!cur) throw new HttpError(404, 'No existe'); const v = cols.map((c) => coerce[c](b[c] === undefined ? cur[c] : b[c])); run(`UPDATE ${table} SET ${cols.map((c) => c + '=?').join(',')} WHERE id=?`, ...v, id); return one(`SELECT * FROM ${table} WHERE id=?`, id); },
 });
 const req = (f) => (v) => { const s = str(v, 300); if (!s) throw bad(`Falta ${f}`); return s; };
+// NIF sin espacios, puntos ni guiones: «b-12.345.678» y «B12345678» son el mismo cliente.
+const normNif = (v) => str(v, 20).toUpperCase().replace(/[\s.-]/g, '');
+const NIF_SQL = "replace(replace(replace(upper(nif),' ',''),'.',''),'-','')";
+const nifOwner = (nif, exceptId = 0) => (nif ? one(`SELECT id, name, archived FROM clients WHERE ${NIF_SQL}=? AND id<>? LIMIT 1`, nif, exceptId) : null);
+function assertNifFree(b, id = 0) {
+  if (b.nif === undefined) return; const o = nifOwner(normNif(b.nif), id);
+  if (o) throw new HttpError(409, `Ya existe un cliente con ese NIF: ${o.name}${o.archived ? ' (archivado)' : ''}`);
+}
 const S = (n = 300) => (v) => str(v, n);
 const C = {
   clients: crud('clients', ['name', 'nif', 'email', 'phone', 'address', 'city', 'zip', 'notes', 'archived'],
-    { name: req('el nombre'), nif: (v) => str(v, 20).toUpperCase(), email: S(200), phone: S(40), address: S(300), city: S(100), zip: S(10), notes: S(3000), archived: (v) => (v ? 1 : 0) }, { stamp: true }),
+    { name: req('el nombre'), nif: (v) => normNif(v), email: S(200), phone: S(40), address: S(300), city: S(100), zip: S(10), notes: S(3000), archived: (v) => (v ? 1 : 0) }, { stamp: true }),
   items: crud('items', ['name', 'description', 'price', 'iva', 'unit'], { name: req('el nombre'), description: S(500), price: int, iva: (v) => rate(v, 21), unit: S(20) }),
   expenses: crud('expenses', ['date', 'supplier', 'concept', 'category', 'base', 'iva', 'total', 'notes', 'pending', 'due', 'paid_date', 'supplier_nif'],
     { date: (v) => date(v), supplier: S(200), concept: req('el concepto'), category: S(40), base: int, iva: (v) => rate(v, 21), total: int, notes: S(1000), pending: (v) => (v ? 1 : 0), due: (v) => date(v, false), paid_date: (v) => date(v, false), supplier_nif: (v) => str(v, 20).toUpperCase().replace(/[\s.-]/g, '') }),
@@ -380,6 +388,7 @@ async function route(req_, url, body) {
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {
     const [, name, id] = g;
     if (name === 'tasks' && (m === 'POST' || m === 'PUT')) body = taskBody(body, id ? one('SELECT * FROM tasks WHERE id=?', Number(id)) : null);
+    if (name === 'clients' && (m === 'POST' || m === 'PUT')) assertNifFree(body, Number(id || 0));
     if (name === 'expenses' && (m === 'POST' || m === 'PUT')) body = expenseBody(body, id ? one('SELECT * FROM expenses WHERE id=?', Number(id)) : null);
     if (m === 'POST' && !id) { const row = C[name].create(body); log(`Nuevo ${{ clients: 'cliente', items: 'artículo', expenses: 'gasto', tasks: 'tarea' }[name]}: ${row.name || row.concept || row.title}`, name, row.id); return row; }
     if (m === 'PUT' && id) { const before = name === 'tasks' ? one('SELECT * FROM tasks WHERE id=?', Number(id)) : null, row = C[name].update(Number(id), body); if (before && !before.done && row.done && row.repeat && !row.parent_id) row.next_id = spawnNext(row); return row; }
@@ -394,8 +403,8 @@ async function route(req_, url, body) {
     let added = 0, skipped = 0;
     tx(() => { for (const r of rows) {
       const name = str(r.name, 300); if (!name) { skipped++; continue; }
-      const nif = str(r.nif, 20).toUpperCase();
-      if (nif && one('SELECT 1 FROM clients WHERE nif=?', nif)) { skipped++; continue; }
+      const nif = normNif(r.nif);
+      if (nifOwner(nif)) { skipped++; continue; }
       run('INSERT INTO clients(name,nif,email,phone,address,city,zip,created_at) VALUES(?,?,?,?,?,?,?,?)', name, nif, str(r.email, 200), str(r.phone, 40), str(r.address, 300), str(r.city, 100), str(r.zip, 10), nowIso()); added++;
     } });
     log(`Importados ${added} clientes`); return { added, skipped };
