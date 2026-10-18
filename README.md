@@ -11,7 +11,7 @@ npm start            # http://127.0.0.1:4400
 REM_DATA_DIR=/ruta REM_PORT=4500 npm start   # datos y puerto propios
 ```
 
-Los datos van por defecto a `~/Library/Application Support/REM Negocio` (SQLite) con una copia automática diaria (se conservan las últimas 20).
+Los datos van por defecto a `~/Library/Application Support/REM Negocio` (SQLite) con una copia automática diaria (se conservan las últimas 20 automáticas, separadas de las manuales y de seguridad).
 Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (todo ficticio).
 
 ## Novedad: bandeja con asistente local
@@ -35,7 +35,7 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 
 ## Más herramientas básicas
 
-- **Copias de seguridad:** automática diaria; en Ajustes → Datos puedes **restaurar** (guarda antes una copia de lo actual), **descargar** e **importar** copias (.db).
+- **Copias de seguridad:** automática diaria; en Ajustes → Datos puedes **restaurar** (guarda antes una copia de lo actual), **descargar** e **importar** copias (.db). Antes de aceptar o restaurar una copia se comprueban SQLite, sus relaciones y la versión del esquema. Automáticas, manuales, importadas y copias previas a operaciones delicadas tienen retención separada.
 - **Historial por cliente:** en cada ficha, una línea de tiempo única (mensajes, facturas, cobros, presupuestos, tareas, memoria) con lo que viene («Próximamente»), filtros y búsqueda.
 - **Archivos adjuntos:** en clientes y facturas/presupuestos, arrastra o elige contratos, planos o albaranes (PDF, imágenes, Word, Excel, PowerPoint, texto; hasta 25 MB). Se guardan en tu equipo, se comprueba que el contenido coincide con la extensión, se abren sin ejecutar nada y se borran con su cliente o documento.
 - **Importar histórico:** en Ajustes → Datos, sube un CSV o un Excel de facturas emitidas o de gastos (separador y acentos detectados solos; importes y fechas en formato español). Ves una vista previa con las columnas reconocidas —que puedes corregir—, avisos y filas con error; no se guarda nada hasta confirmar. Las facturas conservan número y fecha, los clientes se emparejan por NIF o nombre, los cobros se registran y lo ya importado se omite si repites el archivo.
@@ -93,6 +93,8 @@ npm test
 ```
 
 La estructura de relaciones, las reglas que evitan datos incoherentes y las consultas de diagnóstico están documentadas en [Integridad de datos](docs/integridad-datos.md).
+
+En Ajustes → Datos, **Borrar todos los datos** crea primero una copia de la base y elimina registros, ajustes, secretos del llavero y archivos adjuntos locales. La copia `.db` no contiene los adjuntos, por lo que la pantalla lo advierte como una operación irreversible para esos archivos.
 
 ## Licencia
 

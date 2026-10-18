@@ -1,7 +1,7 @@
 // REM Negocio — servidor local sin dependencias (Node ≥ 22.13, node:sqlite).
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, statSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, statSync, writeFileSync, rmSync } from 'node:fs';
 import { join, extname, dirname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
@@ -32,6 +32,9 @@ import { createAutostart } from './lib/autostart.mjs';
 import { createMenubar } from './lib/menubar.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
+import { migrateSchema, assertDatabaseHealthy } from './lib/schema.mjs';
+import { pruneBackups } from './lib/backups.mjs';
+import { clearAllSecrets } from './lib/secrets.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(ROOT, 'public');
@@ -55,11 +58,7 @@ CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY, title TEXT NOT NULL, du
 CREATE TABLE IF NOT EXISTS activity(id INTEGER PRIMARY KEY, at TEXT NOT NULL, text TEXT NOT NULL, ref_type TEXT DEFAULT '', ref_id INTEGER);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_doc_number ON documents(type, number) WHERE number <> '';
 `);
-// Cuentas a pagar: pending=1 → factura de proveedor sin pagar (vence en `due`); los gastos de siempre cuentan como pagados.
-for (const [c, d] of [['pending', 'INTEGER DEFAULT 0'], ['due', "TEXT DEFAULT ''"], ['paid_date', "TEXT DEFAULT ''"]]) if (!db.prepare('PRAGMA table_info(expenses)').all().some((x) => x.name === c)) db.exec(`ALTER TABLE expenses ADD COLUMN ${c} ${d}`);
-if (!db.prepare('PRAGMA table_info(documents)').all().some((x) => x.name === 'series')) db.exec("ALTER TABLE documents ADD COLUMN series TEXT DEFAULT ''");
-for (const [c, d] of [['priority', 'INTEGER DEFAULT 1'], ['repeat', "TEXT DEFAULT ''"], ['parent_id', 'INTEGER REFERENCES tasks(id) ON DELETE CASCADE']]) if (!db.prepare('PRAGMA table_info(tasks)').all().some((x) => x.name === c)) db.exec(`ALTER TABLE tasks ADD COLUMN ${c} ${d}`);
-if (!db.prepare('PRAGMA table_info(expenses)').all().some((x) => x.name === 'supplier_nif')) db.exec("ALTER TABLE expenses ADD COLUMN supplier_nif TEXT DEFAULT ''");
+migrateSchema(db);
 
 const nowIso = () => new Date().toISOString();
 const run = (sql, ...p) => db.prepare(sql).run(...p);
@@ -117,6 +116,7 @@ agents.setOnApproval((s) => notifier.approval(s));
 const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError, modules, recurring, notifier });
 const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, settingsObj, agents, createExpense: (b) => C.expenses.create(b) });
 const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments, modules, notifier });
+assertDatabaseHealthy(db);
 
 const icsToken = () => { let t = settingsObj().ics_token; if (!t) { t = randomBytes(16).toString('hex'); saveSetting('ics_token', t); } return t; };
 const icsText = () => buildIcs({ tasks: all('SELECT * FROM tasks'), documents: all('SELECT * FROM documents').map(docRow), payments: all('SELECT * FROM payments'), clients: all('SELECT * FROM clients'), recurring: all('SELECT * FROM recurring'), expenses: all('SELECT * FROM expenses WHERE pending=1'), settings: settingsObj(), today: today() });
@@ -275,8 +275,7 @@ function makeBackup(tag = 'auto') {
   const name = `negocio-${new Date().toISOString().replace(/[:.]/g, '-')}-${tag}.db`;
   const file = join(DATA, 'backups', name);
   db.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`);
-  const files = readdirSync(join(DATA, 'backups')).filter((f) => f.endsWith('.db')).sort();
-  for (const f of files.slice(0, Math.max(0, files.length - 20))) unlinkSync(join(DATA, 'backups', f));
+  pruneBackups(join(DATA, 'backups'));
   return { name, size: statSync(file).size };
 }
 const listBackups = () => readdirSync(join(DATA, 'backups')).filter((f) => f.endsWith('.db')).sort().reverse().map((f) => ({ name: f, size: statSync(join(DATA, 'backups', f)).size }));
@@ -461,7 +460,7 @@ async function route(req_, url, body) {
     if (m === 'POST' && p === '/api/backups/import') {
       const buf = Buffer.from(String(body.data || ''), 'base64'); if (buf.length < 100 || buf.subarray(0, 16).toString('latin1') !== 'SQLite format 3\0') throw new HttpError(400, 'Ese archivo no es una copia de REM Negocio');
       const name = `negocio-${new Date().toISOString().replace(/[:.]/g, '-')}-importada.db`, file = join(DATA, 'backups', name); writeFileSync(file, buf);
-      const s = summarize(file); if (!s) { unlinkSync(file); throw new HttpError(400, 'Ese archivo no contiene datos de REM Negocio'); } return { name, summary: s };
+      const s = summarize(file); if (!s) { unlinkSync(file); throw new HttpError(400, 'Ese archivo no contiene una base íntegra y compatible de REM Negocio'); } pruneBackups(join(DATA, 'backups')); return { name, summary: s };
     }
   }
   if (m === 'GET' && p === '/api/export') return { exportedAt: nowIso(), ...state() };
@@ -470,6 +469,8 @@ async function route(req_, url, body) {
     if (body.confirm !== 'BORRAR') throw bad('Confirmación necesaria');
     makeBackup('antes-de-borrar');
     inbox.stop();
+    files.purgeAll(); attachments.purgeAll(); clearAllSecrets();
+    for (const name of ['negocio.md', 'policy.json', 'activity.jsonl', 'rem.log']) rmSync(join(DATA, name), { force: true });
     for (const t of ['time_entries', 'files', 'recurring_expenses', 'doc_templates', 'recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
     return { ok: true };
   }

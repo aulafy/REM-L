@@ -174,7 +174,7 @@ on('rmLogo', () => mutate('PUT', '/api/settings', { logo: '' }, 'Logotipo quitad
 on('backupNow', async () => { await mutate('POST', '/api/backups', {}, 'Copia creada'); });
 on('loadDemo', async () => { await mutate('POST', '/api/demo', {}, 'Datos de ejemplo cargados'); go('#/hoy'); });
 on('resetAll', () => {
-  formModal({ title: 'Borrar todos los datos', submit: 'Borrar todo', fields: html`<div class="notice warn" style="grid-column:1/-1">${icon('alert')}<span>Se borrarán clientes, facturas, gastos y ajustes. Antes se guarda una copia automática. Escribe <b>BORRAR</b> para confirmar.</span></div>${field({ name: 'confirm', label: 'Confirmación', attrs: 'autocomplete="off" autofocus' })}`.toString(),
+  formModal({ title: 'Borrar todos los datos', submit: 'Borrar todo', fields: html`<div class="notice warn" style="grid-column:1/-1">${icon('alert')}<span>Se borrarán clientes, facturas, gastos, mensajes, ajustes, secretos y todos los archivos adjuntos. Antes se guarda una copia de la base de datos, pero los archivos adjuntos se eliminarán de forma irreversible. Escribe <b>BORRAR</b> para confirmar.</span></div>${field({ name: 'confirm', label: 'Confirmación', attrs: 'autocomplete="off" autofocus' })}`.toString(),
     onSubmit: async (d, close) => { if (d.confirm !== 'BORRAR') throw new Error('Escribe BORRAR en mayúsculas.'); await mutate('POST', '/api/reset', { confirm: 'BORRAR' }, 'Datos borrados'); close(); go('#/hoy'); } });
 });
 

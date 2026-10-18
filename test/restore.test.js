@@ -40,3 +40,12 @@ test('importar copias: descargar → importar → restaurar; archivos ajenos o s
   const imp2 = await call('POST', '/api/backups/import', { data: (await import('node:fs')).readFileSync(old).toString('base64') }); assert.equal(imp2.status, 200);
   assert.equal((await call('POST', '/api/backups/restore', { name: imp2.json.name })).status, 200); assert.equal((await state()).messages.length, 0);
 });
+
+test('rechaza copias futuras o con relaciones rotas y conserva íntegra la base activa', async () => {
+  const bk = (await call('POST', '/api/backups', {})).json, source = join(dir, 'backups', bk.name);
+  const future = join(dir, 'futura.db'); copyFileSync(source, future); const f = new DatabaseSync(future); f.exec('PRAGMA user_version=999'); f.close();
+  assert.equal((await call('POST', '/api/backups/import', { data: (await import('node:fs')).readFileSync(future).toString('base64') })).status, 400);
+  const broken = join(dir, 'rota.db'); copyFileSync(source, broken); const b = new DatabaseSync(broken); b.exec("PRAGMA foreign_keys=OFF; INSERT INTO payments(document_id,date,amount) VALUES(999999,'2026-01-01',1)"); b.close();
+  assert.equal((await call('POST', '/api/backups/import', { data: (await import('node:fs')).readFileSync(broken).toString('base64') })).status, 400);
+  const active = new DatabaseSync(join(dir, 'negocio.db'), { readOnly: true }); assert.deepEqual(active.prepare('PRAGMA foreign_key_check').all(), []); assert.equal(active.prepare('PRAGMA quick_check').get().quick_check, 'ok'); active.close();
+});

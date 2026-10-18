@@ -2,6 +2,8 @@
 
 REM Negocio usa SQLite con `PRAGMA foreign_keys=ON`. Las escrituras pasan por las validaciones del servidor y las operaciones que asignan número de factura se ejecutan dentro de una transacción.
 
+El esquema se versiona mediante `PRAGMA user_version`. Las migraciones pendientes se aplican en una sola transacción y el arranque se detiene si la base pertenece a una versión futura o si `quick_check`/`foreign_key_check` detectan corrupción o relaciones rotas.
+
 ## Relaciones persistentes
 
 | Origen | Destino | Comportamiento |
@@ -35,6 +37,10 @@ La suite automatizada cubre estas reglas y las relaciones principales:
 ```sh
 npm test
 ```
+
+Las copias importadas se abren en modo de solo lectura y se comprueban antes de incorporarlas. Al restaurar se vuelve a verificar la base resultante dentro de la transacción; si falla, se hace `ROLLBACK` y la base activa permanece intacta. La retención es independiente por finalidad: 20 automáticas, 10 manuales, 10 previas a operaciones delicadas, 5 importadas y 5 de otros tipos.
+
+La orden **Borrar todos los datos** guarda antes una copia SQLite y después elimina también adjuntos (incluidos posibles archivos huérfanos), secretos conocidos y ficheros locales de configuración/actividad. Los adjuntos no forman parte del `.db` y no pueden recuperarse desde esa copia.
 
 Para auditar manualmente una base detenida, se pueden ejecutar estas consultas con una herramienta SQLite:
 
