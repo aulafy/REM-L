@@ -5,7 +5,7 @@ import { readFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, statSync,
 import { join, extname, dirname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
-import { computeTotals, today, addDays } from './public/calc.js';
+import { computeTotals, today, addDays, docStatus } from './public/calc.js';
 import { createInbox } from './lib/inbox.mjs';
 import { createAgents } from './lib/agents.mjs';
 import { speak, setLlmHooks } from './lib/ai.mjs';
@@ -18,6 +18,7 @@ import { createModules } from './lib/modules.mjs';
 import { createRecurring } from './lib/recurring.mjs';
 import { createDocTemplates } from './lib/doctemplates.mjs';
 import { buildIcs } from './lib/calendar.mjs';
+import { buildXlsx } from './lib/xlsx.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
@@ -83,6 +84,27 @@ const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, 
 
 const icsToken = () => { let t = settingsObj().ics_token; if (!t) { t = randomBytes(16).toString('hex'); saveSetting('ics_token', t); } return t; };
 const icsText = () => buildIcs({ tasks: all('SELECT * FROM tasks'), documents: all('SELECT * FROM documents').map(docRow), payments: all('SELECT * FROM payments'), clients: all('SELECT * FROM clients'), recurring: all('SELECT * FROM recurring'), settings: settingsObj(), today: today() });
+
+// Libro de Excel para el asesor: facturas, gastos, clientes e IVA por trimestre.
+function xlsxBook(kind) {
+  const t = today(), paid = (id) => one('SELECT COALESCE(SUM(amount),0) s FROM payments WHERE document_id=?', id).s, cname = (id) => one('SELECT name, nif FROM clients WHERE id=?', id ?? -1) || {};
+  const invoices = all("SELECT * FROM documents WHERE type='factura' AND status<>'borrador' ORDER BY issue_date, number").map(docRow);
+  const sheets = {
+    facturas: { name: 'Facturas', totals: ['base', 'iva_total', 'irpf_total', 'total', 'paid', 'pending'], columns: [{ header: 'Número', key: 'number', width: 14 }, { header: 'Fecha', key: 'issue_date', type: 'date', width: 12 }, { header: 'Vencimiento', key: 'due_date', type: 'date', width: 13 }, { header: 'Cliente', key: 'client', width: 30 }, { header: 'NIF', key: 'nif', width: 13 }, { header: 'Base', key: 'base', type: 'money' }, { header: 'IVA', key: 'iva_total', type: 'money' }, { header: 'IRPF', key: 'irpf_total', type: 'money' }, { header: 'Total', key: 'total', type: 'money' }, { header: 'Cobrado', key: 'paid', type: 'money' }, { header: 'Pendiente', key: 'pending', type: 'money' }, { header: 'Estado', key: 'status', width: 13 }],
+      rows: invoices.map((d) => { const p = d.status === 'rectificada' ? 0 : paid(d.id), c = cname(d.client_id); return { ...d, client: c.name || '', nif: c.nif || '', paid: p, pending: d.status === 'emitida' && d.total > 0 ? Math.max(0, d.total - p) : 0, status: docStatus(d, p, t) }; }) },
+    gastos: { name: 'Gastos', totals: ['base', 'iva_amt', 'total'], columns: [{ header: 'Fecha', key: 'date', type: 'date', width: 12 }, { header: 'Proveedor', key: 'supplier', width: 26 }, { header: 'Concepto', key: 'concept', width: 30 }, { header: 'Categoría', key: 'category', width: 20 }, { header: 'Base', key: 'base', type: 'money' }, { header: 'IVA %', key: 'iva', type: 'number', width: 8 }, { header: 'IVA', key: 'iva_amt', type: 'money' }, { header: 'Total', key: 'total', type: 'money' }],
+      rows: all('SELECT * FROM expenses ORDER BY date').map((e) => ({ ...e, iva_amt: e.total - e.base })) },
+    clientes: { name: 'Clientes', totals: ['billed', 'pending'], columns: [{ header: 'Nombre', key: 'name', width: 30 }, { header: 'NIF', key: 'nif', width: 13 }, { header: 'Email', key: 'email', width: 28 }, { header: 'Teléfono', key: 'phone', width: 14 }, { header: 'Dirección', key: 'address', width: 28 }, { header: 'CP', key: 'zip', width: 8 }, { header: 'Población', key: 'city', width: 16 }, { header: 'Facturado', key: 'billed', type: 'money' }, { header: 'Pendiente', key: 'pending', type: 'money' }],
+      rows: all('SELECT * FROM clients WHERE archived=0 ORDER BY name COLLATE NOCASE').map((c) => { const mine = invoices.filter((d) => d.client_id === c.id); return { ...c, billed: mine.reduce((a, d) => a + d.total, 0), pending: mine.filter((d) => d.status === 'emitida' && d.total > 0).reduce((a, d) => a + Math.max(0, d.total - paid(d.id)), 0) }; }) },
+  };
+  // IVA por trimestre: repercutido (facturas emitidas) menos soportado (gastos).
+  const q = new Map(); const slot = (date) => { const k = `${date.slice(0, 4)}-T${Math.floor((Number(date.slice(5, 7)) - 1) / 3) + 1}`; if (!q.has(k)) q.set(k, { period: k, ingresos: 0, iva_rep: 0, gastos: 0, iva_sop: 0 }); return q.get(k); };
+  for (const d of invoices) { const r = slot(d.issue_date); r.ingresos += d.base; r.iva_rep += d.iva_total; } for (const e of sheets.gastos.rows) { const r = slot(e.date); r.gastos += e.base; r.iva_sop += e.iva_amt; }
+  sheets.iva = { name: 'IVA trimestral', totals: ['ingresos', 'iva_rep', 'gastos', 'iva_sop', 'resultado'], columns: [{ header: 'Periodo', key: 'period', width: 12 }, { header: 'Ingresos (base)', key: 'ingresos', type: 'money', width: 18 }, { header: 'IVA repercutido', key: 'iva_rep', type: 'money', width: 18 }, { header: 'Gastos (base)', key: 'gastos', type: 'money', width: 16 }, { header: 'IVA soportado', key: 'iva_sop', type: 'money', width: 16 }, { header: 'IVA a liquidar', key: 'resultado', type: 'money', width: 16 }],
+    rows: [...q.values()].sort((a, b) => a.period.localeCompare(b.period)).map((r) => ({ ...r, resultado: r.iva_rep - r.iva_sop })) };
+  const pick = kind === 'todo' ? ['facturas', 'gastos', 'clientes', 'iva'] : [kind]; if (pick.some((k) => !sheets[k])) throw bad('Tipo no válido');
+  return buildXlsx(pick.map((k) => sheets[k]));
+}
 
 function nextNumber(type, year) {
   const prefix = type === 'presupuesto' ? 'P' : type === 'rectificativa' ? 'R' : 'F';
@@ -355,6 +377,7 @@ const server = createServer(async (req, res) => {
     const headers = { 'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'", 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' };
     if (url.pathname.startsWith('/api/')) {
       if (url.pathname === '/api/export.csv') return csv(url, res, headers);
+      if (url.pathname === '/api/export.xlsx') { const kind = url.searchParams.get('kind') || 'todo'; const book = xlsxBook(kind); res.writeHead(200, { ...headers, 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="rem-negocio-${kind}-${today()}.xlsx"`, 'Cache-Control': 'no-store' }).end(book); return; }
       if (req.method === 'GET' && /^\/api\/attachments\/\d+\/file$/.test(url.pathname)) {
         const f = attachments.fileOf(Number(url.pathname.split('/')[3])); if (!f) throw new HttpError(404, 'No existe');
         res.writeHead(200, { ...headers, 'Content-Security-Policy': "frame-ancestors 'self'", 'Content-Type': f.mime, 'Content-Disposition': 'inline', 'Cache-Control': 'private, max-age=3600' }).end(readFileSync(f.path)); return;
