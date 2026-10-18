@@ -51,7 +51,7 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 - **Leer Word, PowerPoint y Excel:** el texto de `.docx`, `.pptx` y `.xlsx` se extrae en tu equipo, sin abrir ni ejecutar nada (límites de tamaño y de descompresión). Sirve para alimentar el Conocimiento del asistente, para ver el contenido de los adjuntos de Telegram y correo —tratado como dato del remitente, nunca como órdenes— y para importar facturas y gastos desde un `.xlsx`. `.rtf`, `.doc` y `.odt` se leen con `textutil` de macOS; los `.ppt` y `.xls` antiguos no se admiten.
 - **Avisos de macOS:** Ajustes → Avisos: mensajes nuevos (agrupados), resumen del día, propuestas por aprobar y horario de silencio. Por privacidad no muestran nombres ni importes salvo que lo actives.
 - **Gastos recurrentes:** alquiler, cuotas, seguros… se registran solos cada periodo (y los que falten si la app estuvo cerrada); botón «Repetir» en cualquier gasto.
-- **Facturas recurrentes:** «Repetir…» en una factura; cada periodo se prepara un **borrador** (nunca se emite solo).
+- **Facturas recurrentes:** «Repetir…» en una factura; cada periodo pendiente prepara su propio **borrador** (hasta 12 por ejecución, sin saltarse los restantes y nunca se emite solo).
 - **Cartas y contratos:** plantillas con variables (reclamación de pago, contrato de servicios, consentimiento de datos) desde la ficha del cliente → vista previa editable → PDF. Plantillas propias en Ajustes → Documentos.
 - **Calendario:** Tareas → Calendario: suscripción `.ics` con tareas, vencimientos de facturas, caducidad de presupuestos y recurrentes (enlace privado renovable, solo en tu Mac).
 - **Tesorería:** Dinero → Tesorería: previsión a 30/60/90 días con vencimientos, el retraso medio con que paga cada cliente, facturas recurrentes, gastos habituales, IVA del trimestre y, si lo apuntas, tu saldo bancario.
@@ -91,6 +91,8 @@ En **Ajustes → Módulos** el autónomo amplía la app sin código: campos extr
 ```sh
 npm test
 ```
+
+La estructura de relaciones, las reglas que evitan datos incoherentes y las consultas de diagnóstico están documentadas en [Integridad de datos](docs/integridad-datos.md).
 
 ## Licencia
 
