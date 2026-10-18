@@ -23,7 +23,7 @@ export function relDate(iso, now = today()) {
   return d > 0 ? `en ${d} días` : `hace ${-d} días`;
 }
 export const initials = (n) => String(n).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-const HUES = [218, 250, 178, 152, 262, 200, 38, 228]; // azules, turquesa, verde, violeta y ámbar: sin rosas
+const HUES = [214, 202, 226, 160, 148, 30, 36, 196]; // azules, verdes y naranjas suaves
 export const hue = (n) => HUES[[...String(n)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 997, 7) % HUES.length];
 export const avatar = (name, size = '') => html`<span class="avatar ${size}" style="--h:${hue(name)}" aria-hidden="true">${initials(name)}</span>`;
 
