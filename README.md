@@ -96,6 +96,10 @@ La estructura de relaciones, las reglas que evitan datos incoherentes, el **modo
 
 En Ajustes → Datos, **Borrar todos los datos** crea primero una copia de la base y elimina registros, ajustes, secretos del llavero y archivos adjuntos locales. La copia `.db` no contiene los adjuntos, por lo que la pantalla lo advierte como una operación irreversible para esos archivos.
 
+## App de Mac y copias cifradas
+
+En `mac/` hay una **app nativa para macOS** (SwiftUI) que lleva dentro el servidor y guía paso a paso: tu negocio, cómo facturas, copias de seguridad, acceso y arranque. Las copias son archivos **`.rembak` cifrados** (AES-256-GCM, clave derivada de tu frase de paso con scrypt) en la carpeta que elijas (USB, NAS, iCloud Drive); se hace una al día y otra al salir, se verifican descifrándolas, y el asistente **prueba una restauración** antes de darlas por buenas. Incluye una hoja de recuperación con un código por si olvidas la frase. Detalles en [mac/README.md](mac/README.md) y [docs/asistente-macos.md](docs/asistente-macos.md). Compilar: `scripts/build-mac-app.sh`.
+
 ## Licencia
 
 Uso **propio** gratuito, también en tu propio negocio (ver [LICENSE](LICENSE)). Prohibido revenderlo, ofrecerlo como servicio a terceros, redistribuirlo o incorporarlo a otros productos sin permiso por escrito. No es software de facturación certificado.

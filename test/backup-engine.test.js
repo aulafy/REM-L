@@ -93,3 +93,12 @@ test('token de la app: con PIN activo abre la API; un token malo no', async () =
   assert.equal((await call('GET', '/api/backup/config')).status, 401); assert.equal((await call('GET', '/api/backup/config', undefined, { 'X-REM-Admin': 'token-de-prueba-admin' })).status, 200);
   assert.equal((await call('GET', '/api/backup/config', undefined, { 'X-REM-Admin': 'token-de-prueba-admiX' })).status, 401); assert.equal((await call('GET', '/api/backup/config', undefined, { 'X-REM-Admin': '' })).status, 401);
 });
+
+test('estado del asistente: marcas, paso y lista calculada con datos reales', async () => {
+  jar.c = null; const h = { 'X-REM-Admin': 'token-de-prueba-admin' };
+  const s0 = (await call('GET', '/api/setup', undefined, h)).json; assert.equal(s0.finished, false); assert.equal(s0.checklist.find((c) => c.id === 'business').done, false); assert.equal(s0.ready, false);
+  await call('PUT', '/api/settings', { company_name: 'Reformas Gil', company_nif: 'B12345674' }, h);
+  const s1 = (await call('POST', '/api/setup', { billing: true, step: 3, inventada: true }, h)).json; assert.equal(s1.checklist.find((c) => c.id === 'business').done, true); assert.equal(s1.checklist.find((c) => c.id === 'billing').done, true); assert.equal(s1.state.step, 3); assert.equal(s1.state.inventada, undefined, 'solo claves conocidas');
+  assert.equal((await call('POST', '/api/setup', { step: 99 }, h)).json.state.step, 3, 'un paso fuera de rango se ignora');
+  const f = (await call('POST', '/api/setup', { finished: true }, h)).json; assert.equal(f.finished, true); assert.equal((await call('POST', '/api/setup', { finished: false }, h)).json.finished, false);
+});

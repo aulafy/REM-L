@@ -92,7 +92,7 @@ function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM se
 function pubSettings() { const { pin_hash, menubar_token, backup_cfg, ...s } = settingsObj(); return { ...s, pin_on: !!pin_hash }; }
 function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
 const SETTING_KEYS = ['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details', 'notify_quiet_from', 'notify_quiet_to', 'notify_digest_time', 'cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
-  'default_iva', 'default_irpf', 'hourly_rate', 'invoice_series', 'lock_idle_min', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
+  'default_iva', 'default_irpf', 'legal_form', 'hourly_rate', 'invoice_series', 'lock_idle_min', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
 
 const llmlog = createLlmLog({ db, run, all, one, nowIso, settingsObj, HttpError });
 setLlmHooks({ log: llmlog.record, check: llmlog.check });
