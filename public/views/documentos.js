@@ -210,6 +210,7 @@ function detail(S, key, d) {
           <button class="btn" data-act="dlPdf" data-id="${d.id}" style="width:100%;justify-content:flex-start">${icon('download', 'sm')}Descargar PDF</button>
           <button class="btn" data-act="print" style="width:100%;justify-content:flex-start">${icon('print', 'sm')}Imprimir</button>
           ${btn('duplicate', 'copy', 'Duplicar')}
+          ${isInv && !d.corrects_id && d.status !== 'rectificada' ? btn('repeatInvoice', 'refresh', 'Repetir…') : ''}
           ${isInv && d.status === 'emitida' && !d.corrects_id ? btn('rectify', 'edit', 'Rectificar factura', 'danger') : ''}
           ${!isInv && d.status !== 'facturado' ? btn('deleteDoc', 'trash', 'Eliminar', 'danger') : ''}</div></section>
         ${isInv && d.status === 'emitida' && d.total > 0 ? html`<section class="card"><div class="card-h"><h2>Cobros</h2></div><div class="card-b"><div class="progress" role="progressbar" aria-valuenow="${Math.round(paid / d.total * 100)}" aria-valuemin="0" aria-valuemax="100" aria-label="Cobrado"><i style="width:${Math.min(100, paid / d.total * 100)}%"></i></div>

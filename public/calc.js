@@ -49,3 +49,10 @@ export function validNif(v) {
   if (/^[XYZ]/.test(v)) return L[Number('XYZ'.indexOf(v[0]) + v.slice(1, 8)) % 23] === v[8];
   return true; // CIF: formato válido (no se verifica el dígito de control)
 }
+
+// Siguiente fecha de una serie periódica respetando el día ancla (31 → 28 → 31…).
+const EVERY_MONTHS = { month: 1, quarter: 3, year: 12 };
+export function advanceDate(iso, every, anchor = Number(iso.slice(8, 10))) {
+  const [y, m] = iso.split('-').map(Number), t = (y * 12 + (m - 1)) + EVERY_MONTHS[every], ny = Math.floor(t / 12), nm = (t % 12) + 1;
+  return `${ny}-${String(nm).padStart(2, '0')}-${String(Math.min(anchor, new Date(ny, nm, 0).getDate())).padStart(2, '0')}`;
+}
