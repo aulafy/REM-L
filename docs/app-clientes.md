@@ -141,3 +141,36 @@ Métricas del MVP: porcentaje de clientes que usan el enlace frente a WhatsApp, 
 4. ¿Quién opera el relé al principio (tú/Aulafy) y con qué compromiso de disponibilidad y de privacidad?
 5. ¿Reutilizamos el protocolo de `wh`/`AgentLink` para la capa de agentes?
 6. ¿Qué licencia queremos para el servidor y el protocolo (abierto) frente a REM (uso propio)?
+
+## 14. Variante: usar el correo electrónico como transporte («WhatsApp sobre email»)
+
+Idea aportada por el usuario (18/10/2026): en vez de un relé propio, que la comunicación viaje por **email** (SMTP/IMAP) y la app le dé **forma de mensajería**. Hay precedentes reales: Delta Chat hace exactamente esto, con cifrado Autocrypt y servidores «chatmail» (verificar el estado actual del proyecto).
+
+### Qué ganamos
+- **Cero infraestructura propia**: el correo ya es almacenar-y-reenviar (resuelve «mi Mac está apagado») y es federado. No hay relé que operar, vigilar ni pagar.
+- **Universal**: todo el mundo tiene correo; no hace falta instalar nada para el primer contacto (un email bien formado ya es un mensaje).
+- **REM ya habla correo** (IMAP/SMTP, adjuntos, hilos): el canal es una extensión, no un sistema nuevo.
+- **Sin teléfono**: la identidad es una dirección (y puede ser un alias que el cliente controle).
+- **Sin dependencia de nadie**: ni Meta, ni Apple, ni nosotros.
+
+### Qué perdemos o complica
+- **Spam y suplantación**: el correo es el protocolo más abusado. Hace falta filtrar por un alias/etiqueta exclusivo del canal, SPF/DKIM/DMARC y fichas con token.
+- **Cifrado de extremo a extremo** no es el comportamiento por defecto: hay que usar Autocrypt/OpenPGP (gestión de claves) o aceptar que el contenido es legible por los proveedores de correo. Metadatos siempre visibles.
+- **Latencia y fiabilidad**: segundos o minutos, con filtros y carpetas de spam por medio. Para «tiempo real» hace falta IMAP IDLE y notificaciones.
+- **Un navegador no puede hablar IMAP/SMTP**: un chat web sin app necesita un servidor intermedio (JMAP o nuestro relé). Las apps nativas sí pueden.
+- Cada cliente necesita una dirección de correo (casi todos la tienen, pero no es «anónimo»).
+
+### Arquitectura recomendada: correo universal + relé opcional
+1. **Nivel 0 (sin instalar nada, sin servidor): correo estructurado.** REM envía por SMTP un email con aspecto de tarjeta (presupuesto, pago, estado) y **acciones por respuesta**: enlaces `mailto:` con un **token único** («ACEPTO P2026-0007 [REM:q16:9f3a…]»). Al llegar la respuesta por IMAP, REM valida el token (HMAC ligado al presupuesto y a la dirección del cliente) y aplica el cambio; sin verificación de remitente (DKIM/SPF) queda **pendiente de tu confirmación**. Funciona con cualquier cliente de correo y valida el producto (expedientes tipados) sin relé.
+2. **Nivel 1: hilo = expediente.** `Message-ID/References` identifican el caso; cabecera `X-REM-Case` y una parte `application/json` con los datos tipados para quien use la app.
+3. **Nivel 2: app/PWA con aspecto de WhatsApp** sobre ese mismo correo (nativa por IMAP/SMTP, o web por JMAP). Con **Autocrypt** donde ambos extremos lo soporten (interoperable con Delta Chat).
+4. **Nivel 3: relé** solo como acelerador: enlace web sin correo, notificaciones push y adjuntos grandes. El prototipo actual ya cubre este nivel.
+
+### Seguridad del Nivel 0 (lo que lo hace viable)
+- Token de acción **no adivinable** (≥128 bits) y de **un solo uso** por acción; caduca con el presupuesto.
+- La respuesta solo cuenta si viene del destinatario original; sin DKIM/SPF correctos, REM pide confirmación humana.
+- Los datos de pago nunca se aceptan por respuesta: el cambio de IBAN requiere confirmación fuera del canal.
+- Enlaces de pago solo https y mostrando el dominio; avisos de cambio de datos.
+
+### Decisión
+Para **validar el producto** el camino más rápido y barato es el **Nivel 0** (cero infraestructura, funciona con cualquier cliente) y mantener el relé como prototipo del Nivel 3. La app con aspecto de WhatsApp (Nivel 2) se decide cuando se vea qué usan de verdad los clientes. Pendiente: confirmar si implementamos el Nivel 0 ahora.
