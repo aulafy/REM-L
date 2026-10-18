@@ -79,7 +79,27 @@ const P = {
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
   moon: '<path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/>',
 };
-export const icon = (n, cls = '') => html`<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${raw(P[n] || '')}</svg>`;
+// Capa secundaria (relleno translúcido, como el «renderizado jerárquico» de los símbolos de Apple): da cuerpo al trazo sin añadir ruido.
+const F = {
+  hoy: '<path d="M5 9.2 12 3.4l7 5.8V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/>',
+  mensajes: '<path d="M21 15.5a2 2 0 0 1-2 2H8.5L4 21V5.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/>',
+  clientes: '<circle cx="9" cy="8" r="3.5"/>', dinero: '<rect x="2.5" y="6" width="19" height="12" rx="2.5"/>',
+  ajustes: '<circle cx="14.5" cy="7" r="2.5"/><circle cx="9.5" cy="17" r="2.5"/>',
+  facturas: '<path d="M5.5 3h13a1 1 0 0 1 1 1v17l-3-1.8-2.2 1.8-2.3-1.8-2.3 1.8-2.2-1.8-3 1.8V4a1 1 0 0 1 1-1z"/>',
+  presupuestos: '<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>', gastos: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/>',
+  informes: '<rect x="7.5" y="12" width="2" height="4.5" rx="1"/><rect x="11.5" y="8" width="2" height="8.5" rx="1"/><rect x="15.5" y="9.5" width="2" height="7" rx="1"/>',
+  tareas: '<rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/>', coins: '<circle cx="12" cy="12" r="9"/>', mail: '<rect x="3" y="5" width="18" height="14" rx="2.5"/>',
+  send: '<path d="M21.5 2.5 14.8 21.2a.5.5 0 0 1-.93.03L10.5 13.5 2.8 10.2a.5.5 0 0 1 .03-.93z"/>', copy: '<rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/>',
+  edit: '<path d="M4 20h4.2L19.3 8.9a2 2 0 0 0 0-2.8l-1.4-1.4a2 2 0 0 0-2.8 0L4 15.8z"/>', trash: '<path d="M6 7l.9 12.2a1.5 1.5 0 0 0 1.5 1.3h7.2a1.5 1.5 0 0 0 1.5-1.3L18 7z"/>',
+  archive: '<rect x="3" y="4" width="18" height="4.5" rx="1.2"/>', print: '<rect x="7" y="14" width="10" height="6.5" rx="1"/>', alert: '<path d="M10.3 4 2.5 17.6A2 2 0 0 0 4.2 20.6h15.6a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0z"/>',
+  shield: '<path d="M12 3 4.5 6v5.5c0 4.4 3 7.7 7.5 9 4.5-1.3 7.5-4.6 7.5-9V6z"/>', sparkle: '<path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>', user: '<circle cx="12" cy="8" r="4"/>',
+  book: '<path d="M12 6.5C10.4 5 8 4.5 4 4.5V18c4 0 6.4.5 8 2 1.6-1.5 4-2 8-2V4.5c-4 0-6.4.5-8 2z"/>', mic: '<rect x="9" y="2.5" width="6" height="12" rx="3"/>', speaker: '<path d="M11 5 6.5 9H3.5v6h3L11 19z"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="9.5" rx="2.5"/>', clock: '<circle cx="12" cy="12" r="8.5"/>', sun: '<circle cx="12" cy="12" r="4"/>', moon: '<path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/>',
+};
+export const icon = (n, cls = '') => html`<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${F[n] ? raw(`<g class="ic-f" fill="currentColor" stroke="none">${F[n]}</g>`) : ''}${raw(P[n] || '')}</svg>`;
+// Mosaico de color (como los de Ajustes del sistema): glifo blanco sobre degradado con luz superior
+export const TILE = { hoy: '#0a84ff', mensajes: '#30b94f', clientes: '#ff9f0a', dinero: '#2fb36b', ajustes: '#8e8e93', facturas: '#0a84ff', presupuestos: '#8b5cf6', gastos: '#ff6b4a', informes: '#5e5ce6', tareas: '#f5b50a', sparkle: '#bf5af2', book: '#ff9f0a', shield: '#30b94f', mail: '#0a84ff', coins: '#2fb36b', user: '#ff9f0a' };
+export const tile = (n, size = '') => html`<span class="tile ${size}" style="--t:${TILE[n] || '#0a84ff'}">${icon(n)}</span>`;
 
 // ---------- red ----------
 export async function api(method, path, body) {

@@ -103,6 +103,9 @@ En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook �
 ## Tarjetas por correo (nivel 0)
 Presupuestos con botones Aceptar/Rechazar, solicitudes de pago y avisos de estado por **email normal**, con respuesta verificada (token de un solo uso + remitente + SPF/DKIM). Ver `docs/app-clientes.md` §14.1.
 
+## Iconos
+Sistema propio al estilo de los símbolos de Apple: trazo de 1,75 sobre rejilla de 24 con **capa secundaria translúcida** (relieve sin ruido), **mosaicos de color** con degradado y luz superior en la barra lateral, y un **icono de app** (`mac/tools/make-icon.swift`, Core Graphics: superelipse continua, luz cenital, borde de cristal y monograma con volumen) que genera el `.icns`, el `icon.svg` y los iconos PNG web (`public/apple-touch-icon.png`, `icon-192/512.png`).
+
 ## Órdenes en lenguaje natural y atajos
 Escribe en la barra de Hoy o en ⌘K cosas como «factura a Marta por 3 horas a 40 €», «recuérdame llamar a Pedro mañana», «gasto gasolina 45,50 €», «nuevo cliente Ana López 612345678» o «abre clientes». REM lo interpreta con reglas (sin IA) o, si tienes un modelo local, con él; **muestra lo que va a hacer y solo lo ejecuta si confirmas** (las facturas se crean como borrador; si hay dos clientes parecidos, eliges). Atajos: `/` busca u ordena, `N` luego `F`/`P`/`C`/`G`/`T` crea factura/presupuesto/cliente/gasto/tarea. En móvil los botones tienen al menos 44 px y respetan la zona segura. Código: `public/commands.js` (puro y probado), `public/assistant.js`.
 
