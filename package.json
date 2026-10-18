@@ -11,5 +11,5 @@
     "start": "node --disable-warning=ExperimentalWarning server.mjs",
     "test": "REM_PDF_WARM=0 REM_BIN_DIR=\"${TMPDIR:-/tmp}/rem-test-bin\" node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\""
   },
-  "license": "MIT"
+  "license": "SEE LICENSE IN LICENSE"
 }

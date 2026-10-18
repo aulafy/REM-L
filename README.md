@@ -85,3 +85,7 @@ En **Ajustes → Módulos** el autónomo amplía la app sin código: campos extr
 ```sh
 npm test
 ```
+
+## Licencia
+
+Solo para **uso personal** (ver [LICENSE](LICENSE)). Uso en empresa, comercial, como servicio o redistribución: requiere permiso por escrito. No es software de facturación certificado.
