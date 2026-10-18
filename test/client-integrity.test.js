@@ -45,3 +45,25 @@ test('borrar un cliente sin documentos elimina también sus campos extra', async
   assert.deepEqual((await api.request('DELETE', `/api/clients/${c.id}`)).json, { ok: true });
   assert.equal(sql("SELECT COUNT(*) n FROM ext_values WHERE entity='clients' AND entity_id=?", c.id)[0].n, 0);
 });
+
+test('tareas: solo enlazan documentos y clientes que existen, y se desenlazan al borrar el borrador', async () => {
+  const bad = await api.request('POST', '/api/tasks', { title: 'x', document_id: 999999 });
+  assert.equal(bad.status, 400); assert.match(bad.json.error, /documento de la tarea no existe/);
+  assert.equal((await api.request('POST', '/api/tasks', { title: 'x', client_id: 999999 })).status, 400, 'antes daba 500 por la clave foránea');
+  const d = await api.draft('2026-06-01');
+  assert.equal((await api.request('PUT', `/api/ext/documents/${d.id}`, { key: 'ref_x', value: 'R-1' })).status, 200);
+  const t = (await api.request('POST', '/api/tasks', { title: 'Revisar borrador', document_id: d.id })).json; assert.equal(t.document_id, d.id);
+  assert.equal((await api.request('DELETE', `/api/documents/${d.id}`)).status, 200);
+  assert.equal(sql('SELECT document_id FROM tasks WHERE id=?', t.id)[0].document_id, null);
+  assert.equal(sql("SELECT COUNT(*) n FROM ext_values WHERE entity='documents' AND entity_id=?", d.id)[0].n, 0);
+});
+
+test('al arrancar se limpian las referencias colgantes que dejaron versiones anteriores', async () => {
+  api.child.kill(); await new Promise((r) => api.child.once('exit', r));
+  const db = new DatabaseSync(join(api.dataDir, 'negocio.db'));
+  const tid = Number(db.prepare("INSERT INTO tasks(title,document_id,created_at) VALUES('vieja',424242,'2026-01-01')").run().lastInsertRowid);
+  db.prepare("INSERT INTO ext_values(entity,entity_id,key,value) VALUES('clients',424242,'nota_x','huérfano')").run(); db.close();
+  api = await startServer('rem-clients-', { REM_DATA_DIR: api.dataDir });
+  assert.equal(sql('SELECT document_id FROM tasks WHERE id=?', tid)[0].document_id, null);
+  assert.equal(sql('SELECT COUNT(*) n FROM ext_values WHERE entity_id=424242')[0].n, 0);
+});

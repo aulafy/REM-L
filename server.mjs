@@ -32,7 +32,7 @@ import { createAutostart } from './lib/autostart.mjs';
 import { createMenubar } from './lib/menubar.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
-import { migrateSchema, assertDatabaseHealthy } from './lib/schema.mjs';
+import { migrateSchema, assertDatabaseHealthy, cleanSoftRefs } from './lib/schema.mjs';
 import { pruneBackups } from './lib/backups.mjs';
 import { clearAllSecrets } from './lib/secrets.mjs';
 
@@ -116,6 +116,7 @@ agents.setOnApproval((s) => notifier.approval(s));
 const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError, modules, recurring, notifier });
 const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, settingsObj, agents, createExpense: (b) => C.expenses.create(b) });
 const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments, modules, notifier });
+cleanSoftRefs(db);
 assertDatabaseHealthy(db);
 
 const icsToken = () => { let t = settingsObj().ics_token; if (!t) { t = randomBytes(16).toString('hex'); saveSetting('ics_token', t); } return t; };
@@ -347,6 +348,7 @@ function expenseBody(b, cur) {
 const REPEATS = ['day', 'week', 'month', 'quarter', 'year'];
 function taskBody(b, cur) {
   const o = { ...b }, parent = o.parent_id === undefined ? cur?.parent_id : o.parent_id, repeat = o.repeat === undefined ? cur?.repeat || '' : o.repeat, due = o.due === undefined ? cur?.due || '' : o.due;
+  for (const [k, t, msg] of [['document_id', 'documents', 'El documento de la tarea no existe'], ['client_id', 'clients', 'El cliente de la tarea no existe']]) if (o[k] && !one(`SELECT 1 FROM ${t} WHERE id=?`, Number(o[k]))) throw bad(msg);
   if (parent) {
     const p = one('SELECT id, parent_id FROM tasks WHERE id=?', Number(parent)); if (!p) throw bad('La tarea principal no existe'); if (p.parent_id) throw bad('Una subtarea no puede tener subtareas'); if (cur && p.id === cur.id) throw bad('Una tarea no puede ser subtarea de sí misma');
     if (cur && one('SELECT 1 FROM tasks WHERE parent_id=?', cur.id)) throw bad('Esta tarea tiene subtareas: no puede ser subtarea');
@@ -424,7 +426,7 @@ async function route(req_, url, body) {
   if ((g = p.match(/^\/api\/documents\/(\d+)$/))) {
     const id = Number(g[1]);
     if (m === 'PUT') return updateDocument(id, body);
-    if (m === 'DELETE') { const d = getDoc(id); if (d.status !== 'borrador' && !(['presupuesto', 'albaran'].includes(d.type) && d.status !== 'facturado')) throw new HttpError(409, 'Los documentos emitidos no se borran: usa una factura rectificativa'); files.removeFor('document', id); timeTrack.release(id); run("UPDATE documents SET status='pendiente', source_id=NULL WHERE type='albaran' AND source_id=?", id); run('DELETE FROM documents WHERE id=?', id); log(`Eliminado ${d.number || 'borrador'}`); return { ok: true }; }
+    if (m === 'DELETE') { const d = getDoc(id); if (d.status !== 'borrador' && !(['presupuesto', 'albaran'].includes(d.type) && d.status !== 'facturado')) throw new HttpError(409, 'Los documentos emitidos no se borran: usa una factura rectificativa'); files.removeFor('document', id); timeTrack.release(id); run('UPDATE tasks SET document_id=NULL WHERE document_id=?', id); run("DELETE FROM ext_values WHERE entity='documents' AND entity_id=?", id); run("UPDATE documents SET status='pendiente', source_id=NULL WHERE type='albaran' AND source_id=?", id); run('DELETE FROM documents WHERE id=?', id); log(`Eliminado ${d.number || 'borrador'}`); return { ok: true }; }
   }
   if ((g = p.match(/^\/api\/documents\/(\d+)\/(issue|rectify|convert|status|duplicate)$/)) && m === 'POST') {
     const id = Number(g[1]);
