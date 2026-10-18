@@ -10,9 +10,9 @@ export async function startServer(prefix, extraEnv = {}) {
   const port = await new Promise((resolve) => {
     const socket = net.createServer().listen(0, '127.0.0.1', () => { const p = socket.address().port; socket.close(() => resolve(p)); });
   });
-  const base = `http://127.0.0.1:${port}`;
+  const base = `http://127.0.0.1:${port}`, dataDir = extraEnv.REM_DATA_DIR || mkdtempSync(join(tmpdir(), prefix));
   const child = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server.mjs'], {
-    env: { ...process.env, REM_PORT: String(port), REM_DATA_DIR: mkdtempSync(join(tmpdir(), prefix)), REM_NO_KEYCHAIN: '1', REM_PDF_WARM: '0', ...extraEnv }, stdio: 'pipe',
+    env: { ...process.env, REM_PORT: String(port), REM_DATA_DIR: dataDir, REM_NO_KEYCHAIN: '1', REM_PDF_WARM: '0', ...extraEnv }, stdio: 'pipe',
   });
   const request = async (method, path, body, raw = false) => {
     const response = await fetch(base + path, { method, headers: { 'Content-Type': 'application/json', 'X-REM': '1' }, body: raw ? body : body === undefined ? undefined : JSON.stringify(body) });
@@ -25,5 +25,5 @@ export async function startServer(prefix, extraEnv = {}) {
   const clientId = (await request('POST', '/api/clients', { name: 'Cliente', nif: 'B76543210' })).json.id;
   const draft = async (issue_date, lines = LINES, extra = {}) => (await request('POST', '/api/documents', { type: 'factura', client_id: clientId, issue_date, lines, ...extra })).json;
   const issue = (document) => request('POST', `/api/documents/${document.id}/issue`, {});
-  return { base, child, request, clientId, draft, issue };
+  return { base, child, request, clientId, draft, issue, dataDir };
 }

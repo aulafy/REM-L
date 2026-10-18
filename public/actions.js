@@ -102,7 +102,7 @@ export function registerActions() {
   on('deleteClient', async (el) => {
     const c = byId(el, 'clients');
     if (!(await confirmBox({ title: 'Eliminar cliente', text: `¿Eliminar a ${c.name}? Si tiene facturas, se archivará para conservar el historial.`, ok: 'Eliminar', danger: true }))) return;
-    const r = await mutate('DELETE', `/api/clients/${c.id}`); toast(r.archived ? 'Cliente archivado (tiene documentos)' : 'Cliente eliminado'); go('#/clientes');
+    const r = await mutate('DELETE', `/api/clients/${c.id}`); toast(r.archived ? `Cliente archivado (tiene documentos o recurrentes${r.paused ? `; ${r.paused === 1 ? 'su recurrente queda' : `sus ${r.paused} recurrentes quedan`} en pausa` : ''})` : 'Cliente eliminado'); go('#/clientes');
   });
   on('addPayment', (el) => paymentModal(byId(el, 'documents')));
   on('deletePayment', async (el) => { if (await confirmBox({ title: 'Anular cobro', text: 'El importe volverá a figurar como pendiente.', ok: 'Anular cobro', danger: true })) await mutate('DELETE', `/api/payments/${el.dataset.id}`, undefined, 'Cobro anulado'); });

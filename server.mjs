@@ -362,6 +362,17 @@ function spawnNext(t) {
   for (const s of all('SELECT * FROM tasks WHERE parent_id=? ORDER BY id', t.id)) run("INSERT INTO tasks(title,due,client_id,document_id,done,priority,repeat,parent_id,created_at) VALUES(?,?,?,?,0,?,'',?,?)", s.title, s.due ? d : '', s.client_id, s.document_id, s.priority, nid, nowIso());
   log(`Tarea repetida: «${t.title}» → ${d}`, 'tasks', nid); return nid;
 }
+// Un cliente con documentos o facturas recurrentes se archiva (y sus recurrentes se pausan); si no, se borra con sus archivos y campos extra.
+function deleteClient(id) {
+  if (!one('SELECT 1 FROM clients WHERE id=?', id)) throw new HttpError(404, 'No existe');
+  return tx(() => {
+    if (one('SELECT 1 FROM documents WHERE client_id=?', id) || one('SELECT 1 FROM recurring WHERE client_id=?', id)) {
+      const paused = Number(run('UPDATE recurring SET active=0 WHERE client_id=? AND active=1', id).changes);
+      run('UPDATE clients SET archived=1 WHERE id=?', id); log(`Cliente archivado${paused ? ` (${paused} recurrente(s) en pausa)` : ''}`, 'clients', id); return { archived: true, paused };
+    }
+    files.removeFor('client', id); run("DELETE FROM ext_values WHERE entity='clients' AND entity_id=?", id); run('DELETE FROM clients WHERE id=?', id); return { ok: true };
+  });
+}
 const TABLE_OF = { clients: 'clients', items: 'items', expenses: 'expenses', tasks: 'tasks' };
 
 async function route(req_, url, body) {
@@ -393,8 +404,7 @@ async function route(req_, url, body) {
     if (m === 'POST' && !id) { const row = C[name].create(body); log(`Nuevo ${{ clients: 'cliente', items: 'artículo', expenses: 'gasto', tasks: 'tarea' }[name]}: ${row.name || row.concept || row.title}`, name, row.id); return row; }
     if (m === 'PUT' && id) { const before = name === 'tasks' ? one('SELECT * FROM tasks WHERE id=?', Number(id)) : null, row = C[name].update(Number(id), body); if (before && !before.done && row.done && row.repeat && !row.parent_id) row.next_id = spawnNext(row); return row; }
     if (m === 'DELETE' && id) {
-      if (name === 'clients' && one('SELECT 1 FROM documents WHERE client_id=?', Number(id))) { run('UPDATE clients SET archived=1 WHERE id=?', Number(id)); return { archived: true }; }
-      if (name === 'clients') files.removeFor('client', Number(id));
+      if (name === 'clients') return deleteClient(Number(id));
       run(`DELETE FROM ${TABLE_OF[name]} WHERE id=?`, Number(id)); return { ok: true };
     }
   }
