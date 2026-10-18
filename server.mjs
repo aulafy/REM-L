@@ -60,7 +60,7 @@ const SETTING_KEYS = ['embed_model', 'whisper_model', 'tts_voice', 'company_name
   'default_iva', 'default_irpf', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
 
 const agents = createAgents({ db, run, one, all, dataDir: DATA, nowIso, HttpError, settingsObj, saveSetting });
-const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents });
+const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA });
 
 function nextNumber(type, year) {
   const prefix = type === 'presupuesto' ? 'P' : type === 'rectificativa' ? 'R' : 'F';
@@ -290,7 +290,7 @@ async function route(req_, url, body) {
     if (body.confirm !== 'BORRAR') throw bad('Confirmación necesaria');
     makeBackup('antes-de-borrar');
     inbox.stop();
-    for (const t of ['approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
+    for (const t of ['memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
     return { ok: true };
   }
   throw new HttpError(404, 'Ruta no encontrada');

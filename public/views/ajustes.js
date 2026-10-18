@@ -1,10 +1,11 @@
 import { store, on, mutate, toast, confirmBox, field, formValues, formModal, go, refresh } from '../core.js';
-import { html, raw, eur, eurPlain, icon, api, fdate } from '../util.js';
+import { html, raw, eur, eurPlain, icon, api, fdate, clientOf } from '../util.js';
 import { openModal } from '../core.js';
 import { validNif } from '../calc.js';
 
 let tab = 'canales';
-const TABS = [['canales', 'Canales'], ['conocimiento', 'Conocimiento'], ['agentes', 'Agentes'], ['ia', 'IA y voz'], ['empresa', 'Empresa'], ['facturacion', 'Facturación'], ['catalogo', 'Catálogo'], ['datos', 'Datos y copias']];
+const NEG_TPL = `# Mi negocio\n\n## Qué hacemos\n(Describe tu actividad en dos líneas.)\n\n## Cómo hablamos con los clientes\n- Trato: tuteo, cercano y profesional.\n- Respuestas cortas; siempre una propuesta de siguiente paso.\n\n## Nunca\n- Prometer descuentos ni fechas sin confirmarlo conmigo.\n- Dar precios que no estén en las tarifas.\n- Hablar de otros clientes.\n\n## Objetivos\n- Responder a todos en menos de 2 horas laborables.\n- Cobrar las facturas a 30 días.\n`;
+const TABS = [['canales', 'Canales'], ['negocio', 'Mi negocio'], ['conocimiento', 'Conocimiento'], ['memoria', 'Memoria'], ['agentes', 'Agentes'], ['ia', 'IA y voz'], ['empresa', 'Empresa'], ['facturacion', 'Facturación'], ['catalogo', 'Catálogo'], ['datos', 'Datos y copias']];
 export const openTab = (k) => { tab = k; };
 const v = (x) => x ?? '';
 
@@ -59,6 +60,15 @@ export const views = {
           ${S.knowledge.length ? html`<ul class="list">${S.knowledge.map((k) => html`<li class="link" data-act="editDoc" data-id="${k.id}"><span class="badge ic-only blue" style="padding:7px">${icon('book', 'sm')}</span><div class="grow"><div class="t">${k.title}</div><div class="d">${k.chunks} fragmentos · actualizado ${fdate(k.updated_at.slice(0, 10))}</div></div>${icon('edit', 'sm')}</li>`)}</ul>`
             : html`<div class="empty">${icon('book')}<h3>Cuéntale cómo trabajas</h3><p>Tarifas, horarios, zona de servicio, garantías, formas de pago, preguntas frecuentes… El asistente solo responderá con lo que le cuentes aquí.</p><button class="btn primary" data-act="newDoc" data-tpl="1">Empezar con una plantilla</button></div>`}
           <div class="card-b" style="border-top:1px solid var(--line)"><p class="muted" style="font-size:13px">Se guarda en tu equipo. ${S.channels.ai.embeddings ? 'Búsqueda semántica activada.' : 'Búsqueda por palabras clave (sin modelo). Añade un modelo de embeddings en IA y voz para entender sinónimos.'}</p></div></section>`,
+        negocio: html`<form id="negocio-form" class="card"><div class="card-h"><h2>Mi negocio</h2></div><div class="card-b stack"><div class="notice">${icon('book')}<span>Es la <b>fuente de verdad</b> del asistente: tu forma de trabajar, el tono y lo que nunca debe hacer. Lo relee en cada respuesta. Se guarda como <code>negocio.md</code> en tu carpeta de datos y puedes editarlo también con cualquier editor de texto.</span></div>
+          <textarea class="input" name="text" rows="16" aria-label="Contenido de negocio.md" placeholder="${NEG_TPL.slice(0, 80)}…" style="font-family:ui-monospace,Menlo,monospace;font-size:13.5px">${S.negocio}</textarea><p class="muted" style="font-size:12.5px">Las tarifas y datos concretos van mejor en Conocimiento; aquí, las reglas y el tono.</p></div>
+          <div class="card-h" style="border-top:1px solid var(--line);border-bottom:0">${S.negocio ? '' : html`<button class="btn" type="button" data-act="negTpl">Usar plantilla</button>`}<span class="spacer"></span><button class="btn primary" type="submit">Guardar</button></div></form>`,
+        memoria: html`<section class="card"><div class="card-h"><h2>Lo que recuerda el asistente</h2><button class="btn sm more" data-act="addMemory">${icon('plus', 'sm')}Añadir dato</button></div>
+          <div class="card-b" style="padding-top:0"><p class="muted">Datos duraderos que ayudan a responder mejor. <b>Nada entra sin tu aprobación</b>: el asistente los propone y tú decides. Puedes editarlos o borrarlos uno a uno.</p></div>
+          ${S.memory.length ? html`<ul class="list">${S.memory.map((x) => html`<li><span class="badge ic-only ${x.client_id ? 'violet' : 'blue'}" style="padding:7px">${icon(x.client_id ? 'user' : 'book', 'sm')}</span><div class="grow"><div class="t" style="white-space:normal">${x.text}</div><div class="d">${x.client_id ? clientOf(S, x.client_id)?.name || 'Cliente' : 'General'} · ${x.source === 'asistente' ? 'Propuesto por el asistente y aprobado' : 'Escrito por ti'}</div></div>
+            <button class="btn ghost icon sm" data-act="editMemory" data-id="${x.id}" aria-label="Editar">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="delMemory" data-id="${x.id}" aria-label="Borrar">${icon('trash', 'sm')}</button></li>`)}</ul>
+            <div class="card-h" style="border-top:1px solid var(--line);border-bottom:0"><span class="spacer"></span><button class="btn danger sm" data-act="clearMemory">Borrar toda la memoria</button></div>`
+            : html`<div class="empty">${icon('book')}<h3>Aún no recuerda nada</h3><p>Cuando el asistente detecte algo útil («prefiere las tardes», «paga por Bizum») te lo propondrá en Hoy.</p><button class="btn primary" data-act="addMemory">Añadir un dato</button></div>`}</section>`,
         agentes: html`<div class="stack">
           <section class="card"><div class="card-h"><h2>Qué puede hacer el asistente por su cuenta</h2>${S.agentsPaused ? html`<span class="badge red more">En pausa</span>` : html`<span class="badge green more">Activo</span>`}</div><div class="card-b stack">
             <p class="muted">Cada acción tiene un modo. <b>Nada irreversible ocurre sin ti</b>: enviar mensajes a clientes, emitir facturas, borrar o exportar datos están reservados a la persona y ninguna regla lo cambia.</p>
@@ -86,6 +96,7 @@ export const views = {
         if (d.company_name !== undefined && !d.company_name) return toast('Pon el nombre de tu empresa.', 'err');
         await mutate('PUT', '/api/settings', d, 'Ajustes guardados');
       });
+      root.querySelector('#negocio-form')?.addEventListener('submit', async (e) => { e.preventDefault(); await mutate('PUT', '/api/negocio', { text: e.target.text.value }, 'Guardado'); });
       root.querySelector('#tg-form')?.addEventListener('submit', async (e) => { e.preventDefault(); const token = e.target.token.value.trim(); if (!token) return toast('Pega el token de tu bot.', 'err'); try { await mutate('POST', '/api/channels/telegram', { token }, 'Telegram conectado'); } catch {} });
       root.querySelector('#mail-form')?.addEventListener('submit', async (e) => { e.preventDefault(); const d = formValues(e.target), err = root.querySelector('#mail-err'); err.textContent = ''; const b = e.target.querySelector('button'); b.disabled = true; b.textContent = 'Conectando…';
         try { await mutate('POST', '/api/channels/email', d, 'Correo conectado'); } catch (x) { err.textContent = x.message; b.disabled = false; b.textContent = 'Conectar correo'; } });
@@ -120,3 +131,13 @@ on('editDoc', (el) => docModal(store.S.knowledge.find((k) => k.id === Number(el.
 
 on('agentsStop', async () => { if (await confirmBox({ title: 'Parar todo', text: 'Los agentes dejan de actuar y se vacía la cola de aprobación. Lo ya aplicado no se deshace. Puedes reanudarlos cuando quieras.', ok: 'Parar todo', danger: true })) await mutate('POST', '/api/agents/stop', { paused: true }, 'Agentes en pausa'); });
 on('agentsResume', () => mutate('POST', '/api/agents/stop', { paused: false }, 'Agentes reanudados'));
+
+on('negTpl', () => { const ta = document.querySelector('#negocio-form textarea'); ta.value = NEG_TPL; ta.focus(); });
+export function memoryModal(item, clientId) {
+  formModal({ title: item ? 'Editar dato' : 'Nuevo dato', submit: item ? 'Guardar' : 'Añadir', fields: field({ name: 'text', label: 'Dato que debe recordar', value: item?.text || '', required: true, hint: 'Una frase corta y útil (máx. 200 caracteres)', attrs: 'maxlength="200" autofocus' }).toString(),
+    onSubmit: async (v, close) => { await mutate(item ? 'PUT' : 'POST', item ? `/api/memory/${item.id}` : '/api/memory', { text: v.text, client_id: clientId || null }, 'Guardado'); close(); } });
+}
+on('addMemory', (el) => memoryModal(null, el.dataset.client));
+on('editMemory', (el) => memoryModal(store.S.memory.find((x) => x.id === Number(el.dataset.id)), null));
+on('delMemory', async (el) => { await mutate('DELETE', `/api/memory/${el.dataset.id}`, undefined, 'Dato borrado'); });
+on('clearMemory', async () => { if (await confirmBox({ title: 'Borrar toda la memoria', text: 'El asistente olvidará todos los datos guardados. No afecta a clientes ni a mensajes.', ok: 'Borrar todo', danger: true })) await mutate('POST', '/api/memory/clear', {}, 'Memoria borrada'); });
