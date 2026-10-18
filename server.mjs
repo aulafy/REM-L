@@ -21,6 +21,7 @@ import { buildIcs } from './lib/calendar.mjs';
 import { buildXlsx } from './lib/xlsx.mjs';
 import { createNotifier } from './lib/notify.mjs';
 import { createFiles } from './lib/files.mjs';
+import { createImporter } from './lib/importer.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
@@ -80,6 +81,7 @@ const hindsight = createHindsight({ settingsObj, saveSetting, log: (e) => agents
 const modules = createModules({ db, run, one, all, nowIso, str, HttpError, settingsObj, saveSetting, agents });
 const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument, createExpense: (b) => C.expenses.create(b) });
 const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpError, log });
+const importer = createImporter({ db, run, one, all, tx, nowIso, log, settingsObj, addDays, makeBackup, HttpError, computeTotals });
 const files = createFiles({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, log });
 const notifier = createNotifier({ settingsObj, saveSetting, log: (e) => agents.log(e), count: () => {
   const t = today(), over = all("SELECT * FROM documents WHERE type='factura' AND status='emitida' AND total>0").map(docRow).filter((d) => docStatus(d, one('SELECT COALESCE(SUM(amount),0) s FROM payments WHERE document_id=?', d.id).s, t) === 'vencida');
@@ -289,6 +291,7 @@ async function route(req_, url, body) {
   { const r = await recurring.route(m, p, body); if (r !== undefined) return r; }
   { const r = await docTemplates.route(m, p, body); if (r !== undefined) return r; }
   { const r = await files.route(m, p, body); if (r !== undefined) return r; }
+  { const r = await importer.route(m, p, body); if (r !== undefined) return r; }
   { const r = (await agents.route(m, p, body)) ?? (await inbox.route(m, p, body)); if (r !== undefined) return r; }
   let g;
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {

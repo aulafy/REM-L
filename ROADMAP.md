@@ -16,7 +16,7 @@ Estado a 18/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
 3. ~~Notificaciones del sistema~~ ✅ hecho: Ajustes → Avisos (mensajes agrupados, resumen diario, propuestas, silencio, sin datos sensibles por defecto) y contador en el título de la pestaña
 4. ~~Historial único por cliente~~ ✅ hecho: en la ficha, línea de tiempo con mensajes, facturas, cobros, presupuestos, tareas y memoria, más «Próximamente»; filtros y búsqueda
 5. ~~Adjuntar archivos a clientes y facturas~~ ✅ hecho: tarjeta «Archivos» en la ficha del cliente y en la factura/presupuesto (arrastrar o elegir, ver, descargar, renombrar, nota); lista de tipos permitida con comprobación de contenido, máx. 25 MB, y aparecen en el historial
-6. Importar facturas y gastos históricos desde Excel/CSV
+6. ~~Importar facturas y gastos históricos desde CSV~~ ✅ hecho: Ajustes → Datos → «Importar datos antiguos» (vista previa, columnas detectadas y editables, duplicados omitidos, copia antes de importar). Excel `.xlsx` se leerá en el punto 7
 
 ## Archivos de Office (añadido)
 7. **Leer Word, PowerPoint y Excel**: extraer el texto de `.docx` / `.pptx` / `.xlsx` (OOXML, sin ejecutar nada; límites de tamaño y de compresión) y de `.doc` / `.rtf` con `textutil`.

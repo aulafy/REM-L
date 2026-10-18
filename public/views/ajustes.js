@@ -3,6 +3,7 @@ import { html, raw, eur, eurPlain, icon, api, fdate, clientOf } from '../util.js
 import { openModal } from '../core.js';
 import { validNif } from '../calc.js';
 import { BUILTIN, VARS } from '../doctpl.js';
+import { importCard } from '../importui.js';
 
 let tab = 'canales';
 const NEG_TPL = `# Mi negocio\n\n## Qué hacemos\n(Describe tu actividad en dos líneas.)\n\n## Cómo hablamos con los clientes\n- Trato: tuteo, cercano y profesional.\n- Respuestas cortas; siempre una propuesta de siguiente paso.\n\n## Nunca\n- Prometer descuentos ni fechas sin confirmarlo conmigo.\n- Dar precios que no estén en las tarifas.\n- Hablar de otros clientes.\n\n## Objetivos\n- Responder a todos en menos de 2 horas laborables.\n- Cobrar las facturas a 30 días.\n`;
@@ -48,6 +49,7 @@ export const views = {
           ${S.backups.length ? html`<ul class="list" style="margin:0 -18px -18px">${S.backups.slice(0, 8).map((b) => html`<li><div class="grow"><div class="t">${b.name.slice(8, 18)} · ${b.name.slice(19, 27).replace(/-/g, ':')}</div><div class="d">${b.name.includes('manual') ? 'Manual' : b.name.includes('antes') ? 'Antes de borrar o restaurar' : b.name.includes('importada') ? 'Importada' : 'Automática'} · ${(b.size / 1024).toFixed(0)} KB</div></div><a class="btn ghost icon sm" href="/api/backups/${b.name}/file" download aria-label="Descargar esta copia" title="Descargar">${icon('download', 'sm')}</a><button class="btn sm" data-act="restoreBackup" data-name="${b.name}">Restaurar</button></li>`)}</ul>` : html`<p class="muted">Aún no hay copias.</p>`}
           <div class="row wrap" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)"><label class="btn sm" for="bk-in">${icon('download', 'sm')}Importar una copia…</label><input id="bk-in" class="sr" type="file" accept=".db"><span class="muted" style="font-size:12.5px">Una copia (.db) descargada de REM Negocio. No incluye fotos ni PDF adjuntos.</span></div>
           </div></section>
+          ${raw(importCard())}
           <section class="card"><div class="card-h"><h2>Exportar tus datos</h2></div><div class="card-b row wrap"><a class="btn" href="/api/export.xlsx?kind=todo" download>${icon('download', 'sm')}Excel (todo)</a><a class="btn" href="/api/export" download="rem-negocio-datos.json">${icon('download', 'sm')}Todo (JSON)</a><a class="btn" href="/api/export.csv?kind=facturas" download>Facturas (CSV)</a><a class="btn" href="/api/export.csv?kind=gastos" download>Gastos (CSV)</a><a class="btn" href="/api/export.csv?kind=clientes" download>Clientes (CSV)</a></div></section>
           <section class="card"><div class="card-h"><h2>Zona delicada</h2></div><div class="card-b row wrap">${!S.clients.length && !S.documents.length ? html`<button class="btn" data-act="loadDemo">${icon('sparkle', 'sm')}Cargar datos de ejemplo</button>` : ''}<button class="btn danger" data-act="resetAll">${icon('trash', 'sm')}Borrar todos los datos…</button></div></section></div>`,
         canales: html`<div class="stack">
