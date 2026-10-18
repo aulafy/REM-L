@@ -28,7 +28,7 @@ Estado a 18/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
 9. ~~Propuesta comercial en `.pptx` a partir de un presupuesto~~ ✅ hecho: «Descargar propuesta (PowerPoint)» en cada presupuesto — 5 diapositivas 16:9 editables (portada, qué incluye, inversión con tabla y totales, condiciones, siguientes pasos); verificado con python-pptx y Quick Look
 
 ## Después
-10. Cuentas a pagar (gastos con vencimiento y pagado)
+10. ~~Cuentas a pagar~~ ✅ hecho: un gasto puede quedar «pendiente de pago» con vencimiento; aviso de lo que debes en Gastos y en Hoy, botón «Pagado», filtro, pagos en la Tesorería (sin contarlos dos veces), calendario .ics, resumen de la mañana y exportaciones
 11. Control de horas por cliente → factura
 12. Resúmenes trimestrales 130 / 115 / 347
 13. Series de facturación configurables

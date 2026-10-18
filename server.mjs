@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY, title TEXT NOT NULL, du
 CREATE TABLE IF NOT EXISTS activity(id INTEGER PRIMARY KEY, at TEXT NOT NULL, text TEXT NOT NULL, ref_type TEXT DEFAULT '', ref_id INTEGER);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_doc_number ON documents(type, number) WHERE number <> '';
 `);
+// Cuentas a pagar: pending=1 → factura de proveedor sin pagar (vence en `due`); los gastos de siempre cuentan como pagados.
+for (const [c, d] of [['pending', 'INTEGER DEFAULT 0'], ['due', "TEXT DEFAULT ''"], ['paid_date', "TEXT DEFAULT ''"]]) if (!db.prepare('PRAGMA table_info(expenses)').all().some((x) => x.name === c)) db.exec(`ALTER TABLE expenses ADD COLUMN ${c} ${d}`);
 
 const nowIso = () => new Date().toISOString();
 const run = (sql, ...p) => db.prepare(sql).run(...p);
@@ -98,7 +100,7 @@ const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso
 const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments, modules, notifier });
 
 const icsToken = () => { let t = settingsObj().ics_token; if (!t) { t = randomBytes(16).toString('hex'); saveSetting('ics_token', t); } return t; };
-const icsText = () => buildIcs({ tasks: all('SELECT * FROM tasks'), documents: all('SELECT * FROM documents').map(docRow), payments: all('SELECT * FROM payments'), clients: all('SELECT * FROM clients'), recurring: all('SELECT * FROM recurring'), settings: settingsObj(), today: today() });
+const icsText = () => buildIcs({ tasks: all('SELECT * FROM tasks'), documents: all('SELECT * FROM documents').map(docRow), payments: all('SELECT * FROM payments'), clients: all('SELECT * FROM clients'), recurring: all('SELECT * FROM recurring'), expenses: all('SELECT * FROM expenses WHERE pending=1'), settings: settingsObj(), today: today() });
 
 // Libro de Excel para el asesor: facturas, gastos, clientes e IVA por trimestre.
 function xlsxBook(kind) {
@@ -107,8 +109,8 @@ function xlsxBook(kind) {
   const sheets = {
     facturas: { name: 'Facturas', totals: ['base', 'iva_total', 'irpf_total', 'total', 'paid', 'pending'], columns: [{ header: 'Número', key: 'number', width: 14 }, { header: 'Fecha', key: 'issue_date', type: 'date', width: 12 }, { header: 'Vencimiento', key: 'due_date', type: 'date', width: 13 }, { header: 'Cliente', key: 'client', width: 30 }, { header: 'NIF', key: 'nif', width: 13 }, { header: 'Base', key: 'base', type: 'money' }, { header: 'IVA', key: 'iva_total', type: 'money' }, { header: 'IRPF', key: 'irpf_total', type: 'money' }, { header: 'Total', key: 'total', type: 'money' }, { header: 'Cobrado', key: 'paid', type: 'money' }, { header: 'Pendiente', key: 'pending', type: 'money' }, { header: 'Estado', key: 'status', width: 13 }],
       rows: invoices.map((d) => { const p = d.status === 'rectificada' ? 0 : paid(d.id), c = cname(d.client_id); return { ...d, client: c.name || '', nif: c.nif || '', paid: p, pending: d.status === 'emitida' && d.total > 0 ? Math.max(0, d.total - p) : 0, status: docStatus(d, p, t) }; }) },
-    gastos: { name: 'Gastos', totals: ['base', 'iva_amt', 'total'], columns: [{ header: 'Fecha', key: 'date', type: 'date', width: 12 }, { header: 'Proveedor', key: 'supplier', width: 26 }, { header: 'Concepto', key: 'concept', width: 30 }, { header: 'Categoría', key: 'category', width: 20 }, { header: 'Base', key: 'base', type: 'money' }, { header: 'IVA %', key: 'iva', type: 'number', width: 8 }, { header: 'IVA', key: 'iva_amt', type: 'money' }, { header: 'Total', key: 'total', type: 'money' }],
-      rows: all('SELECT * FROM expenses ORDER BY date').map((e) => ({ ...e, iva_amt: e.total - e.base })) },
+    gastos: { name: 'Gastos', totals: ['base', 'iva_amt', 'total'], columns: [{ header: 'Fecha', key: 'date', type: 'date', width: 12 }, { header: 'Proveedor', key: 'supplier', width: 26 }, { header: 'Concepto', key: 'concept', width: 30 }, { header: 'Categoría', key: 'category', width: 20 }, { header: 'Base', key: 'base', type: 'money' }, { header: 'IVA %', key: 'iva', type: 'number', width: 8 }, { header: 'IVA', key: 'iva_amt', type: 'money' }, { header: 'Total', key: 'total', type: 'money' }, { header: 'Estado', key: 'estado', width: 11 }, { header: 'Vencimiento', key: 'due', type: 'date', width: 13 }, { header: 'Pagado el', key: 'paid_date', type: 'date', width: 12 }],
+      rows: all('SELECT * FROM expenses ORDER BY date').map((e) => ({ ...e, iva_amt: e.total - e.base, estado: e.pending ? 'pendiente' : 'pagado', due: e.due || null, paid_date: e.paid_date || null })) },
     clientes: { name: 'Clientes', totals: ['billed', 'pending'], columns: [{ header: 'Nombre', key: 'name', width: 30 }, { header: 'NIF', key: 'nif', width: 13 }, { header: 'Email', key: 'email', width: 28 }, { header: 'Teléfono', key: 'phone', width: 14 }, { header: 'Dirección', key: 'address', width: 28 }, { header: 'CP', key: 'zip', width: 8 }, { header: 'Población', key: 'city', width: 16 }, { header: 'Facturado', key: 'billed', type: 'money' }, { header: 'Pendiente', key: 'pending', type: 'money' }],
       rows: all('SELECT * FROM clients WHERE archived=0 ORDER BY name COLLATE NOCASE').map((c) => { const mine = invoices.filter((d) => d.client_id === c.id); return { ...c, billed: mine.reduce((a, d) => a + d.total, 0), pending: mine.filter((d) => d.status === 'emitida' && d.total > 0).reduce((a, d) => a + Math.max(0, d.total - paid(d.id)), 0) }; }) },
   };
@@ -274,11 +276,18 @@ const C = {
   clients: crud('clients', ['name', 'nif', 'email', 'phone', 'address', 'city', 'zip', 'notes', 'archived'],
     { name: req('el nombre'), nif: (v) => str(v, 20).toUpperCase(), email: S(200), phone: S(40), address: S(300), city: S(100), zip: S(10), notes: S(3000), archived: (v) => (v ? 1 : 0) }, { stamp: true }),
   items: crud('items', ['name', 'description', 'price', 'iva', 'unit'], { name: req('el nombre'), description: S(500), price: int, iva: (v) => rate(v, 21), unit: S(20) }),
-  expenses: crud('expenses', ['date', 'supplier', 'concept', 'category', 'base', 'iva', 'total', 'notes'],
-    { date: (v) => date(v), supplier: S(200), concept: req('el concepto'), category: S(40), base: int, iva: (v) => rate(v, 21), total: int, notes: S(1000) }),
+  expenses: crud('expenses', ['date', 'supplier', 'concept', 'category', 'base', 'iva', 'total', 'notes', 'pending', 'due', 'paid_date'],
+    { date: (v) => date(v), supplier: S(200), concept: req('el concepto'), category: S(40), base: int, iva: (v) => rate(v, 21), total: int, notes: S(1000), pending: (v) => (v ? 1 : 0), due: (v) => date(v, false), paid_date: (v) => date(v, false) }),
   tasks: crud('tasks', ['title', 'due', 'client_id', 'document_id', 'done'],
     { title: req('el título'), due: (v) => date(v, false), client_id: (v) => (v ? Number(v) : null), document_id: (v) => (v ? Number(v) : null), done: (v) => (v ? 1 : 0) }, { stamp: true }),
 };
+// Pendiente de pago → necesita vencimiento (por defecto, 30 días tras la fecha del gasto); al pagarlo se guarda cuándo.
+function expenseBody(b, cur) {
+  const o = { ...b }, pending = o.pending === undefined ? !!cur?.pending : !!o.pending;
+  if (pending) { o.pending = 1; o.paid_date = ''; o.due = o.due ? o.due : cur?.due || addDays(o.date || cur?.date || today(), 30); }
+  else { o.pending = 0; if (cur?.pending && !o.paid_date) o.paid_date = today(); if (o.due === undefined) o.due = cur?.due || ''; }
+  return o;
+}
 const TABLE_OF = { clients: 'clients', items: 'items', expenses: 'expenses', tasks: 'tasks' };
 
 async function route(req_, url, body) {
@@ -301,6 +310,7 @@ async function route(req_, url, body) {
   let g;
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {
     const [, name, id] = g;
+    if (name === 'expenses' && (m === 'POST' || m === 'PUT')) body = expenseBody(body, id ? one('SELECT * FROM expenses WHERE id=?', Number(id)) : null);
     if (m === 'POST' && !id) { const row = C[name].create(body); log(`Nuevo ${{ clients: 'cliente', items: 'artículo', expenses: 'gasto', tasks: 'tarea' }[name]}: ${row.name || row.concept || row.title}`, name, row.id); return row; }
     if (m === 'PUT' && id) return C[name].update(Number(id), body);
     if (m === 'DELETE' && id) {
@@ -477,7 +487,7 @@ function csv(url, res, headers) {
   const eur = (c) => (c / 100).toFixed(2).replace('.', ',');
   let rows;
   if (kind === 'facturas') rows = [['Número', 'Fecha', 'Cliente', 'NIF', 'Base', 'IVA', 'IRPF', 'Total', 'Estado'], ...all(`SELECT d.*, c.name cn, c.nif cnif FROM documents d LEFT JOIN clients c ON c.id=d.client_id WHERE d.type='factura' AND d.status<>'borrador' ORDER BY d.issue_date`).map((d) => [d.number, d.issue_date, d.cn, d.cnif, eur(d.base), eur(d.iva_total), eur(d.irpf_total), eur(d.total), d.status])];
-  else if (kind === 'gastos') rows = [['Fecha', 'Proveedor', 'Concepto', 'Categoría', 'Base', 'IVA %', 'Total'], ...all('SELECT * FROM expenses ORDER BY date').map((e) => [e.date, e.supplier, e.concept, e.category, eur(e.base), e.iva, eur(e.total)])];
+  else if (kind === 'gastos') rows = [['Fecha', 'Proveedor', 'Concepto', 'Categoría', 'Base', 'IVA %', 'Total', 'Estado', 'Vencimiento', 'Pagado el'], ...all('SELECT * FROM expenses ORDER BY date').map((e) => [e.date, e.supplier, e.concept, e.category, eur(e.base), e.iva, eur(e.total), e.pending ? 'pendiente' : 'pagado', e.due, e.paid_date])];
   else if (kind === 'clientes') rows = [['Nombre', 'NIF', 'Email', 'Teléfono', 'Dirección', 'Ciudad', 'CP'], ...all('SELECT * FROM clients ORDER BY name').map((c) => [c.name, c.nif, c.email, c.phone, c.address, c.city, c.zip])];
   else throw bad('Tipo no válido');
   res.writeHead(200, { ...headers, 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${kind}-${today()}.csv"` }).end('﻿' + rows.map((r) => r.map(q).join(';')).join('\r\n'));

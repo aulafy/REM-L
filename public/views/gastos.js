@@ -2,22 +2,25 @@ import { store, on, mutate, toast, formModal, field, openModal, confirmBox } fro
 import { api, esc, eurPlain, toCents } from '../util.js';
 import { html, eur, fdate, icon, norm, plural } from '../util.js';
 
-let q = '', cat = '';
+let q = '', cat = '', st = '';
 export const views = {
   gastos: {
     title: () => 'Gastos',
     render(S) {
-      const cats = [...new Set(S.expenses.map((e) => e.category))].sort();
-      const rows = S.expenses.filter((e) => (!cat || e.category === cat) && (!q || norm(`${e.concept} ${e.supplier}`).includes(norm(q))));
+      const f = store.query?.get('f'); if (f === 'pendientes' || f === 'pagados') st = f;
+      const cats = [...new Set(S.expenses.map((e) => e.category))].sort(), t = S.serverDate, unpaid = S.expenses.filter((e) => e.pending), late = unpaid.filter((e) => e.due && e.due < t);
+      const rows = S.expenses.filter((e) => (!st || (st === 'pendientes' ? e.pending : !e.pending)) && (!cat || e.category === cat) && (!q || norm(`${e.concept} ${e.supplier}`).includes(norm(q))));
       const total = rows.reduce((a, e) => a + e.total, 0), base = rows.reduce((a, e) => a + e.base, 0);
       return html`
         <div class="page-head"><div><h1>Gastos</h1><p class="sub">Apunta lo que pagas para saber cuánto ganas de verdad y cuánto IVA puedes deducir.</p></div><div class="actions"><label class="btn" for="tk-in">${icon('download', 'sm')}Subir ticket</label><input id="tk-in" class="sr" type="file" accept="image/*" capture="environment" multiple><button class="btn primary" data-act="newExpense">${icon('plus', 'sm')}Nuevo gasto</button></div></div>
         ${ticketsCard(S)}
+        ${unpaid.length ? html`<div class="notice ${late.length ? 'warn' : ''}" style="margin-bottom:18px">${icon(late.length ? 'alert' : 'coins')}<span><b>Por pagar: ${eur(unpaid.reduce((a, e) => a + e.total, 0))}</b> en ${plural(unpaid.length, 'factura', 'facturas')}${late.length ? html` · <b>${plural(late.length, 'vencida', 'vencidas')}</b> (${eur(late.reduce((a, e) => a + e.total, 0))})` : ''}. ${st === 'pendientes' ? '' : html`<a href="#/gastos?f=pendientes">Ver solo pendientes</a>`}</span></div>` : ''}
         <div class="toolbar"><input class="input" id="gq" type="search" placeholder="Buscar concepto o proveedor…" value="${q}" aria-label="Buscar gastos">
-          <select class="input" id="gcat" style="max-width:220px" aria-label="Categoría"><option value="">Todas las categorías</option>${cats.map((c) => html`<option ${c === cat ? 'selected' : ''} value="${c}">${c[0].toUpperCase() + c.slice(1)}</option>`)}</select></div>
+          <select class="input" id="gcat" style="max-width:220px" aria-label="Categoría"><option value="">Todas las categorías</option>${cats.map((c) => html`<option ${c === cat ? 'selected' : ''} value="${c}">${c[0].toUpperCase() + c.slice(1)}</option>`)}</select>
+          <select class="input" id="gst" style="max-width:190px" aria-label="Estado de pago"><option value="">Todos los estados</option><option value="pendientes" ${st === 'pendientes' ? 'selected' : ''}>Pendientes de pago</option><option value="pagados" ${st === 'pagados' ? 'selected' : ''}>Pagados</option></select></div>
         <div class="card">${rows.length ? html`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto</th><th class="hide-sm">Categoría</th><th class="hide-sm">Fecha</th><th class="right hide-sm">Base</th><th class="right">Total</th><th></th></tr></thead><tbody>
-          ${rows.map((e) => html`<tr><td><span class="name">${e.concept}</span><br><small class="muted">${e.supplier}</small></td><td class="hide-sm"><span class="badge grey">${e.category}</span></td><td class="hide-sm nowrap">${fdate(e.date)}</td><td class="right num hide-sm">${eur(e.base)}</td><td class="right num"><b>${eur(e.total)}</b></td>
-            <td class="right nowrap"><button class="btn ghost icon sm" data-act="repeatExpense" data-id="${e.id}" aria-label="Repetir ${e.concept} cada periodo" title="Repetir">${icon('refresh', 'sm')}</button><button class="btn ghost icon sm" data-act="editExpense" data-id="${e.id}" aria-label="Editar ${e.concept}">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="deleteExpense" data-id="${e.id}" aria-label="Eliminar ${e.concept}">${icon('trash', 'sm')}</button></td></tr>`)}</tbody></table></div>
+          ${rows.map((e) => html`<tr><td><span class="name">${e.concept}</span><br><small class="muted">${e.supplier}</small></td><td class="hide-sm"><span class="badge grey">${e.category}</span></td><td class="hide-sm nowrap">${fdate(e.date)}${e.pending ? html`<br><span class="badge ${e.due && e.due < t ? 'red' : 'amber'}">${e.due && e.due < t ? 'Vencido' : 'Pendiente'} · ${fdate(e.due)}</span>` : ''}</td><td class="right num hide-sm">${eur(e.base)}</td><td class="right num"><b>${eur(e.total)}</b></td>
+            <td class="right nowrap">${e.pending ? html`<button class="btn sm" data-act="payExpense" data-id="${e.id}" aria-label="Marcar ${e.concept} como pagado">${icon('check', 'sm')}Pagado</button>` : ''}<button class="btn ghost icon sm" data-act="repeatExpense" data-id="${e.id}" aria-label="Repetir ${e.concept} cada periodo" title="Repetir">${icon('refresh', 'sm')}</button><button class="btn ghost icon sm" data-act="editExpense" data-id="${e.id}" aria-label="Editar ${e.concept}">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="deleteExpense" data-id="${e.id}" aria-label="Eliminar ${e.concept}">${icon('trash', 'sm')}</button></td></tr>`)}</tbody></table></div>
           <div class="card-h" style="border-top:1px solid var(--line);border-bottom:0;background:var(--surface-2);border-radius:0 0 var(--r) var(--r)"><span class="muted">${plural(rows.length, 'gasto', 'gastos')}</span><span class="spacer"></span><span class="muted">Base ${eur(base)} · Total <b style="color:var(--ink)">${eur(total)}</b></span></div>`
           : html`<div class="empty">${icon('gastos')}<h3>${S.expenses.length ? 'Sin resultados' : 'Aún no hay gastos'}</h3><p>${S.expenses.length ? 'Cambia la búsqueda o la categoría.' : 'Registra alquiler, material, suministros… y tus informes de IVA y resultados serán fiables.'}</p>${S.expenses.length ? '' : html`<button class="btn primary" data-act="newExpense">Añadir el primero</button>`}</div>`}</div>`;
     },
@@ -25,6 +28,8 @@ export const views = {
       const inp = root.querySelector('#tk-in'); inp?.addEventListener('change', () => uploadFiles([...inp.files]));
       const page = root.querySelector('#page'); ['dragover', 'drop'].forEach((ev) => page?.addEventListener(ev, (e) => { e.preventDefault(); if (ev === 'drop') uploadFiles([...e.dataTransfer.files].filter((f) => f.type.startsWith('image/'))); }));
       const i = root.querySelector('#gq'); i?.addEventListener('input', () => { q = i.value; const p = i.selectionStart; window.dispatchEvent(new Event('rem-render')); const n = document.getElementById('gq'); n?.focus(); n?.setSelectionRange(p, p); });
+      if (location.hash.includes('?')) history.replaceState(null, '', '#/gastos');
+      root.querySelector('#gst')?.addEventListener('change', (e) => { st = e.target.value; window.dispatchEvent(new Event('rem-render')); });
       root.querySelector('#gcat')?.addEventListener('change', (e) => { cat = e.target.value; window.dispatchEvent(new Event('rem-render')); });
     },
   },

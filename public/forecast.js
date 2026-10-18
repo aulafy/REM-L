@@ -20,7 +20,7 @@ export function paymentDelays(S) {
 
 // Gastos que se repiten (mismo proveedor, ~30 días entre ellos) → próximas fechas; el resto, como media.
 export function expensePatterns(S, today, skip = new Set()) {
-  const since = addDays(today, -120), recent = S.expenses.filter((e) => e.date >= since && e.date <= today);
+  const since = addDays(today, -120), recent = S.expenses.filter((e) => !e.pending && e.date >= since && e.date <= today); // los pendientes ya salen por su vencimiento
   const groups = new Map(); for (const e of recent) { const k = (e.supplier || e.concept).toLowerCase().trim(); (groups.get(k) || groups.set(k, []).get(k)).push(e); }
   const recurring = [], used = new Set();
   for (const [k, list] of groups) {
@@ -51,6 +51,12 @@ export function forecast(S, { horizon = 30, today = S.serverDate, includeOverdue
     const late = delays.of(d.client_id); let date = addDays(d.due_date || d.issue_date, late), kind = 'cobro', note = late ? `Este cliente suele pagar ~${late} días tarde` : 'Vence ese día';
     if (date < today) { if (!includeOverdue) continue; date = addDays(today, 7); kind = 'vencida'; note = `Vencida desde el ${d.due_date}: se espera cobrar en ~7 días`; }
     push({ date, amount: pend, kind, label: d.number, who: name(d.client_id), note, href: `#/facturas/${d.id}`, certain: kind === 'cobro' && !late });
+  }
+  // 1b) Facturas de proveedores pendientes de pago: salen el día de su vencimiento (si ya venció, en unos días)
+  for (const e of S.expenses) {
+    if (!e.pending || e.total <= 0) continue; let date = e.due || e.date, kind = 'pago', note = `Vence el ${date}`;
+    if (date < today) { kind = 'pago_vencido'; note = `Vencido desde el ${date}: se prevé pagar en ~3 días`; date = addDays(today, 3); }
+    push({ date, amount: -e.total, kind, label: e.concept, who: e.supplier || '', note, href: '#/gastos', certain: kind === 'pago' });
   }
   // 2) Facturas recurrentes → cobros futuros
   for (const r of S.recurring || []) {

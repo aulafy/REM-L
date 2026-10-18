@@ -22,18 +22,22 @@ export function clientModal(c = null, done) {
 
 export function expenseModal(e = null) {
   const cats = ['alquiler', 'material', 'suministros', 'vehículo', 'servicios profesionales', 'marketing', 'impuestos y tasas', 'otros'];
-  formModal({
+  const m = formModal({
     title: e ? 'Editar gasto' : 'Nuevo gasto', wide: true, submit: e ? 'Guardar cambios' : 'Añadir gasto',
     fields: [field({ name: 'concept', label: 'Concepto', value: val(e?.concept), required: true, attrs: 'autofocus' }), field({ name: 'supplier', label: 'Proveedor', value: val(e?.supplier) }),
       field({ name: 'date', label: 'Fecha', type: 'date', value: e?.date || today(), required: true }), field({ name: 'category', label: 'Categoría', options: cats.map((c) => [c, c[0].toUpperCase() + c.slice(1)]), value: e?.category || 'otros' }),
       field({ name: 'amount', label: 'Importe', value: e ? eurPlain(e.total) : '', required: true, hint: 'Lo que figura en la factura, con IVA incluido', attrs: 'inputmode="decimal" placeholder="0,00"' }),
-      field({ name: 'iva', label: 'IVA incluido', options: [[21, '21 %'], [10, '10 %'], [4, '4 %'], [0, 'Sin IVA']], value: e?.iva ?? 21 })].join(''),
+      field({ name: 'iva', label: 'IVA incluido', options: [[21, '21 %'], [10, '10 %'], [4, '4 %'], [0, 'Sin IVA']], value: e?.iva ?? 21 }),
+      field({ name: 'status', label: 'Pago', options: [['paid', 'Ya pagado'], ['pending', 'Pendiente de pago']], value: e?.pending ? 'pending' : 'paid' }),
+      field({ name: 'due', label: 'Vence el', type: 'date', value: e?.due || '', hint: 'Si lo dejas vacío, 30 días después de la fecha', cls: 'due-field' })].join(''),
     onSubmit: async (v, close) => {
       const total = toCents(v.amount); if (total <= 0) throw new Error('Introduce un importe mayor que cero.');
-      const iva = Number(v.iva), base = Math.round(total / (1 + iva / 100));
-      await mutate(e ? 'PUT' : 'POST', e ? `/api/expenses/${e.id}` : '/api/expenses', { ...v, base, total, iva }, e ? 'Gasto actualizado' : 'Gasto añadido'); close();
+      const iva = Number(v.iva), base = Math.round(total / (1 + iva / 100)), pending = v.status === 'pending';
+      await mutate(e ? 'PUT' : 'POST', e ? `/api/expenses/${e.id}` : '/api/expenses', { ...v, base, total, iva, pending, due: pending ? v.due : (e?.due || '') }, e ? 'Gasto actualizado' : pending ? 'Gasto añadido a pagos pendientes' : 'Gasto añadido'); close();
     },
   });
+  const sel = m.el.querySelector('[name=status]'), due = m.el.querySelector('[name=due]')?.closest('.field') || m.el.querySelector('.due-field'), sync = () => { if (due) due.style.display = sel.value === 'pending' ? '' : 'none'; };
+  sel?.addEventListener('change', sync); sync();
 }
 
 export function taskModal(t = null, preset = {}) {
@@ -78,6 +82,7 @@ export function registerActions() {
   on('editClient', (el) => clientModal(byId(el, 'clients')));
   on('newExpense', () => expenseModal());
   on('editExpense', (el) => expenseModal(byId(el, 'expenses')));
+  on('payExpense', async (el) => { const e = byId(el, 'expenses'); await mutate('PUT', `/api/expenses/${e.id}`, { pending: false, paid_date: today() }, `«${e.concept}» marcado como pagado`); });
   on('newTask', (el) => taskModal(null, el?.dataset?.client ? { client_id: el.dataset.client } : {}));
   on('editTask', (el) => taskModal(byId(el, 'tasks')));
   on('newItem', () => itemModal());

@@ -2,7 +2,7 @@ import { store, on, mutate, toast } from '../core.js';
 import { html, raw, eur, eurPlain, toCents, fdate, fdateShort, icon } from '../util.js';
 import { forecast } from '../forecast.js';
 
-const KIND = { cobro: ['Cobro', 'green'], vencida: ['Vencida', 'amber'], recurrente: ['Recurrente', 'blue'], gasto: ['Gasto habitual', 'grey'], gasto_medio: ['Gasto (media)', 'grey'], iva: ['IVA', 'amber'] };
+const KIND = { cobro: ['Cobro', 'green'], vencida: ['Vencida', 'amber'], recurrente: ['Recurrente', 'blue'], gasto: ['Gasto habitual', 'grey'], pago: ['Pago a proveedor', 'blue'], pago_vencido: ['Pago vencido', 'red'], gasto_medio: ['Gasto (media)', 'grey'], iva: ['IVA', 'amber'] };
 let horizon = (() => { try { return Number(localStorage.getItem('rem-horizon')) || 30; } catch { return 30; } })();
 
 function chart(f) {
