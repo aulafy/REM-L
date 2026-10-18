@@ -123,3 +123,10 @@ test('contactos de Outlook (inglés y español, clásico y nuevo): móvil como t
   const q = (await call('POST', '/api/import/preview', { kind: 'clientes', text: es })).json; assert.equal(q.ok, 1); assert.deepEqual([q.mapping.first_name, q.mapping.last_name, q.mapping.address, q.mapping.city, q.mapping.zip, q.mapping.phone, q.mapping.phone_alt, q.mapping.email], [0, 1, 3, 4, 5, 7, 6, 8]);
   assert.deepEqual([q.sample[0].name, q.sample[0].phone, q.sample[0].zip], ['Lucía Prieto Gómez', '622333444', '41001']);
 });
+
+test('reconocimiento de exportaciones conocidas y guías de exportación', async () => {
+  const g = (await call('POST', '/api/import/preview', { kind: 'clientes', text: 'Given Name,Family Name,E-mail 1 - Value,Phone 1 - Value\nAna,Ruiz,ana2@x.example,600000001' })).json; assert.equal(g.preset.id, 'google-contacts'); assert.ok(g.preset.howto.length >= 2);
+  const o = (await call('POST', '/api/import/preview', { kind: 'clientes', text: 'First Name,Last Name,E-mail Address,Mobile Phone\nLuis,Gil,luis2@x.example,611000002' })).json; assert.equal(o.preset.id, 'outlook-contacts-en');
+  assert.equal((await call('POST', '/api/import/preview', { kind: 'clientes', text: 'Nombre,Ciudad\nPepe Lopez,Madrid' })).json.preset, null, 'sin firma conocida no se afirma nada');
+  const gd = (await call('GET', '/api/import/guides')).json; assert.ok(gd.presets.length >= 3 && gd.guides.some((x) => x.id === 'facturae'));
+});

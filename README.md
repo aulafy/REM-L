@@ -98,7 +98,7 @@ En Ajustes → Datos, **Borrar todos los datos** crea primero una copia de la ba
 
 ## Importar desde otros programas
 
-En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook —inglés y español—, vCard, CSV o Excel), **facturas emitidas** y **gastos**. Vista previa con duplicados y errores, copia automática antes de importar y **deshacer** por lote. Si el archivo es raro (títulos, otro programa, columnas con otros nombres), **«Ordenar con IA»** envía a Claude —con tu clave— solo una **muestra enmascarada** (la ves antes) y recibe un *plan declarativo* que REM valida y aplica en tu equipo: la IA propone, no ejecuta ni toca tus datos. Estrategia para los programas más usados en España: [docs/migraciones-espana.md](docs/migraciones-espana.md).
+En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook —inglés y español—, vCard, CSV o Excel), **facturas emitidas** y **gastos** (también **Facturae XML**, el formato de factura electrónica, con varias líneas por factura y continuidad de la numeración). Vista previa con duplicados y errores, copia automática antes de importar y **deshacer** por lote. Si el archivo es raro (títulos, otro programa, columnas con otros nombres), **«Ordenar con IA»** envía a Claude —con tu clave— solo una **muestra enmascarada** (la ves antes) y recibe un *plan declarativo* que REM valida y aplica en tu equipo: la IA propone, no ejecuta ni toca tus datos. Estrategia para los programas más usados en España: [docs/migraciones-espana.md](docs/migraciones-espana.md).
 
 ## App de Mac y copias cifradas
 

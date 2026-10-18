@@ -139,8 +139,8 @@ test('el prompt incluye negocio.md, notas del cliente, historial del hilo y solo
   assert.equal((await call('POST', `/api/messages/${first.id}/client`, { client_id: c.id })).status, 200);
   await settled(first.id); await settled(last.id); // que los borradores anteriores terminen antes de medir el prompt del siguiente
   mode = 'memory'; calls = 0; seen.length = 0;
-  const m3 = (await call('POST', '/api/messages/manual', { channel: 'whatsapp', peer_name: 'Rosa', peer_addr: '+34600', body: '¿Y a qué hora?' })).json; await settled(m3.id); await new Promise((r) => setTimeout(r, 300));
-  const p = seen.at(-1);
+  const m3 = (await call('POST', '/api/messages/manual', { channel: 'whatsapp', peer_name: 'Rosa', peer_addr: '+34600', body: '¿Y a qué hora?' })).json; await settled(m3.id);
+  const p = await until(async () => seen.findLast((x) => /¿Y a qué hora\?/.test(x.prompt))); // el prompt de ESTE mensaje, no el último que llegó
   assert.match(p.system, /Nunca prometas descuentos/); assert.match(p.prompt, /vale, el jueves entonces/); assert.match(p.prompt, /Primer mensaje de Rosa/);
   assert.match(p.prompt, /Rosa paga siempre por Bizum/); assert.doesNotMatch(p.prompt, /Rosa pide todo gratis/, 'la propuesta de memoria no está aprobada aún');
 });

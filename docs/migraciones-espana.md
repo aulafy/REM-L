@@ -31,7 +31,7 @@ Ese motor ya existe ✅ (`lib/importer.mjs`): clientes, facturas emitidas y gast
 |---|---|---|
 | CSV / Excel (.xlsx) | ✅ | Detección de separador y de columnas. |
 | vCard (.vcf), Contactos de macOS, CSV de Google y Outlook (inglés y español) | ✅ | Móvil como teléfono principal; fijo como segundo; empresa + persona. |
-| **Facturae XML** (emitidas y recibidas) | Por hacer | Formato estándar y público: una factura → partes, líneas, impuestos, vencimientos y pagos. Una sola implementación sirve para cualquier programa que lo exporte. Se lee sin librerías (como ya hacemos con OOXML). |
+| **Facturae XML** (emitidas y recibidas) | ✅ | Formato estándar y público (estructura contrastada con el esquema oficial 3.2.2): partes, líneas con su IVA, retención IRPF, vencimiento. Detecta emitidas/recibidas con tu NIF o te lo pregunta; varios archivos a la vez; lector XML propio y seguro (sin entidades ni DTD). Sin ejemplos reales de programas concretos: pendiente de probar con archivos de usuarios. |
 | UTF-16 / Windows-1252 / separadores raros | Parcial | El navegador ya detecta UTF-8 y Windows-1252; falta UTF-16 (lo usan algunos exportadores de escritorio, por verificar). |
 | Libros registro de IVA (formato AEAT, XLSX/CSV) | Por estudiar | Los pide la gestoría; también sirven para importar. |
 
@@ -55,12 +55,12 @@ Ese motor ya existe ✅ (`lib/importer.mjs`): clientes, facturas emitidas y gast
 | Dato | Hoy ✅ | Siguiente |
 |---|---|---|
 | Clientes / contactos | ✅ con deduplicación por NIF, email y nombre | Varios contactos por empresa (personas) como notas o clientes enlazados. |
-| Facturas emitidas | ✅ una línea por factura con base, IVA e IRPF deducidos del total | **Varias líneas por factura** (formato «una fila por línea» agrupado por número) y varios tipos de IVA. |
+| Facturas emitidas | ✅ con varias líneas (filas con el mismo número) y varios tipos de IVA | Líneas con descuento y cantidades. |
 | Cobros | ✅ pagada/no pagada con fecha | Cobros parciales y métodos de pago. |
 | Gastos / facturas recibidas | ✅ | Retención e IVA explícitos (ya en la hoja de ruta de datos). |
 | Presupuestos, albaranes, artículos/catálogo | — | Mismo mecanismo de plan. |
 | Archivos (PDF de facturas) | — | Adjuntarlos al documento si el export incluye las rutas o un ZIP. |
-| **Continuidad de numeración** | — | **Imprescindible**: tras importar una serie, la siguiente factura debe seguir desde el último número del programa antiguo (hoy el importador conserva los números, pero no ajusta el contador). |
+| **Continuidad de numeración** | ✅ | Si los números importados tienen otro formato, al terminar se propone «la siguiente factura será F2026-0058» y se aplica con un clic (también en Ajustes). |
 | CRM: personas/organizaciones | ✅ como clientes | Negocios (deals) → presupuestos opcionales; notas → notas del cliente; actividades → tareas. |
 
 ## 5. Comprobaciones de calidad antes de dar nada por bueno
@@ -82,9 +82,9 @@ Ese motor ya existe ✅ (`lib/importer.mjs`): clientes, facturas emitidas y gast
 
 | Orden | Entrega | Esfuerzo |
 |---|---|---|
-| 1 | **Continuidad de numeración** y **varias líneas por factura** en el importador (agrupar filas por número). | M |
-| 2 | **Importador Facturae XML** (emitidas y recibidas). | M |
-| 3 | Marco de **presets** (plan + firma + tarjeta de «cómo exportar») y detección automática; primeros: Google Contactos, Outlook, Contactos de macOS (ya cubiertos por sinónimos) y **un programa real con exportación de muestra**. | M |
+| 1 | ✅ **Continuidad de numeración** y **varias líneas por factura**. | hecho |
+| 2 | ✅ **Importador Facturae XML** (emitidas y recibidas). | hecho |
+| 3 | ✅ marco de reconocimiento (`lib/presets.mjs`: firma + guía de exportación, con Google Contactos y Outlook) y guías de exportación. Falta: Marco de **presets** (plan + firma + tarjeta de «cómo exportar») y detección automática; primeros: Google Contactos, Outlook, Contactos de macOS (ya cubiertos por sinónimos) y **un programa real con exportación de muestra**. | M |
 | 4 | **Holded y Quipu** por exportación manual (presets); después, conexión por API de solo lectura si se confirman condiciones. | M-L |
 | 5 | Billin, Contasimple, Anfix. | M cada uno |
 | 6 | Factusol/Contasol (UTF-16, Excel) y CRM (HubSpot, Pipedrive, Zoho). | M |

@@ -27,8 +27,9 @@ test('recurrentes: se crean desde una factura y generan SOLO borradores, uno por
   const s = await state(), src = s.documents.find((d) => d.type === 'factura' && d.status === 'emitida'), today = s.serverDate;
   assert.equal((await call('POST', '/api/recurring', { from_document_id: src.id, every: 'cada-dia', next_date: today })).status, 400); assert.equal((await call('POST', '/api/recurring', { from_document_id: src.id, every: 'month', next_date: 'mañana' })).status, 400);
   const past = new Date(Date.now() - 100 * 864e5).toLocaleDateString('sv-SE');
+  const before = (await state()).documents.length; // antes de crearla: el planificador puede adelantarse al «check»
   const rec = (await call('POST', '/api/recurring', { from_document_id: src.id, name: 'Mantenimiento', every: 'month', next_date: past })).json; assert.equal(rec.lines.length, src.lines.length);
-  const before = (await state()).documents.length; const chk = (await call('POST', '/api/recurring/check', {})).json;
+  const chk = (await call('POST', '/api/recurring/check', {})).json;
   const st = await state(), mine = st.documents.filter((d) => /Recurrente: Mantenimiento/.test(d.notes)); assert.ok(mine.length >= 3 && mine.length <= 4, `un borrador por periodo atrasado (${mine.length})`); assert.equal(st.documents.length, before + mine.length); assert.ok(chk.generated >= 1);
   assert.equal(new Set(mine.map((d) => /Periodo: (\S+)/.exec(d.notes)[1])).size, mine.length, 'cada borrador anota su periodo'); assert.ok(mine.every((d) => d.status === 'borrador' && d.issue_date === today));
   const draft = mine.sort((a, b) => a.id - b.id).at(-1); assert.equal(draft.status, 'borrador'); assert.equal(draft.number, ''); assert.deepEqual(draft.lines, src.lines); assert.equal(draft.issue_date, today);
