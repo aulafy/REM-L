@@ -24,7 +24,7 @@ export function expenseModal(e = null) {
   const cats = ['alquiler', 'material', 'suministros', 'vehículo', 'servicios profesionales', 'marketing', 'impuestos y tasas', 'otros'];
   const m = formModal({
     title: e ? 'Editar gasto' : 'Nuevo gasto', wide: true, submit: e ? 'Guardar cambios' : 'Añadir gasto',
-    fields: [field({ name: 'concept', label: 'Concepto', value: val(e?.concept), required: true, attrs: 'autofocus' }), field({ name: 'supplier', label: 'Proveedor', value: val(e?.supplier) }),
+    fields: [field({ name: 'concept', label: 'Concepto', value: val(e?.concept), required: true, attrs: 'autofocus' }), field({ name: 'supplier', label: 'Proveedor', value: val(e?.supplier) }), field({ name: 'supplier_nif', label: 'NIF del proveedor (opcional)', value: val(e?.supplier_nif), hint: 'Para el modelo 347' }),
       field({ name: 'date', label: 'Fecha', type: 'date', value: e?.date || today(), required: true }), field({ name: 'category', label: 'Categoría', options: cats.map((c) => [c, c[0].toUpperCase() + c.slice(1)]), value: e?.category || 'otros' }),
       field({ name: 'amount', label: 'Importe', value: e ? eurPlain(e.total) : '', required: true, hint: 'Lo que figura en la factura, con IVA incluido', attrs: 'inputmode="decimal" placeholder="0,00"' }),
       field({ name: 'iva', label: 'IVA incluido', options: [[21, '21 %'], [10, '10 %'], [4, '4 %'], [0, 'Sin IVA']], value: e?.iva ?? 21 }),

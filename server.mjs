@@ -53,6 +53,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_doc_number ON documents(type, number) WHERE
 `);
 // Cuentas a pagar: pending=1 → factura de proveedor sin pagar (vence en `due`); los gastos de siempre cuentan como pagados.
 for (const [c, d] of [['pending', 'INTEGER DEFAULT 0'], ['due', "TEXT DEFAULT ''"], ['paid_date', "TEXT DEFAULT ''"]]) if (!db.prepare('PRAGMA table_info(expenses)').all().some((x) => x.name === c)) db.exec(`ALTER TABLE expenses ADD COLUMN ${c} ${d}`);
+if (!db.prepare('PRAGMA table_info(expenses)').all().some((x) => x.name === 'supplier_nif')) db.exec("ALTER TABLE expenses ADD COLUMN supplier_nif TEXT DEFAULT ''");
 
 const nowIso = () => new Date().toISOString();
 const run = (sql, ...p) => db.prepare(sql).run(...p);
@@ -278,8 +279,8 @@ const C = {
   clients: crud('clients', ['name', 'nif', 'email', 'phone', 'address', 'city', 'zip', 'notes', 'archived'],
     { name: req('el nombre'), nif: (v) => str(v, 20).toUpperCase(), email: S(200), phone: S(40), address: S(300), city: S(100), zip: S(10), notes: S(3000), archived: (v) => (v ? 1 : 0) }, { stamp: true }),
   items: crud('items', ['name', 'description', 'price', 'iva', 'unit'], { name: req('el nombre'), description: S(500), price: int, iva: (v) => rate(v, 21), unit: S(20) }),
-  expenses: crud('expenses', ['date', 'supplier', 'concept', 'category', 'base', 'iva', 'total', 'notes', 'pending', 'due', 'paid_date'],
-    { date: (v) => date(v), supplier: S(200), concept: req('el concepto'), category: S(40), base: int, iva: (v) => rate(v, 21), total: int, notes: S(1000), pending: (v) => (v ? 1 : 0), due: (v) => date(v, false), paid_date: (v) => date(v, false) }),
+  expenses: crud('expenses', ['date', 'supplier', 'concept', 'category', 'base', 'iva', 'total', 'notes', 'pending', 'due', 'paid_date', 'supplier_nif'],
+    { date: (v) => date(v), supplier: S(200), concept: req('el concepto'), category: S(40), base: int, iva: (v) => rate(v, 21), total: int, notes: S(1000), pending: (v) => (v ? 1 : 0), due: (v) => date(v, false), paid_date: (v) => date(v, false), supplier_nif: (v) => str(v, 20).toUpperCase().replace(/[\s.-]/g, '') }),
   tasks: crud('tasks', ['title', 'due', 'client_id', 'document_id', 'done'],
     { title: req('el título'), due: (v) => date(v, false), client_id: (v) => (v ? Number(v) : null), document_id: (v) => (v ? Number(v) : null), done: (v) => (v ? 1 : 0) }, { stamp: true }),
 };
