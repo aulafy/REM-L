@@ -6,6 +6,7 @@ import { join, extname, dirname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { computeTotals, today, addDays, docStatus, advanceDate, isIsoDate } from './public/calc.js';
+import { toCsv } from './public/csv.js';
 import { createInbox } from './lib/inbox.mjs';
 import { createAgents } from './lib/agents.mjs';
 import { speak, setLlmHooks } from './lib/ai.mjs';
@@ -560,14 +561,13 @@ const server = createServer(async (req, res) => {
 
 function csv(url, res, headers) {
   const kind = url.searchParams.get('kind');
-  const q = (v) => `"${String(v ?? '').replace(/"/g, '""').replace(/^([=+\-@])/, "'$1")}"`;
   const eur = (c) => (c / 100).toFixed(2).replace('.', ',');
   let rows;
   if (kind === 'facturas') rows = [['Número', 'Fecha', 'Cliente', 'NIF', 'Base', 'IVA', 'IRPF', 'Total', 'Estado'], ...all(`SELECT d.*, c.name cn, c.nif cnif FROM documents d LEFT JOIN clients c ON c.id=d.client_id WHERE d.type='factura' AND d.status<>'borrador' ORDER BY d.issue_date`).map((d) => [d.number, d.issue_date, d.cn, d.cnif, eur(d.base), eur(d.iva_total), eur(d.irpf_total), eur(d.total), d.status])];
   else if (kind === 'gastos') rows = [['Fecha', 'Proveedor', 'Concepto', 'Categoría', 'Base', 'IVA %', 'Total', 'Estado', 'Vencimiento', 'Pagado el'], ...all('SELECT * FROM expenses ORDER BY date').map((e) => [e.date, e.supplier, e.concept, e.category, eur(e.base), e.iva, eur(e.total), e.pending ? 'pendiente' : 'pagado', e.due, e.paid_date])];
   else if (kind === 'clientes') rows = [['Nombre', 'NIF', 'Email', 'Teléfono', 'Dirección', 'Ciudad', 'CP'], ...all('SELECT * FROM clients ORDER BY name').map((c) => [c.name, c.nif, c.email, c.phone, c.address, c.city, c.zip])];
   else throw bad('Tipo no válido');
-  res.writeHead(200, { ...headers, 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${kind}-${today()}.csv"` }).end('﻿' + rows.map((r) => r.map(q).join(';')).join('\r\n'));
+  res.writeHead(200, { ...headers, 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${kind}-${today()}.csv"` }).end(toCsv(rows));
 }
 
 server.listen(PORT, '127.0.0.1', () => { console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`); inbox.start(); scheduler.start(); menubar.start(); if (process.env.REM_PDF_WARM !== '0') warmPdf(DATA); });

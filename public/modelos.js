@@ -47,4 +47,4 @@ export function modelo347(S, year) {
   const c = pick(clients), s = pick(sup);
   return { year, clientes: c, proveedores: s, sinNif: [...c, ...s].filter((r) => !r.nif).length };
 }
-export function toCsv(rows) { const q = (v) => `"${String(v ?? '').replace(/"/g, '""').replace(/^([=+\-@])/, "'$1")}"`; return '﻿' + rows.map((r) => r.map(q).join(';')).join('\r\n'); }
+export { toCsv } from './csv.js';
