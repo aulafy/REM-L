@@ -23,14 +23,15 @@ before(async () => {
 });
 after(() => child.kill());
 
-test('recurrentes: se crean desde una factura y generan SOLO borradores, una vez por periodo', async () => {
+test('recurrentes: se crean desde una factura y generan SOLO borradores, uno por cada periodo pendiente', async () => {
   const s = await state(), src = s.documents.find((d) => d.type === 'factura' && d.status === 'emitida'), today = s.serverDate;
   assert.equal((await call('POST', '/api/recurring', { from_document_id: src.id, every: 'cada-dia', next_date: today })).status, 400); assert.equal((await call('POST', '/api/recurring', { from_document_id: src.id, every: 'month', next_date: 'mañana' })).status, 400);
   const past = new Date(Date.now() - 100 * 864e5).toLocaleDateString('sv-SE');
   const rec = (await call('POST', '/api/recurring', { from_document_id: src.id, name: 'Mantenimiento', every: 'month', next_date: past })).json; assert.equal(rec.lines.length, src.lines.length);
-  const before = (await state()).documents.length; const chk = (await call('POST', '/api/recurring/check', {})).json; assert.ok(chk.generated >= 1);
-  const st = await state(); assert.equal(st.documents.length, before + 1, 'un solo borrador aunque hayan pasado varios periodos');
-  const draft = st.documents.find((d) => /Recurrente: Mantenimiento/.test(d.notes)); assert.equal(draft.status, 'borrador'); assert.equal(draft.number, ''); assert.deepEqual(draft.lines, src.lines); assert.equal(draft.issue_date, today);
+  const before = (await state()).documents.length; const chk = (await call('POST', '/api/recurring/check', {})).json;
+  const st = await state(), mine = st.documents.filter((d) => /Recurrente: Mantenimiento/.test(d.notes)); assert.ok(mine.length >= 3 && mine.length <= 4, `un borrador por periodo atrasado (${mine.length})`); assert.equal(st.documents.length, before + mine.length); assert.ok(chk.generated >= 1);
+  assert.equal(new Set(mine.map((d) => /Periodo: (\S+)/.exec(d.notes)[1])).size, mine.length, 'cada borrador anota su periodo'); assert.ok(mine.every((d) => d.status === 'borrador' && d.issue_date === today));
+  const draft = mine.sort((a, b) => a.id - b.id).at(-1); assert.equal(draft.status, 'borrador'); assert.equal(draft.number, ''); assert.deepEqual(draft.lines, src.lines); assert.equal(draft.issue_date, today);
   const r2 = st.recurring.find((r) => r.id === rec.id); assert.ok(r2.next_date > today, 'la siguiente fecha queda en el futuro'); assert.equal(r2.last_doc_id, draft.id);
   assert.equal((await call('POST', '/api/recurring/check', {})).json.generated, 0, 'no se repite en el mismo periodo');
   assert.ok(st.activity.some((a) => /Factura recurrente preparada/.test(a.summary || a.reason || a.text || JSON.stringify(a))) || st.activity.length >= 0);
@@ -61,6 +62,6 @@ test('el planificador genera los recurrentes por sí solo, sin visitar la pantal
   const s = await state(), src = s.documents.find((d) => d.type === 'factura' && d.status === 'emitida'), past = new Date(Date.now() - 40 * 864e5).toLocaleDateString('sv-SE');
   const rec = (await call('POST', '/api/recurring', { from_document_id: src.id, name: 'Automático', every: 'month', next_date: past })).json; const before = (await state()).documents.length;
   for (let i = 0; i < 40; i++) { if ((await state()).documents.length > before) break; await new Promise((r) => setTimeout(r, 150)); }
-  assert.equal((await state()).documents.length, before + 1, 'el tick del servidor lo generó'); assert.ok((await state()).documents.some((d) => /Recurrente: Automático/.test(d.notes)));
+  assert.equal((await state()).documents.filter((d) => /Recurrente: Automático/.test(d.notes)).length, 2, 'el tick generó un borrador por cada periodo pendiente'); assert.ok((await state()).documents.some((d) => /Recurrente: Automático/.test(d.notes)));
   await call('DELETE', `/api/recurring/${rec.id}`);
 });
