@@ -2,7 +2,9 @@
 
 REM Negocio usa SQLite con `PRAGMA foreign_keys=ON`. Las escrituras pasan por las validaciones del servidor y las operaciones que asignan número de factura se ejecutan dentro de una transacción.
 
-El esquema se versiona mediante `PRAGMA user_version`. Las migraciones pendientes se aplican en una sola transacción y el arranque se detiene si la base pertenece a una versión futura o si `quick_check`/`foreign_key_check` detectan corrupción o relaciones rotas.
+El esquema se versiona mediante `PRAGMA user_version`. Las migraciones pendientes se aplican en una sola transacción y el arranque se detiene si la base pertenece a una versión futura.
+
+Si `quick_check` o `foreign_key_check` fallan, la app **no se cae**: arranca en **modo reparación** (ver más abajo).
 
 ## Relaciones persistentes
 
@@ -16,11 +18,23 @@ El esquema se versiona mediante `PRAGMA user_version`. Las migraciones pendiente
 | `messages.client_id` | `clients.id` | `ON DELETE SET NULL`; se conserva el histórico del mensaje. |
 | `memory.client_id` | `clients.id` | `ON DELETE CASCADE`. |
 | `chunks.doc_id` | `knowledge.id` | `ON DELETE CASCADE`. |
-| `recurring.client_id` | `clients.id` | Impide dejar una recurrencia apuntando a un cliente inexistente. |
+| `recurring.client_id` | `clients.id` | Impide dejar una recurrencia apuntando a un cliente inexistente. Al «borrar» un cliente con recurrentes, la API lo archiva y pone sus recurrentes en pausa. |
 
-Algunas referencias son deliberadamente polimórficas o compatibles con bases antiguas y no tienen clave foránea: `files(owner_type, owner_id)`, `activity(ref_type, ref_id)`, `tasks.document_id`, `recurring.last_doc_id` y `attachments.expense_id`. Sus ciclos de vida se resuelven en las rutas de la aplicación: los archivos validan el destino antes de insertarse; al borrar clientes o documentos se eliminan archivos, se liberan horas y se restauran albaranes cuando corresponde. El registro de actividad puede conservar una referencia histórica aunque el objeto ya no exista.
+Algunas referencias son deliberadamente polimórficas o compatibles con bases antiguas y no tienen clave foránea. La aplicación las mantiene así:
+
+| Referencia | Cómo se mantiene |
+|---|---|
+| `tasks.document_id` | Al crear o editar una tarea se comprueba que el documento existe (también el cliente: antes daba error 500). Al borrar un borrador, sus tareas quedan desenlazadas. |
+| `ext_values(entity, entity_id)` | Al borrar un cliente o un documento se eliminan sus campos extra. |
+| `files(owner_type, owner_id)` | Se valida el destino al subir; los archivos se eliminan con su cliente o documento. |
+| `time_entries.doc_id`, albaranes (`source_id`) | Al borrar el borrador, las horas y los albaranes vuelven a quedar libres. |
+| `recurring.last_doc_id`, `attachments.expense_id`, `activity(ref_type, ref_id)` | Referencias históricas: pueden apuntar a algo que ya no existe y la app lo tolera. |
+
+Las referencias de `tasks.document_id` y `ext_values` que hayan quedado colgando de versiones anteriores se limpian solas al arrancar y después de restaurar una copia (operación idempotente).
 
 ## Reglas de coherencia de negocio
+
+- El NIF de un cliente se guarda sin espacios, puntos ni guiones, y no puede repetirse entre clientes (tampoco con uno archivado: la API devuelve `409` y dice cuál lo tiene). Varios clientes sin NIF sí están permitidos. La importación de clientes omite los NIF ya existentes.
 
 - Las fechas se validan como días ISO reales (`AAAA-MM-DD`); valores como `2026-02-31` se rechazan en documentos, gastos, tareas, horas y recurrentes.
 - Una factura no puede emitirse con una fecha anterior a la última ya emitida dentro de la misma serie y año. Así, la numeración conserva el orden cronológico.
@@ -29,6 +43,18 @@ Algunas referencias son deliberadamente polimórficas o compatibles con bases an
 - Los recurrentes atrasados crean un borrador por periodo. Cada ejecución procesa como máximo 12 y conserva el primer periodo restante para la siguiente pasada.
 - La exportación CSV neutraliza texto que Excel podría interpretar como fórmula, sin convertir importes negativos en texto.
 - Los cuerpos JSON tienen límites por endpoint y un JSON malformado devuelve `400`. La voz de macOS recibe el texto mediante un fichero temporal, no como argumento de proceso.
+
+## Modo reparación
+
+Si al arrancar la base no supera `quick_check` o tiene relaciones rotas (por ejemplo, una copia antigua o manipulada), el servidor arranca igualmente. Pero:
+
+- No se inician el correo, Telegram, los agentes ni el icono de la barra de menús, y no se hace la copia automática del día (para no desplazar las copias buenas).
+- La API responde `503 repair` a todo salvo el PIN y las rutas de reparación. El navegador muestra la pantalla «Hay que revisar tus datos» con dos opciones:
+  - **Reparar automáticamente** (solo si el archivo no está dañado): las referencias que admiten `NULL` se desenlazan y las filas que no pueden quedar sueltas (p. ej. un cobro de una factura inexistente) se eliminan. Todo ocurre en una transacción.
+  - **Restaurar una copia**: solo se ofrecen las copias íntegras y compatibles.
+- Las dos opciones guardan antes una copia `…-antes-de-reparar.db` de lo actual. Al terminar, si la base ya está sana, los servicios arrancan sin reiniciar.
+
+Rutas: `GET /api/repair`, `POST /api/repair/fix` y `POST /api/repair/restore {name}`.
 
 ## Comprobación
 

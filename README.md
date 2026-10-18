@@ -92,7 +92,7 @@ En **Ajustes → Módulos** el autónomo amplía la app sin código: campos extr
 npm test
 ```
 
-La estructura de relaciones, las reglas que evitan datos incoherentes y las consultas de diagnóstico están documentadas en [Integridad de datos](docs/integridad-datos.md).
+La estructura de relaciones, las reglas que evitan datos incoherentes, el **modo reparación** (si la base tiene relaciones rotas, la app arranca y deja restaurar una copia o repararla, con copia previa) y las consultas de diagnóstico están documentadas en [Integridad de datos](docs/integridad-datos.md).
 
 En Ajustes → Datos, **Borrar todos los datos** crea primero una copia de la base y elimina registros, ajustes, secretos del llavero y archivos adjuntos locales. La copia `.db` no contiene los adjuntos, por lo que la pantalla lo advierte como una operación irreversible para esos archivos.
 
