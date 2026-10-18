@@ -73,7 +73,8 @@ function render() {
   root.innerHTML = shell(S, k, v.render(S, params)).toString();
   upgradeCombos(root);
   v.mount?.(root, S, params);
-  document.title = `${v.title?.(S, params) || 'REM Negocio'} · REM Negocio`;
+  const pend = S.messages.filter((m) => m.direction === 'in' && ['nuevo', 'listo'].includes(m.status)).length;
+  document.title = `${pend ? `(${pend}) ` : ''}${v.title?.(S, params) || 'REM Negocio'} · REM Negocio`;
   store.view = k;
   window.scrollTo(0, same ? y : 0);
   if (!same) document.getElementById('page')?.classList.add('enter');

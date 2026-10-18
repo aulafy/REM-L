@@ -13,7 +13,7 @@ Estado a 18/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
 ## Siguiente bloque (en este orden)
 1. ~~Previsión de tesorería (30/60/90 días)~~ ✅ hecho: Dinero → Tesorería (cobros con retraso real por cliente, recurrentes, gastos habituales, IVA, saldo opcional)
 2. ~~Gastos recurrentes~~ ✅ hecho: se registran solos cada periodo (uno por cada periodo que faltó), con importe estimado opcional; la tesorería los usa
-3. Notificaciones del sistema (mensajes, vencidas, tareas de hoy)
+3. ~~Notificaciones del sistema~~ ✅ hecho: Ajustes → Avisos (mensajes agrupados, resumen diario, propuestas, silencio, sin datos sensibles por defecto) y contador en el título de la pestaña
 4. Historial único por cliente (mensajes, facturas, tareas, documentos)
 5. Adjuntar archivos a clientes y facturas
 6. Importar facturas y gastos históricos desde Excel/CSV

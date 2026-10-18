@@ -17,7 +17,7 @@ const call = async (method, path, body) => { const r = await fetch(base + path, 
 const state = async () => (await call('GET', '/api/state')).json;
 before(async () => {
   const port = await new Promise((r) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); }); base = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server.mjs'], { env: { ...process.env, REM_PORT: String(port), REM_DATA_DIR: mkdtempSync(join(tmpdir(), 'rem-rc-')), REM_NO_KEYCHAIN: '1', REM_PDF_WARM: '0' }, stdio: 'pipe' });
+  child = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server.mjs'], { env: { ...process.env, REM_PORT: String(port), REM_DATA_DIR: mkdtempSync(join(tmpdir(), 'rem-rc-')), REM_NO_KEYCHAIN: '1', REM_PDF_WARM: '0', REM_TICK_MS: '300' }, stdio: 'pipe' });
   for (let i = 0; i < 50; i++) { try { await fetch(base + '/api/state'); break; } catch { await new Promise((r) => setTimeout(r, 100)); } }
   await call('POST', '/api/demo', {});
 });
@@ -54,4 +54,12 @@ test('gastos recurrentes: se registran solos, uno por cada periodo que faltó, y
   const fromExp = (await call('POST', '/api/recurring-expenses', { from_expense_id: src.id, every: 'quarter', next_date: '2099-01-01' })).json; assert.equal(fromExp.total, src.total); assert.equal(fromExp.concept, src.concept);
   await call('PUT', `/api/recurring-expenses/${r.id}`, { active: false, next_date: start }); await call('POST', '/api/recurring/check', {}); assert.equal((await state()).expenses.filter((e) => e.concept === 'Cuota autónomos').length, 3, 'en pausa no genera');
   assert.equal((await call('DELETE', `/api/recurring-expenses/${r.id}`)).status, 200); assert.equal((await state()).recurringExpenses.length, 1);
+});
+
+test('el planificador genera los recurrentes por sí solo, sin visitar la pantalla', async () => {
+  const s = await state(), src = s.documents.find((d) => d.type === 'factura' && d.status === 'emitida'), past = new Date(Date.now() - 40 * 864e5).toLocaleDateString('sv-SE');
+  const rec = (await call('POST', '/api/recurring', { from_document_id: src.id, name: 'Automático', every: 'month', next_date: past })).json; const before = (await state()).documents.length;
+  for (let i = 0; i < 40; i++) { if ((await state()).documents.length > before) break; await new Promise((r) => setTimeout(r, 150)); }
+  assert.equal((await state()).documents.length, before + 1, 'el tick del servidor lo generó'); assert.ok((await state()).documents.some((d) => /Recurrente: Automático/.test(d.notes)));
+  await call('DELETE', `/api/recurring/${rec.id}`);
 });

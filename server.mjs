@@ -19,6 +19,7 @@ import { createRecurring } from './lib/recurring.mjs';
 import { createDocTemplates } from './lib/doctemplates.mjs';
 import { buildIcs } from './lib/calendar.mjs';
 import { buildXlsx } from './lib/xlsx.mjs';
+import { createNotifier } from './lib/notify.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
@@ -68,7 +69,7 @@ function cleanLines(lines) {
 
 function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM settings').map((r) => [r.key, JSON.parse(r.value)])); }
 function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
-const SETTING_KEYS = ['cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
+const SETTING_KEYS = ['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details', 'notify_quiet_from', 'notify_quiet_to', 'notify_digest_time', 'cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
   'default_iva', 'default_irpf', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
 
 const llmlog = createLlmLog({ db, run, all, one, nowIso, settingsObj, HttpError });
@@ -78,9 +79,15 @@ const hindsight = createHindsight({ settingsObj, saveSetting, log: (e) => agents
 const modules = createModules({ db, run, one, all, nowIso, str, HttpError, settingsObj, saveSetting, agents });
 const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument, createExpense: (b) => C.expenses.create(b) });
 const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpError, log });
-const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError, modules });
+const notifier = createNotifier({ settingsObj, saveSetting, log: (e) => agents.log(e), count: () => {
+  const t = today(), over = all("SELECT * FROM documents WHERE type='factura' AND status='emitida' AND total>0").map(docRow).filter((d) => docStatus(d, one('SELECT COALESCE(SUM(amount),0) s FROM payments WHERE document_id=?', d.id).s, t) === 'vencida');
+  const eur = over.reduce((a, d) => a + d.total - one('SELECT COALESCE(SUM(amount),0) s FROM payments WHERE document_id=?', d.id).s, 0);
+  return { messages: one("SELECT COUNT(*) n FROM messages WHERE direction='in' AND status IN ('nuevo','listo')").n, overdue: over.length, overdueEur: (eur / 100).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }), tasks: one("SELECT COUNT(*) n FROM tasks WHERE done=0 AND due<>'' AND due<=?", t).n, approvals: one("SELECT COUNT(*) n FROM approvals WHERE status='pending'").n };
+} });
+agents.setOnApproval((s) => notifier.approval(s));
+const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError, modules, recurring, notifier });
 const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, settingsObj, agents, createExpense: (b) => C.expenses.create(b) });
-const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments, modules });
+const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments, modules, notifier });
 
 const icsToken = () => { let t = settingsObj().ics_token; if (!t) { t = randomBytes(16).toString('hex'); saveSetting('ics_token', t); } return t; };
 const icsText = () => buildIcs({ tasks: all('SELECT * FROM tasks'), documents: all('SELECT * FROM documents').map(docRow), payments: all('SELECT * FROM payments'), clients: all('SELECT * FROM clients'), recurring: all('SELECT * FROM recurring'), settings: settingsObj(), today: today() });
@@ -331,6 +338,8 @@ async function route(req_, url, body) {
     for (const k of SETTING_KEYS) if (body[k] !== undefined) {
       let v = body[k];
       if (['default_iva', 'default_irpf', 'payment_days', 'quote_days'].includes(k)) v = rate(v);
+      else if (['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details'].includes(k)) v = !!v;
+      else if (['notify_quiet_from', 'notify_quiet_to', 'notify_digest_time'].includes(k)) { v = String(v || ''); if (v && !/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) throw bad('Hora no válida'); }
       else if (k === 'checklist_dismissed' || k === 'cash_include_overdue' || k === 'cash_include_estimates') v = !!v;
       else if (k === 'cash_balance') { if (v === '' || v === null) { run('DELETE FROM settings WHERE key IN (?,?)', 'cash_balance', 'cash_balance_date'); continue; } v = Math.round(Number(v)); if (!Number.isFinite(v) || Math.abs(v) > 1e11) throw bad('Saldo no válido'); }
       else if (k === 'cash_balance_date') v = date(v, false);
@@ -341,6 +350,7 @@ async function route(req_, url, body) {
     return settingsObj();
   }
   if (m === 'POST' && p === '/api/ai/draft') return aiDraft(body);
+  if (m === 'POST' && p === '/api/notify/test') return { ok: await notifier.test() };
   if (m === 'POST' && p === '/api/calendar/rotate') { saveSetting('ics_token', randomBytes(16).toString('hex')); return { token: icsToken() }; }
   if (m === 'POST' && p === '/api/backups') return makeBackup('manual');
   { let g;
