@@ -73,6 +73,7 @@ function render() {
   root.innerHTML = shell(S, k, v.render(S, params)).toString();
   upgradeCombos(root);
   v.mount?.(root, S, params);
+  import('./tour.js').then((t) => t.maybeTourFromHash());
   const pend = S.messages.filter((m) => m.direction === 'in' && ['nuevo', 'listo'].includes(m.status)).length;
   document.title = `${pend ? `(${pend}) ` : ''}${v.title?.(S, params) || 'REM Negocio'} · REM Negocio`;
   store.view = k;

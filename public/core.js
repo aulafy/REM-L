@@ -97,7 +97,7 @@ export function openPalette() {
   const S = store.S;
   const items = [
     ...['hoy', 'mensajes', 'clientes', 'facturas', 'presupuestos', 'gastos', 'tareas', 'informes', 'ajustes'].map((v) => ({ g: 'Ir a', t: v[0].toUpperCase() + v.slice(1), href: '#/' + v, i: v })),
-    { g: 'Crear', t: 'Pegar un mensaje', run: () => ACT.pasteMsg(), i: 'mensajes' }, { g: 'Crear', t: 'Nueva factura', href: '#/facturas/nueva', i: 'plus' }, { g: 'Crear', t: 'Nuevo presupuesto', href: '#/presupuestos/nuevo', i: 'plus' },
+    { g: 'Ayuda', t: 'Recorrido guiado de la app', run: () => import('./tour.js').then((t) => t.startTour()), i: 'sparkle' }, { g: 'Crear', t: 'Pegar un mensaje', run: () => ACT.pasteMsg(), i: 'mensajes' }, { g: 'Crear', t: 'Nueva factura', href: '#/facturas/nueva', i: 'plus' }, { g: 'Crear', t: 'Nuevo presupuesto', href: '#/presupuestos/nuevo', i: 'plus' },
     { g: 'Crear', t: 'Nuevo cliente', run: () => ACT.newClient(), i: 'plus' }, { g: 'Crear', t: 'Nuevo gasto', run: () => ACT.newExpense(), i: 'plus' }, { g: 'Crear', t: 'Nueva tarea', run: () => ACT.newTask(), i: 'plus' },
     ...(S.messages || []).filter((m) => m.direction === 'in').slice(0, 60).map((m) => ({ g: 'Mensajes', t: m.peer_name, s: m.body.slice(0, 40), href: '#/mensajes/' + m.id, i: 'mensajes', k: m.body + ' ' + (m.subject || '') })),
     ...S.clients.filter((c) => !c.archived).map((c) => ({ g: 'Clientes', t: c.name, s: c.nif || c.city, href: '#/clientes/' + c.id, i: 'clientes', k: c.email })),

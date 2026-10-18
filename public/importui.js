@@ -39,12 +39,12 @@ async function startFacturae() {
 
 function start(kind) {
   if (kind === 'facturae') return startFacturae();
-  const inp = Object.assign(document.createElement('input'), { type: 'file', accept: kind === 'clientes' ? '.csv,.tsv,.txt,.xlsx,.vcf,text/csv,text/vcard' : '.csv,.tsv,.txt,.xlsx,text/csv' });
+  const inp = Object.assign(document.createElement('input'), { type: 'file', accept: kind === 'clientes' ? '.csv,.tsv,.txt,.xlsx,.dbf,.vcf,text/csv,text/vcard' : '.csv,.tsv,.txt,.xlsx,.dbf,text/csv' });
   inp.addEventListener('change', async () => {
     const f = inp.files[0]; if (!f) return;
     if (f.size > 12e6) return toast('El archivo es demasiado grande (máximo 12 MB). Divídelo por años.', 'err');
     const buf = await f.arrayBuffer();
-    if (/\.xlsx$/i.test(f.name)) {
+    if (/\.(xlsx|dbf)$/i.test(f.name)) {
       try {
         const r = await api('POST', '/api/extract', { name: f.name, data: toBase64(buf), want: 'sheets' });
         const pref = new RegExp(kind === 'facturas' ? 'factur|ingres|venta' : kind === 'clientes' ? 'client|contact' : 'gast|compra', 'i'), sheets = r.sheets.filter((s) => s.rows > 1);

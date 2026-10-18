@@ -86,6 +86,7 @@ final class AppModel: ObservableObject {
     func finish() async {
         try? await api.call("PUT", "api/settings", ["onboarded": true])   // la bienvenida de la web ya no hace falta
         try? await api.call("POST", "api/setup", ["finished": true])
+        if pendingHash.isEmpty, let st = try? await api.dict("GET", "api/setup"), !st.obj("state").bool("tour") { pendingHash = "#/hoy?tour=1" }   // primer recorrido guiado
         phase = .main
     }
     func reopenWizard() { step = .welcome; phase = .wizard }
