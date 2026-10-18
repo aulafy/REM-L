@@ -1,5 +1,5 @@
 import { store, on, mutate, toast, confirmBox, field, formValues, formModal, go, refresh, reload } from '../core.js';
-import { html, raw, eur, eurPlain, icon, api, fdate, clientOf } from '../util.js';
+import { html, raw, eur, eurPlain, icon, api, fdate, clientOf, toCents } from '../util.js';
 import { openModal } from '../core.js';
 import { validNif } from '../calc.js';
 import { BUILTIN, VARS } from '../doctpl.js';
@@ -37,6 +37,7 @@ export const views = {
         facturacion: html`<form data-save class="card"><div class="card-h"><h2>Valores por defecto</h2></div><div class="card-b grid g2">
           ${field({ name: 'default_iva', label: 'IVA habitual', options: [[21, '21 % general'], [10, '10 % reducido'], [4, '4 % superreducido'], [0, '0 % exento']], value: s.default_iva ?? 21 })}
           ${field({ name: 'default_irpf', label: 'Retención IRPF habitual', options: [[0, 'Ninguna'], [7, '7 %'], [15, '15 %'], [19, '19 %']], value: s.default_irpf ?? 0 })}
+          ${field({ name: 'hourly_rate', label: 'Tarifa por hora (€, sin IVA)', value: s.hourly_rate ? eurPlain(s.hourly_rate) : '', hint: 'Se usa por defecto al apuntar horas', attrs: 'inputmode="decimal"' })}
           ${field({ name: 'payment_days', label: 'Plazo de pago (días)', type: 'number', value: s.payment_days ?? 30, attrs: 'min="0" max="365"' })}${field({ name: 'quote_days', label: 'Validez de presupuestos (días)', type: 'number', value: s.quote_days ?? 30, attrs: 'min="1" max="365"' })}
           <div style="grid-column:1/-1">${field({ name: 'invoice_footer', label: 'Pie de las facturas', rows: 2, value: v(s.invoice_footer), hint: 'Ej.: datos del Registro Mercantil, texto de protección de datos…' })}</div>
           <div style="grid-column:1/-1">${field({ name: 'quote_footer', label: 'Pie de los presupuestos', rows: 2, value: v(s.quote_footer) })}</div></div>
@@ -143,6 +144,7 @@ export const views = {
         e.preventDefault(); const d = formValues(form);
         if (d.company_nif !== undefined && d.company_nif && !validNif(d.company_nif)) return toast('El NIF/CIF no parece válido.', 'err');
         if (d.company_name !== undefined && !d.company_name) return toast('Pon el nombre de tu empresa.', 'err');
+        if (d.hourly_rate !== undefined) d.hourly_rate = d.hourly_rate === '' ? 0 : toCents(d.hourly_rate);
         await mutate('PUT', '/api/settings', d, 'Ajustes guardados');
       });
       root.querySelector('#claude-form')?.addEventListener('submit', async (e) => { e.preventDefault(); try { await mutate('POST', '/api/claude-key', { key: e.target.key.value }, 'Clave guardada en el llavero'); } catch {} });

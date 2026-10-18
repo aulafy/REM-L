@@ -25,6 +25,7 @@ import { createImporter } from './lib/importer.mjs';
 import { createOffice } from './lib/office.mjs';
 import { buildDocx } from './lib/docx.mjs';
 import { proposalDeck } from './lib/pptx.mjs';
+import { createTime } from './lib/timetrack.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
@@ -77,7 +78,7 @@ function cleanLines(lines) {
 function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM settings').map((r) => [r.key, JSON.parse(r.value)])); }
 function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
 const SETTING_KEYS = ['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details', 'notify_quiet_from', 'notify_quiet_to', 'notify_digest_time', 'cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
-  'default_iva', 'default_irpf', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
+  'default_iva', 'default_irpf', 'hourly_rate', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
 
 const llmlog = createLlmLog({ db, run, all, one, nowIso, settingsObj, HttpError });
 setLlmHooks({ log: llmlog.record, check: llmlog.check });
@@ -88,6 +89,7 @@ const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, l
 const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpError, log });
 const importer = createImporter({ db, run, one, all, tx, nowIso, log, settingsObj, addDays, makeBackup, HttpError, computeTotals });
 const office = createOffice({ HttpError });
+const timeTrack = createTime({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument, settingsObj });
 const files = createFiles({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, log });
 const notifier = createNotifier({ settingsObj, saveSetting, log: (e) => agents.log(e), count: () => {
   const t = today(), over = all("SELECT * FROM documents WHERE type='factura' AND status='emitida' AND total>0").map(docRow).filter((d) => docStatus(d, one('SELECT COALESCE(SUM(amount),0) s FROM payments WHERE document_id=?', d.id).s, t) === 'vencida');
@@ -249,7 +251,7 @@ function state() {
     expenses: all('SELECT * FROM expenses ORDER BY date DESC, id DESC'),
     tasks: all('SELECT * FROM tasks ORDER BY done, CASE WHEN due=\'\' THEN 1 ELSE 0 END, due'),
     activity: all('SELECT * FROM activity ORDER BY id DESC LIMIT 60'),
-    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(), ...attachments.state(), ...modules.state(), ...recurring.state(), ...docTemplates.state(), ...files.state(),
+    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(), ...attachments.state(), ...modules.state(), ...recurring.state(), ...docTemplates.state(), ...files.state(), ...timeTrack.state(),
   };
 }
 
@@ -306,6 +308,7 @@ async function route(req_, url, body) {
   { const r = await files.route(m, p, body); if (r !== undefined) return r; }
   { const r = await importer.route(m, p, body); if (r !== undefined) return r; }
   { const r = await office.route(m, p, body); if (r !== undefined) return r; }
+  { const r = await timeTrack.route(m, p, body); if (r !== undefined) return r; }
   { const r = (await agents.route(m, p, body)) ?? (await inbox.route(m, p, body)); if (r !== undefined) return r; }
   let g;
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {
@@ -334,7 +337,7 @@ async function route(req_, url, body) {
   if ((g = p.match(/^\/api\/documents\/(\d+)$/))) {
     const id = Number(g[1]);
     if (m === 'PUT') return updateDocument(id, body);
-    if (m === 'DELETE') { const d = getDoc(id); if (d.status !== 'borrador' && !(d.type === 'presupuesto' && d.status !== 'facturado')) throw new HttpError(409, 'Los documentos emitidos no se borran: usa una factura rectificativa'); files.removeFor('document', id); run('DELETE FROM documents WHERE id=?', id); log(`Eliminado ${d.number || 'borrador'}`); return { ok: true }; }
+    if (m === 'DELETE') { const d = getDoc(id); if (d.status !== 'borrador' && !(d.type === 'presupuesto' && d.status !== 'facturado')) throw new HttpError(409, 'Los documentos emitidos no se borran: usa una factura rectificativa'); files.removeFor('document', id); timeTrack.release(id); run('DELETE FROM documents WHERE id=?', id); log(`Eliminado ${d.number || 'borrador'}`); return { ok: true }; }
   }
   if ((g = p.match(/^\/api\/documents\/(\d+)\/(issue|rectify|convert|status|duplicate)$/)) && m === 'POST') {
     const id = Number(g[1]);
@@ -360,6 +363,7 @@ async function route(req_, url, body) {
     for (const k of SETTING_KEYS) if (body[k] !== undefined) {
       let v = body[k];
       if (['default_iva', 'default_irpf', 'payment_days', 'quote_days'].includes(k)) v = rate(v);
+      else if (k === 'hourly_rate') v = Math.max(0, Math.round(Number(v) || 0));
       else if (['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details'].includes(k)) v = !!v;
       else if (['notify_quiet_from', 'notify_quiet_to', 'notify_digest_time'].includes(k)) { v = String(v || ''); if (v && !/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) throw bad('Hora no válida'); }
       else if (k === 'checklist_dismissed' || k === 'cash_include_overdue' || k === 'cash_include_estimates') v = !!v;
@@ -395,7 +399,7 @@ async function route(req_, url, body) {
     if (body.confirm !== 'BORRAR') throw bad('Confirmación necesaria');
     makeBackup('antes-de-borrar');
     inbox.stop();
-    for (const t of ['files', 'recurring_expenses', 'doc_templates', 'recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
+    for (const t of ['time_entries', 'files', 'recurring_expenses', 'doc_templates', 'recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
     return { ok: true };
   }
   throw new HttpError(404, 'Ruta no encontrada');
