@@ -4,6 +4,7 @@ import { openModal } from '../core.js';
 import { validNif } from '../calc.js';
 import { BUILTIN, VARS } from '../doctpl.js';
 import { importCard, toBase64 } from '../importui.js';
+import '../webprofile.js';
 
 let tab = 'canales';
 const NEG_TPL = `# Mi negocio\n\n## Qué hacemos\n(Describe tu actividad en dos líneas.)\n\n## Cómo hablamos con los clientes\n- Trato: tuteo, cercano y profesional.\n- Respuestas cortas; siempre una propuesta de siguiente paso.\n\n## Nunca\n- Prometer descuentos ni fechas sin confirmarlo conmigo.\n- Dar precios que no estén en las tarifas.\n- Hablar de otros clientes.\n\n## Objetivos\n- Responder a todos en menos de 2 horas laborables.\n- Cobrar las facturas a 30 días.\n`;
@@ -26,7 +27,7 @@ export const views = {
     render(S) {
       const s = S.settings;
       const body = {
-        empresa: html`<form data-save class="card"><div class="card-h"><h2>Datos de tu empresa</h2></div><div class="card-b grid g2">
+        empresa: html`<form data-save class="card"><div class="card-h"><h2>Datos de tu empresa</h2><span class="spacer"></span><button type="button" class="btn sm" data-act="webProfile" title="Opcional: lee tu web y propone tus datos para que los revises">${icon('sparkle', 'sm')}Rellenar desde mi web</button></div><div class="card-b grid g2">
           <div class="field" style="grid-column:1/-1"><span class="lbl">Logotipo</span><div class="row">${s.logo ? html`<img src="${s.logo}" alt="Logotipo actual" style="height:48px;max-width:160px;border-radius:8px;border:1px solid var(--line);padding:4px;background:#fff">` : html`<span class="avatar lg">${(s.company_name || 'R')[0]}</span>`}
             <label class="btn sm" for="logo-in">Subir imagen</label><input id="logo-in" class="sr" type="file" accept="image/png,image/jpeg,image/webp">${s.logo ? html`<button type="button" class="btn sm ghost" data-act="rmLogo">Quitar</button>` : ''}</div><span class="hint">Aparece en tus facturas y presupuestos.</span></div>
           ${field({ name: 'company_name', label: 'Nombre o razón social', value: v(s.company_name), required: true })}${field({ name: 'company_nif', label: 'NIF / CIF', value: v(s.company_nif), required: true })}

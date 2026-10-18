@@ -5,11 +5,12 @@ import { readFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, statSync,
 import { join, extname, dirname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
-import { computeTotals, today, addDays, docStatus, advanceDate, isIsoDate } from './public/calc.js';
+import { validNif, computeTotals, today, addDays, docStatus, advanceDate, isIsoDate } from './public/calc.js';
 import { toCsv } from './public/csv.js';
 import { createInbox } from './lib/inbox.mjs';
 import { createAgents } from './lib/agents.mjs';
-import { speak, setLlmHooks } from './lib/ai.mjs';
+import { speak, setLlmHooks, generate as llmGenerate } from './lib/ai.mjs';
+import { nifOk, readWeb, APPLY as WEB_APPLY, aiPrompt, validateAi, askClaude } from './lib/webprofile.mjs';
 import { htmlToPdf, warmPdf, pdfAvailable } from './lib/pdf.mjs';
 import { createLlmLog } from './lib/llmlog.mjs';
 import { createHindsight } from './lib/hindsight.mjs';
@@ -93,7 +94,7 @@ function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM se
 // Lo que ve el navegador: sin el hash del PIN ni el token de la barra de menús.
 function pubSettings() { const { pin_hash, menubar_token, backup_cfg, ...s } = settingsObj(); return { ...s, pin_on: !!pin_hash }; }
 function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
-const SETTING_KEYS = ['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details', 'notify_quiet_from', 'notify_quiet_to', 'notify_digest_time', 'cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
+const SETTING_KEYS = ['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details', 'notify_quiet_from', 'notify_quiet_to', 'notify_digest_time', 'cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'company_hours', 'company_web', 'company_description', 'logo',
   'default_iva', 'default_irpf', 'legal_form', 'hourly_rate', 'invoice_series', 'lock_idle_min', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
 
 const llmlog = createLlmLog({ db, run, all, one, nowIso, settingsObj, HttpError });
@@ -558,6 +559,35 @@ async function route(req_, url, body) {
       run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v));
     }
     return pubSettings();
+  }
+  if (m === 'POST' && p === '/api/company/from-web') {
+    let r; try { r = await readWeb(body.url); } catch (e) { throw new HttpError(e.status || 400, e.message); }
+    const cur = settingsObj(), LABEL = { name: 'Nombre o razón social', nif: 'NIF / CIF', address: 'Dirección', city: 'Población', zip: 'Código postal', email: 'Email', phone: 'Teléfono', hours: 'Horario', description: 'Descripción' };
+    const found = { ...r.found }; let aiUsed = '', sent = 0;
+    const missing = ['description', 'hours'].filter((k) => !found[k]);
+    if (body.ai && missing.length && r.text.length > 80) {
+      const pr = aiPrompt(r.text, missing); sent = r.text.length;
+      try {
+        let out;
+        if (body.ai === 'claude') { const key = getSecret('anthropic_key'); if (!key) throw new HttpError(409, 'Añade tu clave de la API de Claude en Ajustes → Módulos'); out = await askClaude({ apiKey: key, model: cur.claude_model || 'claude-sonnet-5-5', base: process.env.REM_ANTHROPIC_BASE || 'https://api.anthropic.com', system: pr.system, user: pr.user }); aiUsed = 'Claude'; }
+        else { if (!cur.ollama_url || !cur.ollama_model) throw new HttpError(409, 'Configura un modelo local en Ajustes'); out = (await llmGenerate({ url: cur.ollama_url, model: cur.ollama_model, system: pr.system, prompt: pr.user, json: true, purpose: 'datos de la web', timeout: 90000 })).value; aiUsed = 'modelo local'; }
+        const v = validateAi(out); for (const k of missing) if (v[k]) found[k] = { value: v[k], source: `resumen de la IA (${aiUsed}) · revísalo` };
+      } catch (e) { if (e instanceof HttpError) throw e; r.notes.push('La IA no pudo completar los datos: ' + String(e.message).slice(0, 100)); }
+    }
+    found.web = { value: new URL(r.url).origin, source: 'la dirección que has pegado' };
+    const fields = Object.keys(WEB_APPLY).filter((k) => found[k]).map((k) => ({ key: k, label: LABEL[k] || 'Web', value: found[k].value, source: found[k].source, current: cur[WEB_APPLY[k]] || '' }));
+    return { url: r.url, pages: r.pages, fields, social: found.social?.value || '', notes: r.notes, ai: aiUsed, ai_sent_chars: sent };
+  }
+  if (m === 'POST' && p === '/api/company/from-web/apply') {
+    const f = body.fields && typeof body.fields === 'object' ? body.fields : {}, saved = [];
+    for (const [k, v0] of Object.entries(f)) {
+      const key = WEB_APPLY[k]; if (!key) continue; let v = str(v0, k === 'description' ? 400 : 200);
+      if (k === 'nif' && v && !nifOk(v)) throw bad('El NIF/CIF no parece válido'); if (k === 'zip' && v && !/^\d{5}$/.test(v)) throw bad('Código postal no válido');
+      if (k === 'email' && v && !/^[^\s@<>",;]+@[^\s@<>",;]+\.[a-z]{2,}$/i.test(v)) throw bad('Email no válido'); if (k === 'web' && v && !/^https?:\/\/[^\s"'<>]+$/.test(v)) throw bad('Web no válida');
+      saveSetting(key, v); saved.push(k);
+    }
+    if (saved.length) log(`Datos de la empresa rellenados desde la web (${saved.join(', ')})`);
+    return { saved, settings: pubSettings() };
   }
   if (m === 'POST' && p === '/api/ai/draft') return aiDraft(body);
   if (m === 'POST' && p === '/api/notify/test') return { ok: await notifier.test() };

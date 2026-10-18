@@ -103,6 +103,9 @@ En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook �
 ## Tarjetas por correo (nivel 0)
 Presupuestos con botones Aceptar/Rechazar, solicitudes de pago y avisos de estado por **email normal**, con respuesta verificada (token de un solo uso + remitente + SPF/DKIM). Ver `docs/app-clientes.md` §14.1.
 
+## Rellenar los datos desde tu web (opcional)
+En Ajustes → Datos de tu empresa (y en el asistente inicial) puedes pegar la dirección de tu web: REM lee unas pocas páginas (portada, contacto, aviso legal), extrae nombre, teléfono, dirección, horario y NIF (de los datos estructurados `schema.org`, los enlaces y el aviso legal) y te los muestra para que **marques lo que quieres guardar**. Opcionalmente, un modelo local o Claude resume la descripción y el horario si faltan. Seguridad: solo http/https, bloquea redes privadas (también tras redirecciones), respeta `robots.txt`, límites de tamaño/tiempo y el NIF solo se acepta con dígito de control válido. Código: `lib/webprofile.mjs`, `public/webprofile.js`.
+
 ## REM Clientes (prototipo)
 
 Un **enlace** para que tus clientes te escriban desde el móvil sin app, sin cuenta y sin darte su teléfono, con cifrado de extremo a extremo y tarjetas de presupuesto (aceptable), pago y estado del pedido. Los mensajes llegan a *Mensajes*. Necesita un relé ciego (`relay/`). Guía del piloto: [docs/rem-clientes-prototipo.md](docs/rem-clientes-prototipo.md); visión del producto: [docs/app-clientes.md](docs/app-clientes.md).

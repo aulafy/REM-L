@@ -1,3 +1,4 @@
+import '../webprofile.js';
 import { store, on, mutate, toast, field, formValues, go, refresh } from '../core.js';
 import { html, icon } from '../util.js';
 import { validNif } from '../calc.js';
@@ -9,6 +10,7 @@ export const views = {
       const s = S.settings;
       const steps = [
         html`<h1 style="font-size:30px;letter-spacing:-.02em;margin-bottom:8px">Bienvenido a REM Negocio</h1><p class="muted" style="font-size:15.5px;margin-bottom:24px">Clientes, presupuestos, facturas, cobros y gastos en un solo lugar. <b>Tus datos se quedan en este equipo</b> y nada se envía sin que tú lo decidas.</p><p class="muted" style="font-size:13px;margin:-14px 0 20px">Es una herramienta de gestión interna, no un software de facturación certificado (Verifactu/SII).</p>
+          <p style="margin:-10px 0 16px"><button type="button" class="btn sm" data-act="webProfile">Opcional: rellenar desde mi web</button></p>
           <form id="ob" class="card"><div class="card-b grid g2"><div style="grid-column:1/-1">${field({ name: 'company_name', label: '¿Cómo se llama tu negocio?', value: s.company_name || '', required: true, attrs: 'autofocus autocomplete="organization"' })}</div>
             ${field({ name: 'company_nif', label: 'NIF / CIF', value: s.company_nif || '', hint: 'Lo necesitas para facturar. Puedes dejarlo para luego.' })}${field({ name: 'company_city', label: 'Población', value: s.company_city || '' })}</div></form>`,
         html`<h1 style="font-size:26px;letter-spacing:-.02em;margin-bottom:8px">Valores habituales</h1><p class="muted" style="margin-bottom:22px">Ahorran clics al facturar. Podrás cambiarlos en Ajustes.</p>
