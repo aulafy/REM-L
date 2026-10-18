@@ -69,7 +69,7 @@ const agents = createAgents({ db, run, one, all, dataDir: DATA, nowIso, HttpErro
 const hindsight = createHindsight({ settingsObj, saveSetting, log: (e) => agents.log(e) });
 const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError });
 const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, settingsObj, agents, createExpense: (b) => C.expenses.create(b) });
-const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight });
+const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments });
 
 function nextNumber(type, year) {
   const prefix = type === 'presupuesto' ? 'P' : type === 'rectificativa' ? 'R' : 'F';
@@ -326,7 +326,7 @@ const server = createServer(async (req, res) => {
       if (url.pathname === '/api/export.csv') return csv(url, res, headers);
       if (req.method === 'GET' && /^\/api\/attachments\/\d+\/file$/.test(url.pathname)) {
         const f = attachments.fileOf(Number(url.pathname.split('/')[3])); if (!f) throw new HttpError(404, 'No existe');
-        res.writeHead(200, { ...headers, 'Content-Type': f.mime === 'image/heic' ? 'image/heic' : f.mime, 'Cache-Control': 'private, max-age=3600' }).end(readFileSync(f.path)); return;
+        res.writeHead(200, { ...headers, 'Content-Security-Policy': "frame-ancestors 'self'", 'Content-Type': f.mime, 'Content-Disposition': 'inline', 'Cache-Control': 'private, max-age=3600' }).end(readFileSync(f.path)); return;
       }
       if (url.pathname === '/api/tts' && req.method === 'POST') {
         if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
