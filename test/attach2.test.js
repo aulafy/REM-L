@@ -1,7 +1,7 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import net from 'node:net';
@@ -21,10 +21,10 @@ const PDF = miniPdf(['FERRETERIA GIL S.L.', 'Factura A-2026/0412', 'Fecha: 05/10
 
 const multipart = (parts) => { const b = 'BOUND42'; return `From: =?UTF-8?Q?Proveedor_S.L.?= <prov@example.test>\r\nSubject: Factura adjunta\r\nMessage-ID: <m1@example.test>\r\nContent-Type: multipart/mixed; boundary="${b}"\r\n\r\n` + parts.map((p) => `--${b}\r\n${p}\r\n`).join('') + `--${b}--\r\n`; };
 const att = (name, mime, buf) => `Content-Type: ${mime}; name="${name}"\r\nContent-Disposition: attachment; filename="${name}"\r\nContent-Transfer-Encoding: base64\r\n\r\n${buf.toString('base64').replace(/(.{76})/g, '$1\r\n')}`;
-const RAW = multipart(['Content-Type: text/plain; charset=utf-8\r\n\r\nAdjunto la factura.', att('factura.pdf', 'application/pdf', PDF), att('foto.png', 'image/png', PNG), att('virus.exe', 'application/octet-stream', Buffer.from('MZ')), att('notas.txt', 'text/plain', Buffer.from('hola'))]);
+const RAW = multipart(['Content-Type: text/plain; charset=utf-8\r\n\r\nAdjunto la factura.', att('factura.pdf', 'application/pdf', PDF), att('foto.png', 'image/png', PNG), att('virus.exe', 'application/octet-stream', Buffer.from('MZ')), att('notas.txt', 'text/plain', Buffer.from('hola')), att('tarifas.docx', 'application/octet-stream', readFileSync(new URL('./fixtures/tarifas.docx', import.meta.url)))]);
 
-test('MIME: solo se extraen PDF e imágenes adjuntos', () => {
-  const a = extractAttachments(RAW); assert.deepEqual(a.map((x) => [x.name, x.mime]), [['factura.pdf', 'application/pdf'], ['foto.png', 'image/png']]);
+test('MIME: se extraen PDF, imágenes y Office; otros binarios no', () => {
+  const a = extractAttachments(RAW); assert.deepEqual(a.map((x) => [x.name, x.mime]), [['factura.pdf', 'application/pdf'], ['foto.png', 'image/png'], ['tarifas.docx', 'application/octet-stream']]);
   assert.equal(a[0].buffer.subarray(0, 4).toString(), '%PDF');
 });
 
@@ -35,11 +35,12 @@ const until = async (fn, ms = 8000) => { const t = Date.now(); for (;;) { const 
 const listen = (s) => new Promise((r) => s.listen(0, '127.0.0.1', () => r(s.address().port)));
 
 before(async () => {
-  const files = { 'photos/p1.jpg': Buffer.concat([Buffer.from('ffd8ffe0', 'hex'), Buffer.alloc(80)]), 'docs/f.pdf': PDF, 'docs/z.zip': Buffer.from('PK') };
+  const files = { 'photos/p1.jpg': Buffer.concat([Buffer.from('ffd8ffe0', 'hex'), Buffer.alloc(80)]), 'docs/f.pdf': PDF, 'docs/z.zip': Buffer.from('PK'), 'docs/t.docx': readFileSync(new URL('./fixtures/tarifas.docx', import.meta.url)) };
   tgQueue = [
     { update_id: 1, message: { message_id: 1, chat: { id: 77, type: 'private' }, from: { first_name: 'Ana' }, photo: [{ file_id: 'small', file_size: 10 }, { file_id: 'photos/p1.jpg', file_size: 90 }], caption: 'ticket del taller' } },
     { update_id: 2, message: { message_id: 2, chat: { id: 77, type: 'private' }, from: { first_name: 'Ana' }, document: { file_id: 'docs/f.pdf', mime_type: 'application/pdf', file_name: 'factura.pdf', file_size: PDF.length } } },
     { update_id: 3, message: { message_id: 3, chat: { id: 77, type: 'private' }, from: { first_name: 'Ana' }, document: { file_id: 'docs/z.zip', mime_type: 'application/zip', file_name: 'a.zip', file_size: 2 } } },
+    { update_id: 4, message: { message_id: 4, chat: { id: 77, type: 'private' }, from: { first_name: 'Ana' }, caption: 'mis tarifas', document: { file_id: 'docs/t.docx', mime_type: 'application/octet-stream', file_name: 'tarifas.docx', file_size: 36879 } } },
   ];
   const tg = http.createServer(async (req, res) => { let b = ''; for await (const c of req) b += c;
     if (req.url.includes('/file/bot')) { const p = req.url.split('/file/bot')[1].split('/').slice(2).join('/'); res.end(files[p] || Buffer.alloc(0)); return; }
@@ -77,6 +78,8 @@ test('Telegram: fotos y PDF llegan a la cola y a Mensajes; otros archivos se ign
   assert.deepEqual(tgA.map((a) => a.mime).sort(), ['application/pdf', 'image/jpeg']);
   const msgs = st.messages.filter((m) => m.channel === 'telegram'); assert.ok(msgs.some((m) => /📎 Adjunto \(foto\.jpg\): ticket del taller/.test(m.body))); assert.ok(msgs.some((m) => /factura\.pdf/.test(m.body)));
   const docOnly = msgs.find((x) => /^📎 Adjunto \(factura\.pdf\)$/.test(x.body)); assert.ok(docOnly); await until(async () => (await state()).messages.find((x) => x.id === docOnly.id && x.intent === 'adjunto')); assert.equal((await state()).messages.find((x) => x.id === docOnly.id).draft, '', 'un adjunto solo no genera respuesta');
+  const w = await until(async () => (await state()).messages.find((m) => m.channel === 'telegram' && /tarifas\.docx/.test(m.body)));
+  assert.match(w.body, /^📎 Adjunto \(tarifas\.docx\): mis tarifas\n\n📄 tarifas\.docx \(texto del archivo\):\nTarifas 2026/); assert.match(w.body, /Desplazamiento \| 25 €/); assert.equal((await state()).attachments.filter((a) => a.source === 'telegram').length, 2, 'un Word no entra en la cola de OCR');
   const photo = await until(async () => (await state()).attachments.find((a) => a.source === 'telegram' && a.mime === 'image/jpeg' && a.status === 'por_revisar')); assert.equal(photo.parsed.total, 55);
 });
 
@@ -84,6 +87,7 @@ test('Correo: se guardan los adjuntos válidos una sola vez', async () => {
   await call('POST', '/api/channels/email', { imap_host: '127.0.0.1', imap_port: globalThis.__imapPort, imap_secure: 'plain', smtp_host: '127.0.0.1', smtp_port: 1, smtp_secure: 'plain', email_user: 'yo@example.test', email_pass: 'x' });
   const st = await until(async () => { const s = await state(); return s.attachments.filter((a) => a.source === 'email').length >= 2 ? s : null; });
   const em = st.attachments.filter((a) => a.source === 'email'); assert.equal(em.length, 2); assert.ok(em.every((a) => a.peer === 'Proveedor S.L.'));
+  const mail = (await state()).messages.find((m) => m.channel === 'email'); assert.match(mail.body, /Adjunto la factura\.\n\n📄 tarifas\.docx \(texto del archivo\):\nTarifas 2026/);
   await new Promise((r) => setTimeout(r, 900)); assert.equal((await state()).attachments.filter((a) => a.source === 'email').length, 2, 'los siguientes sondeos no duplican');
 });
 

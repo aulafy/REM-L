@@ -19,11 +19,11 @@ Estado a 18/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
 6. ~~Importar facturas y gastos históricos desde CSV~~ ✅ hecho: Ajustes → Datos → «Importar datos antiguos» (vista previa, columnas detectadas y editables, duplicados omitidos, copia antes de importar). Excel `.xlsx` se leerá en el punto 7
 
 ## Archivos de Office (añadido)
-7. **Leer Word, PowerPoint y Excel**: extraer el texto de `.docx` / `.pptx` / `.xlsx` (OOXML, sin ejecutar nada; límites de tamaño y de compresión) y de `.doc` / `.rtf` con `textutil`.
-   - Importar al Conocimiento del asistente (tarifas, catálogos)
-   - Adjuntos de Telegram y correo: ver el texto en la bandeja; el asistente lo trata como dato, nunca como órdenes
-   - Importar clientes/facturas/gastos desde `.xlsx`
-   - Límites: de PowerPoint solo texto (sin imágenes ni diagramas); `.ppt` antiguo no soportado
+7. ~~Leer Word, PowerPoint y Excel~~ ✅ hecho: `.docx` / `.pptx` / `.xlsx` (ZIP con límites de tamaño, CRC y bomba de descompresión; sin ejecutar nada) y `.rtf` / `.doc` / `.odt` con `textutil` en macOS.
+   - Ajustes → Conocimiento → «Desde un archivo…» rellena un documento del asistente
+   - Adjuntos de Telegram y correo (`.docx` `.pptx` `.xlsx` `.rtf`): su texto aparece en el mensaje; el asistente lo trata como dato
+   - Importar facturas y gastos desde `.xlsx` (elige hoja; fechas e importes por formato de celda)
+   - Límites: de PowerPoint solo texto y notas (sin imágenes ni diagramas); `.ppt` y `.xls` antiguos no soportados; Excel: hojas ocultas ignoradas, máx. 20 000 filas y 100 columnas
 8. **Generar `.docx`** de cartas y contratos (editable por el cliente), además del PDF
 9. (Más adelante) Propuesta comercial en `.pptx` a partir de un presupuesto
 

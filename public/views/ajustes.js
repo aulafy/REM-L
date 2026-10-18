@@ -3,7 +3,7 @@ import { html, raw, eur, eurPlain, icon, api, fdate, clientOf } from '../util.js
 import { openModal } from '../core.js';
 import { validNif } from '../calc.js';
 import { BUILTIN, VARS } from '../doctpl.js';
-import { importCard } from '../importui.js';
+import { importCard, toBase64 } from '../importui.js';
 
 let tab = 'canales';
 const NEG_TPL = `# Mi negocio\n\n## Qué hacemos\n(Describe tu actividad en dos líneas.)\n\n## Cómo hablamos con los clientes\n- Trato: tuteo, cercano y profesional.\n- Respuestas cortas; siempre una propuesta de siguiente paso.\n\n## Nunca\n- Prometer descuentos ni fechas sin confirmarlo conmigo.\n- Dar precios que no estén en las tarifas.\n- Hablar de otros clientes.\n\n## Objetivos\n- Responder a todos en menos de 2 horas laborables.\n- Cobrar las facturas a 30 días.\n`;
@@ -72,7 +72,7 @@ export const views = {
             <label class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" class="check" data-ns="notify_details" ${s.notify_details ? raw('checked') : ''}><span>Mostrar nombres e importes en el aviso<br><span class="muted" style="font-size:12.5px">Desactivado por defecto: los avisos se ven en la pantalla de bloqueo y en pantallas compartidas.</span></span></label></div>
           <div class="row wrap"><button class="btn" data-act="notifyTest">${icon('mensajes', 'sm')}Enviar un aviso de prueba</button>${/Mac/.test(navigator.platform || navigator.userAgent) ? '' : html`<span class="muted" style="font-size:12.5px">Los avisos del sistema solo están disponibles en macOS.</span>`}</div>
           <div class="notice">${icon('book')}<span>Si no ves el aviso de prueba, abre <b>Ajustes del Sistema → Notificaciones</b> y permite las de <b>Editor de Scripts</b> (así las muestra macOS), y revisa que no esté activado «No molestar».</span></div></div></section></div>`,
-        conocimiento: html`<section class="card"><div class="card-h"><h2>Lo que sabe el asistente de tu negocio</h2><button class="btn sm more" data-act="newDoc">${icon('plus', 'sm')}Añadir</button></div>
+        conocimiento: html`<section class="card"><div class="card-h"><h2>Lo que sabe el asistente de tu negocio</h2><button class="btn sm more" data-act="docFromFile">${icon('download', 'sm')}Desde un archivo…</button><button class="btn sm" data-act="newDoc">${icon('plus', 'sm')}Añadir</button></div>
           ${S.knowledge.length ? html`<ul class="list">${S.knowledge.map((k) => html`<li class="link" data-act="editDoc" data-id="${k.id}"><span class="badge ic-only blue" style="padding:7px">${icon('book', 'sm')}</span><div class="grow"><div class="t">${k.title}</div><div class="d">${k.chunks} fragmentos · actualizado ${fdate(k.updated_at.slice(0, 10))}</div></div>${icon('edit', 'sm')}</li>`)}</ul>`
             : html`<div class="empty">${icon('book')}<h3>Cuéntale cómo trabajas</h3><p>Tarifas, horarios, zona de servicio, garantías, formas de pago, preguntas frecuentes… El asistente solo responderá con lo que le cuentes aquí.</p><button class="btn primary" data-act="newDoc" data-tpl="1">Empezar con una plantilla</button></div>`}
           <div class="card-b" style="border-top:1px solid var(--line)"><p class="muted" style="font-size:13px">Se guarda en tu equipo. ${S.channels.ai.embeddings ? 'Búsqueda semántica activada.' : 'Búsqueda por palabras clave (sin modelo). Añade un modelo de embeddings en IA y voz para entender sinónimos.'}</p></div></section>`,
@@ -178,14 +178,23 @@ on('mailDisconnect', async () => { if (await confirmBox({ title: 'Desconectar co
 on('checkModels', async (el) => { const box = document.getElementById('models'); box.textContent = 'Comprobando…'; try { const r = await api('GET', '/api/ai/status'); box.innerHTML = r.models ? `Modelos instalados: <b>${r.models.map(esc2).join('</b>, <b>')}</b>` : 'No se pudo conectar con Ollama. ¿Está abierto?'; } catch (e) { box.textContent = e.message; } });
 const esc2 = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const TPL = `Horario\nLunes a viernes de 9:00 a 18:00. Sábados con cita previa.\n\nTarifas\nMano de obra: 45 €/hora (+IVA). Desplazamiento: 25 €. Presupuesto sin compromiso.\n\nZona de servicio\nValencia capital y alrededores (hasta 30 km).\n\nFormas de pago\nTransferencia, tarjeta o Bizum. Facturas a 30 días.\n\nGarantía\n12 meses en reparaciones.\n\nPreguntas frecuentes\n¿Hacéis urgencias? Sí, con recargo del 30 %.`;
-function docModal(d, tpl) {
+function docModal(d, tpl, pre) {
   formModal({ title: d ? 'Editar documento' : 'Nuevo documento', wide: true, submit: d ? 'Guardar' : 'Añadir',
-    fields: `<div style="grid-column:1/-1">${field({ name: 'title', label: 'Título', value: d?.title || (tpl ? 'Mi negocio' : ''), required: true, attrs: 'autofocus' })}</div><div style="grid-column:1/-1">${field({ name: 'body', label: 'Contenido', rows: 14, value: d?.body || (tpl ? TPL : ''), required: true, hint: 'Separa los temas con una línea en blanco.' })}</div>`,
+    fields: `<div style="grid-column:1/-1">${field({ name: 'title', label: 'Título', value: d?.title || pre?.title || (tpl ? 'Mi negocio' : ''), required: true, attrs: 'autofocus' })}</div><div style="grid-column:1/-1">${field({ name: 'body', label: 'Contenido', rows: 14, value: d?.body || pre?.body || (tpl ? TPL : ''), required: true, hint: pre?.truncated ? 'El archivo era muy largo: se ha cortado a los primeros 60 000 caracteres.' : 'Separa los temas con una línea en blanco.' })}</div>`,
     extraFooter: d ? '<button class="btn danger" type="button" id="doc-del">Eliminar</button>' : '',
     onSubmit: async (v, close) => { await mutate(d ? 'PUT' : 'POST', d ? `/api/knowledge/${d.id}` : '/api/knowledge', v, 'Conocimiento guardado'); close(); } });
   document.getElementById('doc-del')?.addEventListener('click', async () => { if (await confirmBox({ title: 'Eliminar documento', text: `Se eliminará «${d.title}».`, ok: 'Eliminar', danger: true })) { await mutate('DELETE', `/api/knowledge/${d.id}`, undefined, 'Eliminado'); document.querySelector('.overlay [data-close]')?.click(); } });
 }
 on('newDoc', (el) => docModal(null, el.dataset.tpl));
+on('docFromFile', () => {
+  const inp = Object.assign(document.createElement('input'), { type: 'file', accept: '.docx,.pptx,.xlsx,.rtf,.doc,.odt,.txt,.md,.csv' });
+  inp.addEventListener('change', async () => {
+    const f = inp.files[0]; if (!f) return; if (f.size > 12e6) return toast('El archivo es demasiado grande (máximo 12 MB).', 'err');
+    try { const r = await api('POST', '/api/extract', { name: f.name, data: toBase64(await f.arrayBuffer()), want: 'text' }); docModal(null, null, { title: r.title, body: r.text, truncated: r.truncated }); }
+    catch (e) { toast(e.message, 'err'); }
+  });
+  inp.click();
+});
 on('editDoc', (el) => docModal(store.S.knowledge.find((k) => k.id === Number(el.dataset.id))));
 
 on('agentsStop', async () => { if (await confirmBox({ title: 'Parar todo', text: 'Los agentes dejan de actuar y se vacía la cola de aprobación. Lo ya aplicado no se deshace. Puedes reanudarlos cuando quieras.', ok: 'Parar todo', danger: true })) await mutate('POST', '/api/agents/stop', { paused: true }, 'Agentes en pausa'); });
