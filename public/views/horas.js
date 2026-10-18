@@ -4,7 +4,7 @@ import { today } from '../calc.js';
 import { openTab } from './ajustes.js';
 import { parseDuration, fmtDur } from '../duration.js';
 
-const amount = (e) => Math.round((Math.round((e.minutes / 60) * 100) / 100) * e.rate);
+const amount = (e) => Math.round(e.minutes * e.rate / 60);
 const TIMER = 'rem-timer';
 const readTimer = () => { try { return JSON.parse(localStorage.getItem(TIMER) || 'null'); } catch { return null; } };
 

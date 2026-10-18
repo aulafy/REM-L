@@ -31,8 +31,8 @@ test('horas → factura: líneas con horas decimales, tarifa por defecto, borrad
   await call('POST', '/api/time', { client_id: b.id, date: '2026-10-06', minutes: 60, description: 'Otro cliente' });
   const inv = (await call('POST', '/api/time/invoice', { client_id: a.id })).json;
   assert.equal(inv.type, 'factura'); assert.equal(inv.status, 'borrador'); assert.equal(inv.client_id, a.id); assert.equal(inv.lines.length, 2);
-  assert.deepEqual(inv.lines.map((l) => [l.desc, l.qty, l.price, l.iva]), [['05/10 · Reunión y propuesta', 1.5, 4500, 21], ['06/10 · Retoques', 0.33, 6000, 21]]);
-  assert.equal(inv.base, 6750 + 1980); assert.match(inv.notes, /1,83 h/);
+  assert.deepEqual(inv.lines.map((l) => [l.desc, l.qty, l.price, l.iva]), [['05/10 · Reunión y propuesta', 1.5, 4500, 21], ['06/10 · Retoques', 0.3333, 6000, 21]]);
+  assert.equal(inv.base, 6750 + 2000); assert.match(inv.notes, /1,83 h/);
   const s = (await call('GET', '/api/state')).json; assert.equal(s.timeEntries.filter((e) => e.doc_id === inv.id).length, 2); assert.equal(s.timeEntries.find((e) => e.client_id === b.id).doc_id, null, 'no toca a otros clientes');
   assert.equal((await call('PUT', `/api/time/${e1.id}`, { minutes: 5 })).status, 409); assert.equal((await call('DELETE', `/api/time/${e1.id}`)).status, 409);
   assert.equal((await call('POST', '/api/time/invoice', { client_id: a.id })).status, 409, 'ya no quedan horas libres');
@@ -50,4 +50,14 @@ test('ids: solo se facturan las entradas elegidas', async () => {
   const c = (await call('POST', '/api/clients', { name: 'Parcial' })).json, mk = async (m) => (await call('POST', '/api/time', { client_id: c.id, minutes: m, rate: 1000 })).json;
   const [x, y] = [await mk(60), await mk(120)]; const inv = (await call('POST', '/api/time/invoice', { client_id: c.id, ids: [y.id] })).json; assert.equal(inv.lines.length, 1); assert.equal(inv.lines[0].qty, 2);
   const s = (await call('GET', '/api/state')).json; assert.equal(s.timeEntries.find((e) => e.id === x.id).doc_id, null);
+});
+
+test('tres entradas de 20 minutos facturan una hora completa, sin perder un minuto por redondeo', async () => {
+  const c = (await call('POST', '/api/clients', { name: 'Sin redondeos' })).json;
+  for (let i = 0; i < 3; i++) await call('POST', '/api/time', { client_id: c.id, date: '2026-10-10', minutes: 20, description: `Bloque ${i + 1}`, rate: 6000 });
+  const inv = (await call('POST', '/api/time/invoice', { client_id: c.id })).json;
+  assert.deepEqual(inv.lines.map((line) => line.qty), [0.3333, 0.3334, 0.3333]);
+  assert.equal(inv.lines.reduce((sum, line) => sum + line.qty, 0), 1);
+  assert.equal(inv.base, 6000);
+  assert.match(inv.notes, /1,00 h/);
 });
