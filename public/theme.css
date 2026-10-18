@@ -110,3 +110,5 @@ a.kpi{transition:transform .15s,box-shadow .15s}a.kpi:hover{transform:translateY
 @media (max-width:820px){.page{padding:4px 16px 96px}.top{padding:12px 16px}.hero{padding:24px 22px;border-radius:20px}.hero h1{font-size:23px}.kpi .v{font-size:25px}.page-head h1{font-size:25px}
   .tabbar{background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);border-top-color:var(--line)}.tabbar a[aria-current="page"]{color:var(--accent)}.me{display:none}}
 @media (max-width:820px){.askbar .input{font-size:14px}}
+.notice{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}.notice .ic{color:var(--accent)}
+.notice.warn{background:var(--amber-bg);border-color:transparent;color:var(--amber)}.notice.warn .ic{color:var(--amber)}
