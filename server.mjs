@@ -478,6 +478,11 @@ async function route(req_, url, body) {
 
 // ---------- HTTP ----------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json' };
+async function readJson(req, limit = 16e6) {
+  const chunks = []; let n = 0;
+  for await (const c of req) { n += c.length; if (n > limit) throw bad('Demasiado grande'); chunks.push(c); }
+  try { return JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch { throw bad('JSON no válido'); }
+}
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
@@ -515,8 +520,7 @@ const server = createServer(async (req, res) => {
       }
       if (url.pathname === '/api/pdf' && req.method === 'POST') {
         if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
-        const chunks = []; let n = 0; for await (const c of req) { n += c.length; if (n > 3e6) throw bad('Demasiado grande'); chunks.push(c); }
-        const b = JSON.parse(Buffer.concat(chunks).toString() || '{}'); if (typeof b.html !== 'string' || !b.html.trim()) throw bad('Falta el contenido');
+        const b = await readJson(req, 3e6); if (typeof b.html !== 'string' || !b.html.trim()) throw bad('Falta el contenido');
         const pdf = htmlToPdf(b.html, DATA, readFileSync(join(PUBLIC, 'pdf.css'), 'utf8')); if (!pdf) throw new HttpError(501, 'Este equipo no puede generar PDF; usa Imprimir');
         res.writeHead(200, { ...headers, 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${String(b.filename || 'documento').replace(/[^\w.\- ]+/g, '_').slice(0, 80)}.pdf"`, 'Cache-Control': 'no-store' }).end(pdf); return;
       }
@@ -528,21 +532,19 @@ const server = createServer(async (req, res) => {
         } }
       if (url.pathname === '/api/docx' && req.method === 'POST') {
         if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
-        const chunks = []; let n = 0; for await (const c of req) { n += c.length; if (n > 1e6) throw bad('Demasiado grande'); chunks.push(c); }
-        let b; try { b = JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch { throw bad('JSON no válido'); } if (typeof b.text !== 'string' || !b.text.trim()) throw bad('Falta el contenido');
+        const b = await readJson(req, 1e6); if (typeof b.text !== 'string' || !b.text.trim()) throw bad('Falta el contenido');
         const name = String(b.filename || 'documento').replace(/[^\w.\- ñáéíóúüÑÁÉÍÓÚÜ]+/g, '_').slice(0, 80);
         res.writeHead(200, { ...headers, 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(name)}.docx`, 'Cache-Control': 'no-store' }).end(buildDocx({ markdown: b.text.slice(0, 200000), title: String(b.filename || '').slice(0, 200), author: settingsObj().company_name || '' })); return;
       }
       if (url.pathname === '/api/tts' && req.method === 'POST') {
         if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
-        const chunks = []; for await (const c of req) chunks.push(c);
-        const b = JSON.parse(Buffer.concat(chunks).toString() || '{}'); const wav = speak(str(b.text, 1500), settingsObj().tts_voice || '');
+        const b = await readJson(req, 100000); const wav = speak(str(b.text, 1500), settingsObj().tts_voice || '');
         if (!wav) throw new HttpError(501, 'Este equipo no tiene voz del sistema disponible');
         res.writeHead(200, { ...headers, 'Content-Type': 'audio/wav', 'Cache-Control': 'no-store' }).end(wav); return;
       }
       if (req.method !== 'GET' && req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
       let body = {};
-      if (req.method !== 'GET' && req.method !== 'DELETE') { const chunks = []; let n = 0; for await (const c of req) { n += c.length; if (n > 16e6) throw bad('Demasiado grande'); chunks.push(c); } try { body = JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch { throw bad('JSON no válido'); } }
+      if (req.method !== 'GET' && req.method !== 'DELETE') body = await readJson(req);
       const out = lock.route(req, req.method, url.pathname, body) ?? await route(req, url, body);
       res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(req._cookie ? { 'Set-Cookie': req._cookie } : {}) }).end(JSON.stringify(out));
       return;
