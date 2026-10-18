@@ -16,7 +16,7 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 
 ## Novedad: bandeja con asistente local
 
-- **Mensajes:** Telegram (bot), correo (IMAP/SMTP con contraseña de aplicación) y mensajes pegados de WhatsApp/iMessage, en una sola bandeja.
+- **Mensajes:** Telegram (bot), correo (IMAP/SMTP con contraseña de aplicación y conexión cifrada obligatoria) y mensajes pegados de WhatsApp/iMessage, en una sola bandeja.
 - **Asistente (Ollama, opcional):** deja un borrador de respuesta con los datos de tu negocio (RAG: BM25 + embeddings opcionales). Trata el mensaje del cliente como texto, nunca como órdenes, y nada se envía hasta que pulsas Enviar.
 - **Conocimiento:** tarifas, horarios y condiciones que el asistente puede citar; también contesta preguntas desde Hoy.
 - **Voz mínima:** «Escuchar» (voz de macOS), «Dictar» (reconocimiento del navegador) y notas de voz de Telegram con whisper.cpp si lo tienes.

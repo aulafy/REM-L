@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import net from 'node:net';
 import http from 'node:http';
 import { chunkText, search } from '../lib/rag.mjs';
-import { extractText, decodeWords, stripQuoted } from '../lib/mail.mjs';
+import { extractText, decodeWords, stripQuoted, isLoopbackHost, assertMailSecurity } from '../lib/mail.mjs';
 
 const listen = (srv) => new Promise((r) => srv.listen(0, '127.0.0.1', () => r(srv.address().port)));
 let ollamaPrompts = [];
@@ -64,6 +64,12 @@ test('MIME: quoted-printable, cabeceras codificadas y texto citado', () => {
   assert.ok(!stripQuoted(extractText(RAW)).includes('citado'));
 });
 
+test('correo: las credenciales sin cifrar solo se admiten en el propio equipo', () => {
+  assert.equal(isLoopbackHost('127.0.0.1'), true); assert.equal(isLoopbackHost('::1'), true); assert.equal(isLoopbackHost('mail.example.test'), false);
+  assert.throws(() => assertMailSecurity({ host: 'mail.example.test', secure: 'plain' }, 'SMTP', ['tls', 'starttls', 'plain']), /cifrada/);
+  assert.doesNotThrow(() => assertMailSecurity({ host: '127.0.0.1', secure: 'plain' }, 'SMTP', ['tls', 'starttls', 'plain']));
+});
+
 test('Telegram: recibe un mensaje, lo asocia, responde y la respuesta llega al bot', async () => {
   const r = await call('POST', '/api/channels/telegram', { token: '123:abc' }); assert.equal(r.json.telegram.on, true);
   const msg = await until(async () => (await call('GET', '/api/state')).json.messages.find((m) => m.channel === 'telegram'));
@@ -78,6 +84,7 @@ test('Telegram: recibe un mensaje, lo asocia, responde y la respuesta llega al b
 
 test('Email: lee por IMAP, decodifica y responde por SMTP', async () => {
   const { imapPort, smtpPort } = globalThis.__ports;
+  const unsafe = await call('POST', '/api/channels/email', { imap_host: 'mail.example.test', imap_secure: 'plain', smtp_host: 'smtp.example.test', smtp_secure: 'plain', email_user: 'a@b.test', email_pass: 'x' }); assert.equal(unsafe.status, 400); assert.match(unsafe.json.error, /cifrada/);
   const bad = await call('POST', '/api/channels/email', { imap_host: '127.0.0.1', imap_port: 1, email_user: 'a@b.test', email_pass: 'x', imap_secure: 'plain' }); assert.equal(bad.status, 400);
   const ok = await call('POST', '/api/channels/email', { imap_host: '127.0.0.1', imap_port: imapPort, imap_secure: 'plain', smtp_host: '127.0.0.1', smtp_port: smtpPort, smtp_secure: 'plain', email_user: 'negocio@example.test', email_pass: 'secreto' });
   assert.equal(ok.status, 200); assert.ok(!JSON.stringify(ok.json).includes('secreto'));
