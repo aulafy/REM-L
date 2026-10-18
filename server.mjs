@@ -1,7 +1,7 @@
 // REM Negocio — servidor local sin dependencias (Node ≥ 22.13, node:sqlite).
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, statSync, writeFileSync } from 'node:fs';
 import { join, extname, dirname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
@@ -15,6 +15,7 @@ import { createHindsight } from './lib/hindsight.mjs';
 import { createScheduler } from './lib/scheduler.mjs';
 import { createAttachments } from './lib/attachments.mjs';
 import { createModules } from './lib/modules.mjs';
+import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(ROOT, 'public');
@@ -306,6 +307,20 @@ async function route(req_, url, body) {
   }
   if (m === 'POST' && p === '/api/ai/draft') return aiDraft(body);
   if (m === 'POST' && p === '/api/backups') return makeBackup('manual');
+  { let g;
+    const named = (n) => { if (!/^negocio-[\w.:-]+\.db$/.test(String(n || '')) || !existsSync(join(DATA, 'backups', n))) throw new HttpError(404, 'Esa copia no existe'); return join(DATA, 'backups', n); };
+    if ((g = p.match(/^\/api\/backups\/([^/]+)\/summary$/)) && m === 'GET') { const s = summarize(named(decodeURIComponent(g[1]))); if (!s) throw new HttpError(409, 'La copia está dañada'); return s; }
+    if (m === 'POST' && p === '/api/backups/restore') {
+      const file = named(body.name); if (!summarize(file)) throw new HttpError(409, 'La copia está dañada');
+      const safety = makeBackup('antes-de-restaurar'); try { restoreFrom(db, file); } catch (e) { throw new HttpError(500, 'No se pudo restaurar; tus datos siguen intactos: ' + e.message); }
+      log(`Copia restaurada: ${body.name}`); return { ok: true, safety: safety.name, summary: summarize(file) };
+    }
+    if (m === 'POST' && p === '/api/backups/import') {
+      const buf = Buffer.from(String(body.data || ''), 'base64'); if (buf.length < 100 || buf.subarray(0, 16).toString('latin1') !== 'SQLite format 3\0') throw new HttpError(400, 'Ese archivo no es una copia de REM Negocio');
+      const name = `negocio-${new Date().toISOString().replace(/[:.]/g, '-')}-importada.db`, file = join(DATA, 'backups', name); writeFileSync(file, buf);
+      const s = summarize(file); if (!s) { unlinkSync(file); throw new HttpError(400, 'Ese archivo no contiene datos de REM Negocio'); } return { name, summary: s };
+    }
+  }
   if (m === 'GET' && p === '/api/export') return { exportedAt: nowIso(), ...state() };
   if (m === 'POST' && p === '/api/demo') { const { seedDemo } = await import('./demo.mjs'); return seedDemo({ db, run, one, createDocument, issueInvoice, convertQuote, today, log }); }
   if (m === 'POST' && p === '/api/reset') {
@@ -331,6 +346,10 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && /^\/api\/attachments\/\d+\/file$/.test(url.pathname)) {
         const f = attachments.fileOf(Number(url.pathname.split('/')[3])); if (!f) throw new HttpError(404, 'No existe');
         res.writeHead(200, { ...headers, 'Content-Security-Policy': "frame-ancestors 'self'", 'Content-Type': f.mime, 'Content-Disposition': 'inline', 'Cache-Control': 'private, max-age=3600' }).end(readFileSync(f.path)); return;
+      }
+      if (req.method === 'GET' && /^\/api\/backups\/[^/]+\/file$/.test(url.pathname)) {
+        const n = decodeURIComponent(url.pathname.split('/')[3]); if (!/^negocio-[\w.:-]+\.db$/.test(n) || !existsSync(join(DATA, 'backups', n))) throw new HttpError(404, 'No existe');
+        res.writeHead(200, { ...headers, 'Content-Type': 'application/octet-stream', 'Content-Disposition': `attachment; filename="${n}"`, 'Cache-Control': 'no-store' }).end(readFileSync(join(DATA, 'backups', n))); return;
       }
       if (url.pathname === '/api/pdf' && req.method === 'POST') {
         if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
