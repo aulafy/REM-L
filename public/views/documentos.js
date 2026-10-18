@@ -3,6 +3,7 @@ import { html, raw, esc, eur, eurPlain, toCents, fdate, relDate, icon, badge, av
 import { computeTotals, addDays, today } from '../calc.js';
 import { clientModal } from '../actions.js';
 import { extCard, bindExt } from '../ext.js';
+import { downloadPdf } from '../pdfdl.js';
 import { messageModal, reminderText, quoteText, invoiceText } from '../messages.js';
 
 const KIND = { facturas: { type: 'factura', one: 'Factura', many: 'Facturas', newLabel: 'Nueva factura', nuevo: 'nueva' }, presupuestos: { type: 'presupuesto', one: 'Presupuesto', many: 'Presupuestos', newLabel: 'Nuevo presupuesto', nuevo: 'nuevo' } };
@@ -206,7 +207,8 @@ function detail(S, key, d) {
             ${['aceptado', 'enviado', 'borrador'].includes(d.status) ? btn('convert', 'facturas', 'Convertir en factura', d.status === 'aceptado' ? 'primary' : '') : ''}
             ${d.status === 'enviado' || d.status === 'rechazado' ? btn('sendQuote', 'mail', 'Reenviar') : ''}
             ${d.status !== 'facturado' ? html`<a class="btn" href="#/presupuestos/${d.id}/editar" style="width:100%;justify-content:flex-start">${icon('edit', 'sm')}Editar</a>` : ''}`}
-          <button class="btn" data-act="print" style="width:100%;justify-content:flex-start">${icon('print', 'sm')}Imprimir / guardar PDF</button>
+          <button class="btn" data-act="dlPdf" data-id="${d.id}" style="width:100%;justify-content:flex-start">${icon('download', 'sm')}Descargar PDF</button>
+          <button class="btn" data-act="print" style="width:100%;justify-content:flex-start">${icon('print', 'sm')}Imprimir</button>
           ${btn('duplicate', 'copy', 'Duplicar')}
           ${isInv && d.status === 'emitida' && !d.corrects_id ? btn('rectify', 'edit', 'Rectificar factura', 'danger') : ''}
           ${!isInv && d.status !== 'facturado' ? btn('deleteDoc', 'trash', 'Eliminar', 'danger') : ''}</div></section>
@@ -217,10 +219,11 @@ function detail(S, key, d) {
         ${src || cor || child || rect ? html`<section class="card"><div class="card-h"><h2>Relacionado</h2></div><ul class="list">${[src && [src, 'Presupuesto de origen'], cor && [cor, 'Factura que rectifica'], child && [child, 'Factura generada'], rect && [rect, 'Rectificada por']].filter(Boolean).map(([x, l]) => html`<li class="link" data-href="#/${x.type === 'factura' ? 'facturas' : 'presupuestos'}/${x.id}"><div class="grow"><div class="t">${x.number || 'Borrador'}</div><div class="d">${l}</div></div>${icon('arrow', 'sm')}</li>`)}</ul></section>` : ''}
       </aside></div>`;
 }
+const pdfOf = (d) => { const sh = document.querySelector('.sheet'); return sh ? { html: sh.outerHTML, filename: d.number || 'documento' } : null; };
 const docOf = (el) => store.S.documents.find((x) => x.id === Number(el.dataset.id));
 on('remind', (el) => { const S = store.S, d = docOf(el); messageModal({ title: 'Reclamar el pago', client: clientOf(S, d.client_id), ...reminderText(S, d) }); });
-on('sendInvoice', (el) => { const S = store.S, d = docOf(el); messageModal({ title: 'Enviar factura', client: clientOf(S, d.client_id), ...invoiceText(S, d) }); });
-on('sendQuote', (el) => { const S = store.S, d = docOf(el); messageModal({ title: 'Enviar presupuesto', client: clientOf(S, d.client_id), ...quoteText(S, d), onDone: async () => { if (d.status === 'borrador') await mutate('POST', `/api/documents/${d.id}/status`, { status: 'enviado' }); } }); });
+on('sendInvoice', (el) => { const S = store.S, d = docOf(el); messageModal({ title: 'Enviar factura', client: clientOf(S, d.client_id), ...invoiceText(S, d), pdf: pdfOf(d) }); });
+on('sendQuote', (el) => { const S = store.S, d = docOf(el); messageModal({ title: 'Enviar presupuesto', client: clientOf(S, d.client_id), ...quoteText(S, d), pdf: pdfOf(d), onDone: async () => { if (d.status === 'borrador') await mutate('POST', `/api/documents/${d.id}/status`, { status: 'enviado' }); } }); });
 on('quoteStatus', (el) => mutate('POST', `/api/documents/${el.dataset.id}/status`, { status: el.dataset.s || 'aceptado' }, 'Estado actualizado'));
 on('convert', async (el) => { const inv = await mutate('POST', `/api/documents/${el.dataset.id}/convert`, {}, 'Borrador de factura creado'); go(`#/facturas/${inv.id}`); });
 on('duplicate', async (el) => { const d = docOf(el), n = await mutate('POST', `/api/documents/${d.id}/duplicate`, {}, 'Documento duplicado'); go(`#/${d.type === 'factura' ? 'facturas' : 'presupuestos'}/${n.id}${n.type === 'presupuesto' ? '/editar' : ''}`); });
@@ -233,3 +236,5 @@ on('rectify', async (el) => {
 on('print', () => window.print());
 
 on('sortBy', (el) => { const st = state[el.dataset.t], k = el.dataset.k, first = k === 'total' || k === 'fecha' ? -1 : 1; if (!st.sort || st.sort.k !== k) st.sort = { k, dir: first }; else if (st.sort.dir === first) st.sort = { k, dir: -first }; else st.sort = null; window.dispatchEvent(new Event('rem-render')); });
+
+on('dlPdf', (el) => { const d = docOf(el); const sheet = document.querySelector('.sheet'); if (!sheet) return; downloadPdf(sheet.outerHTML, d.number || 'documento'); });

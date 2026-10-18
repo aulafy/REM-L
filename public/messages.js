@@ -1,6 +1,7 @@
 // Borradores de mensajes para el cliente. REM solo prepara el texto: el envío lo haces tú.
-import { store, openModal, toast, field } from './core.js';
+import { store, openModal, toast, field, confirmBox } from './core.js';
 import { esc, eur, fdate, clientOf, paidOf, icon, api, html, raw } from './util.js';
+import { makePdf, blobToBase64 } from './pdfdl.js';
 
 const firstName = (n) => String(n || '').split(/\s+/)[0];
 const daysLate = (d, now) => Math.max(0, Math.round((new Date(now + 'T12:00') - new Date(d.due_date + 'T12:00')) / 864e5));
@@ -28,7 +29,7 @@ export function invoiceText(S, d) {
   return { subject: `Factura ${d.number}`, text: `Hola ${firstName(c?.name)},\n\nAdjunto la factura ${d.number} por ${eur(d.total)}, con vencimiento el ${fdate(d.due_date)}.${S.settings.company_iban ? `\nPuedes pagarla por transferencia a ${S.settings.company_iban}.` : ''}\n\nGracias,\n${co}` };
 }
 
-export function messageModal({ title, client, subject, text, onDone }) {
+export function messageModal({ title, client, subject, text, onDone, pdf }) {
   const S = store.S, ai = S.settings.ollama_url && S.settings.ollama_model;
   openModal({
     title, wide: true, label: title,
@@ -37,15 +38,22 @@ export function messageModal({ title, client, subject, text, onDone }) {
       <div class="field"><label for="m-sub">Asunto</label><input class="input" id="m-sub" value="${esc(subject)}"></div></div>
       <div class="field" style="margin-top:12px"><label for="m-txt">Mensaje</label><textarea class="input" id="m-txt" rows="11">${esc(text)}</textarea></div>`,
     footer: `${ai ? `<button class="btn" id="m-ai">${icon('sparkle', 'sm').toString()}Pulir con IA local</button>` : ''}<span class="spacer"></span><button class="btn" id="m-copy">${icon('copy', 'sm').toString()}Copiar</button>
-      ${client?.phone ? `<a class="btn" id="m-wa" target="_blank" rel="noopener">WhatsApp</a>` : ''}<a class="btn primary" id="m-mail">${icon('mail', 'sm').toString()}Abrir en correo</a>`,
+      ${client?.phone ? `<a class="btn" id="m-wa" target="_blank" rel="noopener">WhatsApp</a>` : ''}${S.channels.email.on && pdf ? `<button class="btn primary" id="m-send">${icon('send', 'sm').toString()}Enviar con PDF</button>` : ''}<a class="btn ${S.channels.email.on && pdf ? '' : 'primary'}" id="m-mail">${icon('mail', 'sm').toString()}Abrir en correo</a>`,
     onMount: (el, close) => {
-      const to = el.querySelector('#m-to'), sub = el.querySelector('#m-sub'), txt = el.querySelector('#m-txt');
+      const to = el.querySelector('#m-to'), to_ = () => to.value, sub = el.querySelector('#m-sub'), txt = el.querySelector('#m-txt');
       const sync = () => {
         el.querySelector('#m-mail').href = `mailto:${encodeURIComponent(to.value)}?subject=${encodeURIComponent(sub.value)}&body=${encodeURIComponent(txt.value)}`;
         const wa = el.querySelector('#m-wa'); if (wa) wa.href = `https://wa.me/${(client.phone || '').replace(/\D/g, '').replace(/^(?!34|00)(\d{9})$/, '34$1')}?text=${encodeURIComponent(txt.value)}`;
       };
       el.addEventListener('input', sync); sync();
       el.querySelector('#m-copy').onclick = async () => { try { await navigator.clipboard.writeText(txt.value); toast('Mensaje copiado'); } catch { txt.select(); toast('Selecciona y copia el texto (⌘C)'); } };
+      el.querySelector('#m-send')?.addEventListener('click', async (e) => {
+        const dest = to_().trim(); if (!dest) return toast('Escribe el correo del destinatario.', 'err');
+        if (!(await confirmBox({ title: `Enviar a ${dest}`, text: `Se enviará el mensaje con ${pdf.filename}.pdf adjunto desde tu correo.`, ok: 'Enviar ahora' }))) return;
+        const b = e.currentTarget; b.disabled = true; b.textContent = 'Enviando…';
+        try { const blob = await makePdf(pdf.html, pdf.filename); await api('POST', '/api/email/send', { to: dest, subject: sub.value, text: txt.value, attachment: { name: pdf.filename + '.pdf', data: await blobToBase64(blob) } }); onDone?.(); toast('Enviado con el PDF adjunto'); close(); }
+        catch (err) { toast(err.message, 'err'); b.disabled = false; b.innerHTML = `${icon('send', 'sm')}Enviar con PDF`; }
+      });
       el.querySelector('#m-mail').addEventListener('click', () => { onDone?.(); toast('Se abrió tu correo. Recuerda enviarlo desde allí.'); });
       el.querySelector('#m-ai')?.addEventListener('click', async (e) => {
         const b = e.currentTarget; b.disabled = true; b.textContent = 'Redactando…';

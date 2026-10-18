@@ -29,6 +29,10 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 - **Memoria:** `negocio.md` (reglas y tono), datos aprobados por ti (visibles y editables) y, **solo si quieres**, [Hindsight](https://github.com/vectorize-io/hindsight) en local para memoria a largo plazo (apagado por defecto; la app funciona igual sin él).
 - **Observabilidad:** registro de llamadas al modelo (duración, tokens, errores; nunca el texto) y tope por hora.
 
+## PDF y envío por correo
+
+**Descargar PDF** de facturas y presupuestos, del informe del periodo (IVA incluido) y del **extracto de cada cliente**. Se generan en tu equipo con el WebKit nativo de macOS (A4 paginado, sin internet ni JavaScript; el HTML se sanea antes). Si tienes el correo conectado, **Enviar con PDF** manda el mensaje con la factura adjunta desde tu cuenta, tras tu confirmación. En equipos sin macOS la descarga cae a «Imprimir».
+
 ## Tickets y documentos (OCR local)
 
 Sube una foto o un PDF en **Gastos → Subir ticket** (o arrástralo), o envíalo por **Telegram o correo**: los adjuntos llegan solos a la cola de revisión. Se lee en tu equipo (PDF con texto directamente; escaneados y fotos con Apple Vision → Tesseract → modelo de visión de Ollama), la IA extrae proveedor, fecha, base, IVA y total, y la app **comprueba que los importes aparecen en el texto y que cuadran**. Si hay dudas, relee con el modelo de visión. Nada se crea sin tu revisión; los documentos personales (DNI…) no se envían a ningún modelo y se pueden borrar.

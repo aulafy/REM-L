@@ -26,14 +26,14 @@ before(async () => {
     if (m === 'sendMessage') { tgSent.push(JSON.parse(b)); return send({ message_id: 9 }); }
     res.end(JSON.stringify({ ok: false, description: 'no' }));
   }); const tgPort = await listen(tgSrv);
-  const imap = net.createServer((s) => {
+  const imap = net.createServer((s) => { s.on('error', () => {});
     s.write('* OK mock IMAP\r\n'); let acc = '';
     s.on('data', (d) => { acc += d; let i; while ((i = acc.indexOf('\r\n')) >= 0) { const line = acc.slice(0, i); acc = acc.slice(i + 2); const [tag, ...r] = line.split(' '); const c = r.join(' ');
       if (/^LOGIN/.test(c)) s.write(`${tag} OK logged in\r\n`); else if (/^SELECT/.test(c)) s.write(`* 1 EXISTS\r\n${tag} OK\r\n`);
       else if (/^UID SEARCH/.test(c)) s.write(`* SEARCH ${/UID (\d+):\*/.test(c) && Number(/UID (\d+):/.exec(c)[1]) > 5 ? '' : '5'}\r\n${tag} OK\r\n`);
       else if (/^UID FETCH/.test(c)) s.write(`* 1 FETCH (UID 5 BODY[] {${Buffer.byteLength(RAW, 'latin1')}}\r\n${RAW})\r\n${tag} OK\r\n`); else s.write(`${tag} OK\r\n`); } });
   }); const imapPort = await listen(imap);
-  const smtp = net.createServer((s) => {
+  const smtp = net.createServer((s) => { s.on('error', () => {});
     s.write('220 mock\r\n'); let acc = '', data = false, msg = '';
     s.on('data', (d) => { acc += d; let i; while ((i = acc.indexOf('\r\n')) >= 0) { const line = acc.slice(0, i); acc = acc.slice(i + 2);
       if (data) { if (line === '.') { data = false; smtpMsgs.push(msg); s.write('250 sent\r\n'); } else msg += line + '\r\n'; continue; }

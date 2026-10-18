@@ -1,5 +1,7 @@
 import { store, on, go, mutate, toast } from '../core.js';
 import { extCard, bindExt } from '../ext.js';
+import { downloadPdf } from '../pdfdl.js';
+import { fdate as fd2 } from '../util.js';
 import { html, raw, eur, fdate, fdateShort, relDate, icon, badge, avatar, clientOf, paidOf, statusOf, norm, plural } from '../util.js';
 
 function clientStats(S, c) {
@@ -59,7 +61,7 @@ function detail(S, id) {
   return html`
     <a class="crumb" href="#/clientes">${icon('back', 'sm')}Clientes</a>
     <div class="page-head"><div class="row" style="gap:16px">${avatar(c.name, 'lg')}<div><h1>${c.name}</h1><p class="sub">${[c.nif, [c.address, c.zip, c.city].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || 'Sin datos fiscales'}</p></div></div>
-      <div class="actions"><button class="btn" data-act="editClient" data-id="${c.id}">${icon('edit', 'sm')}Editar</button><a class="btn" href="#/presupuestos/nuevo?cliente=${c.id}">Presupuesto</a><a class="btn primary" href="#/facturas/nueva?cliente=${c.id}">${icon('plus', 'sm')}Factura</a></div></div>
+      <div class="actions"><button class="btn" data-act="editClient" data-id="${c.id}">${icon('edit', 'sm')}Editar</button><button class="btn" data-act="clientPdf" data-id="${c.id}">${icon('download', 'sm')}Extracto PDF</button><a class="btn" href="#/presupuestos/nuevo?cliente=${c.id}">Presupuesto</a><a class="btn primary" href="#/facturas/nueva?cliente=${c.id}">${icon('plus', 'sm')}Factura</a></div></div>
     ${!c.nif ? html`<div class="notice warn" style="margin-bottom:16px">${icon('alert')}<span>Falta el NIF/CIF: lo necesitarás para emitir facturas a este cliente. <a href="#" data-act="editClient" data-id="${c.id}">Añadirlo</a></span></div>` : ''}
     <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="card kpi"><div class="l">Facturado en total</div><div class="v">${eur(s.billed)}</div></div>
       <div class="card kpi ${s.overdue ? 'warn' : ''}"><div class="l">Pendiente de cobro</div><div class="v">${eur(s.pending)}</div><div class="s">${s.overdue ? plural(s.overdue, 'factura vencida', 'facturas vencidas') : 'Sin vencidas'}</div></div>
@@ -100,3 +102,13 @@ function parseCsv(text) {
 }
 
 on('csort', (el) => { const k = el.dataset.k, asc = k === 'nombre'; sort = !sort || sort.k !== k ? { k, dir: asc ? 1 : -1 } : sort.dir === (asc ? 1 : -1) ? { k, dir: -sort.dir } : null; window.dispatchEvent(new Event('rem-render')); });
+
+on('clientPdf', () => {
+  const S = store.S, c = clientOf(S, Number(document.querySelector('[data-act="clientPdf"]').dataset.id)), s = S.settings, esc = (x) => String(x ?? '').replace(/[<>&"]/g, (m) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[m]));
+  const inv = S.documents.filter((d) => d.client_id === c.id && d.type === 'factura' && d.status === 'emitida').sort((a, b) => a.issue_date.localeCompare(b.issue_date));
+  const rows = inv.map((d) => ({ d, paid: paidOf(S, d.id) })), tot = rows.reduce((a, r) => a + r.d.total, 0), cob = rows.reduce((a, r) => a + r.paid, 0);
+  downloadPdf(`<h1>Extracto de cuenta</h1><p class="muted">${esc(s.company_name)}${s.company_nif ? ' · NIF ' + esc(s.company_nif) : ''} · ${new Date().toLocaleDateString('es-ES')}</p>
+    <h2>${esc(c.name)}</h2><p class="muted">${esc([c.nif && 'NIF ' + c.nif, c.address, [c.zip, c.city].filter(Boolean).join(' ')].filter(Boolean).join(' · '))}</p>
+    <table><thead><tr><th>Factura</th><th>Fecha</th><th>Vencimiento</th><th class="r">Importe</th><th class="r">Cobrado</th><th class="r">Pendiente</th></tr></thead><tbody>${rows.map(({ d, paid }) => `<tr><td>${esc(d.number)}</td><td>${fd2(d.issue_date)}</td><td>${fd2(d.due_date)}</td><td class="r">${eur(d.total)}</td><td class="r">${eur(paid)}</td><td class="r">${eur(d.total - paid)}</td></tr>`).join('') || '<tr><td colspan="6">Sin facturas emitidas</td></tr>'}
+    <tr><td colspan="3"><b>Total</b></td><td class="r"><b>${eur(tot)}</b></td><td class="r"><b>${eur(cob)}</b></td><td class="r"><b>${eur(tot - cob)}</b></td></tr></tbody></table>`, `Extracto ${c.name}`);
+});

@@ -2,6 +2,7 @@ import { store, on } from '../core.js';
 import { html, raw, eur, fdate, icon, clientOf, badge } from '../util.js';
 import { computeTotals } from '../calc.js';
 import { reportsCard } from '../ext.js';
+import { downloadPdf } from '../pdfdl.js';
 
 let year = null, q = 0; // q: 0 = año completo, 1..4 = trimestre
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -33,7 +34,7 @@ export const views = {
       const maxC = Math.max(1, ...Object.values(R.byCat)), top = Object.entries(R.byClient).sort((a, b) => b[1] - a[1]).slice(0, 5);
       return html`
         <div class="page-head"><div><h1>Informes</h1><p class="sub">Cómo va el negocio y una estimación del IVA del periodo.</p></div>
-          <div class="actions"><select class="input" id="ry" style="width:auto" aria-label="Año">${years.map((y) => html`<option ${Number(y) === year ? 'selected' : ''}>${y}</option>`)}</select>
+          <div class="actions"><button class="btn" data-act="reportPdf">${icon('download', 'sm')}PDF</button><select class="input" id="ry" style="width:auto" aria-label="Año">${years.map((y) => html`<option ${Number(y) === year ? 'selected' : ''}>${y}</option>`)}</select>
           <div class="seg" role="group" aria-label="Periodo">${[[0, 'Año'], [1, '1T'], [2, '2T'], [3, '3T'], [4, '4T']].map(([k, l]) => html`<button data-act="rq" data-q="${k}" aria-pressed="${q === k}">${l}</button>`)}</div></div></div>
         <div class="kpis"><div class="card kpi"><div class="l">Ingresos</div><div class="v">${eur(R.income)}</div><div class="s">${R.inv.length} facturas · sin IVA</div></div><div class="card kpi"><div class="l">Gastos</div><div class="v">${eur(R.spend)}</div><div class="s">${R.exp.length} apuntes · sin IVA</div></div>
           <div class="card kpi"><div class="l">Resultado</div><div class="v" style="color:${result < 0 ? 'var(--red)' : 'var(--green)'}">${eur(result)}</div><div class="s">Ingresos − gastos</div></div><div class="card kpi"><div class="l">IVA a ${liq >= 0 ? 'pagar' : 'compensar'}</div><div class="v">${eur(Math.abs(liq))}</div><div class="s">Repercutido − soportado</div></div></div>
@@ -52,3 +53,15 @@ export const views = {
   },
 };
 on('rq', (el) => { q = Number(el.dataset.q); window.dispatchEvent(new Event('rem-render')); });
+
+on('reportPdf', () => {
+  const S = store.S, R = report(S), s = S.settings, per = q ? `${q}T ${year}` : String(year), result = R.income - R.spend, liq = R.ivaRepTotal - R.ivaSopTotal;
+  const tr = (a, b, c = '') => `<tr><td>${a}</td><td class="r">${b}</td>${c !== '' ? `<td class="r">${c}</td>` : ''}</tr>`;
+  const doc = `<h1>Informe del periodo ${per}</h1><p class="muted">${s.company_name || ''}${s.company_nif ? ' · NIF ' + s.company_nif : ''} · generado el ${new Date().toLocaleDateString('es-ES')}</p>
+    <div class="kpis"><div class="kpi">Ingresos<b>${eur(R.income)}</b></div><div class="kpi">Gastos<b>${eur(R.spend)}</b></div><div class="kpi">Resultado<b>${eur(result)}</b></div><div class="kpi">IVA a ${liq >= 0 ? 'pagar' : 'compensar'}<b>${eur(Math.abs(liq))}</b></div></div>
+    <h2>Resumen de IVA (estimación)</h2><table><thead><tr><th>Concepto</th><th class="r">Base</th><th class="r">Cuota</th></tr></thead><tbody>${Object.keys(R.ivaRep).sort((a, b) => b - a).map((r) => tr(`IVA repercutido ${r} %`, eur(R.ivaRep[r].base), eur(R.ivaRep[r].iva))).join('')}${Object.keys(R.ivaSop).sort((a, b) => b - a).map((r) => tr(`IVA soportado ${r} %`, eur(R.ivaSop[r].base), '−' + eur(R.ivaSop[r].iva))).join('')}${tr('<b>Resultado a ' + (liq >= 0 ? 'ingresar' : 'compensar') + '</b>', '', '<b>' + eur(Math.abs(liq)) + '</b>')}</tbody></table>
+    <h2>Gastos por categoría</h2><table><tbody>${Object.entries(R.byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => tr(k, eur(v))).join('') || tr('Sin gastos', '')}</tbody></table>
+    <h2>Facturación por cliente</h2><table><tbody>${Object.entries(R.byClient).sort((a, b) => b[1] - a[1]).map(([id, v]) => tr((clientOf(S, Number(id))?.name || '—').replace(/[<>&]/g, ''), eur(v))).join('') || tr('Sin facturas', '')}</tbody></table>
+    <p class="muted" style="margin-top:18px;font-size:11px">Cifras orientativas calculadas con lo registrado en REM Negocio. No sustituyen la presentación oficial de impuestos.</p>`;
+  downloadPdf(doc, `Informe ${per}`);
+});

@@ -48,7 +48,7 @@ before(async () => {
     if (m === 'getFile') return send({ file_path: 'x/' + JSON.parse(b).file_id }); res.end(JSON.stringify({ ok: false })); });
   const tgPort = await listen(tg);
   // el mock devuelve 'x/<file_id>' → /file/bot<token>/x/<file_id>; el servidor de ficheros recorta 'x/'
-  const imap = net.createServer((s) => { s.write('* OK\r\n'); let acc = '';
+  const imap = net.createServer((s) => { s.on('error', () => {}); s.write('* OK\r\n'); let acc = '';
     s.on('data', (d) => { acc += d; let i; while ((i = acc.indexOf('\r\n')) >= 0) { const line = acc.slice(0, i); acc = acc.slice(i + 2); const [tag, ...r] = line.split(' '), c = r.join(' ');
       if (/^LOGIN/.test(c)) s.write(`${tag} OK\r\n`); else if (/^SELECT/.test(c)) s.write(`* 1 EXISTS\r\n${tag} OK\r\n`);
       else if (/^UID SEARCH/.test(c)) s.write(`* SEARCH ${/UID (\d+):\*/.test(c) && Number(/UID (\d+):/.exec(c)[1]) > 9 ? '' : '9'}\r\n${tag} OK\r\n`);

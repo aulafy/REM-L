@@ -9,6 +9,7 @@ import { computeTotals, today, addDays } from './public/calc.js';
 import { createInbox } from './lib/inbox.mjs';
 import { createAgents } from './lib/agents.mjs';
 import { speak, setLlmHooks } from './lib/ai.mjs';
+import { htmlToPdf, warmPdf, pdfAvailable } from './lib/pdf.mjs';
 import { createLlmLog } from './lib/llmlog.mjs';
 import { createHindsight } from './lib/hindsight.mjs';
 import { createScheduler } from './lib/scheduler.mjs';
@@ -235,7 +236,7 @@ const TABLE_OF = { clients: 'clients', items: 'items', expenses: 'expenses', tas
 
 async function route(req_, url, body) {
   const m = req_.method, p = url.pathname;
-  if (m === 'GET' && p === '/api/state') return state();
+  if (m === 'GET' && p === '/api/state') return { ...state(), pdf: pdfAvailable(DATA) };
   if (m === 'POST' && p === '/api/hindsight') {
     if (body.disconnect) { hindsight.disconnect(); return hindsight.state().hindsight; }
     try { await hindsight.connect(str(body.url, 200) || 'http://127.0.0.1:8888'); } catch (e) { throw new HttpError(400, 'No se pudo conectar con Hindsight: ' + e.message); }
@@ -331,6 +332,13 @@ const server = createServer(async (req, res) => {
         const f = attachments.fileOf(Number(url.pathname.split('/')[3])); if (!f) throw new HttpError(404, 'No existe');
         res.writeHead(200, { ...headers, 'Content-Security-Policy': "frame-ancestors 'self'", 'Content-Type': f.mime, 'Content-Disposition': 'inline', 'Cache-Control': 'private, max-age=3600' }).end(readFileSync(f.path)); return;
       }
+      if (url.pathname === '/api/pdf' && req.method === 'POST') {
+        if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
+        const chunks = []; let n = 0; for await (const c of req) { n += c.length; if (n > 3e6) throw bad('Demasiado grande'); chunks.push(c); }
+        const b = JSON.parse(Buffer.concat(chunks).toString() || '{}'); if (typeof b.html !== 'string' || !b.html.trim()) throw bad('Falta el contenido');
+        const pdf = htmlToPdf(b.html, DATA, readFileSync(join(PUBLIC, 'pdf.css'), 'utf8')); if (!pdf) throw new HttpError(501, 'Este equipo no puede generar PDF; usa Imprimir');
+        res.writeHead(200, { ...headers, 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${String(b.filename || 'documento').replace(/[^\w.\- ]+/g, '_').slice(0, 80)}.pdf"`, 'Cache-Control': 'no-store' }).end(pdf); return;
+      }
       if (url.pathname === '/api/tts' && req.method === 'POST') {
         if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
         const chunks = []; for await (const c of req) chunks.push(c);
@@ -368,5 +376,5 @@ function csv(url, res, headers) {
   res.writeHead(200, { ...headers, 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${kind}-${today()}.csv"` }).end('﻿' + rows.map((r) => r.map(q).join(';')).join('\r\n'));
 }
 
-server.listen(PORT, '127.0.0.1', () => { console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`); inbox.start(); scheduler.start(); });
+server.listen(PORT, '127.0.0.1', () => { console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`); inbox.start(); scheduler.start(); if (process.env.REM_PDF_WARM !== '0') warmPdf(DATA); });
 export { server, db };
