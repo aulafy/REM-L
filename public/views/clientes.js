@@ -4,6 +4,7 @@ import { downloadPdf } from '../pdfdl.js';
 import { BUILTIN, mdToHtml, renderDoc, docVars, docCss } from '../doctpl.js';
 import { openModal } from '../core.js';
 import { timelineOf, GROUPS } from '../timeline.js';
+import { filesCard, bindFiles } from '../filesui.js';
 import { fdate as fd2 } from '../util.js';
 import { html, raw, eur, fdate, fdateShort, relDate, icon, badge, avatar, clientOf, paidOf, statusOf, norm, plural } from '../util.js';
 
@@ -54,7 +55,7 @@ export const views = {
           : html`<div class="empty">${icon('clientes')}<h3>${q || filter !== 'todos' ? 'Sin resultados' : 'Aún no tienes clientes'}</h3><p>${q || filter !== 'todos' ? 'Prueba con otra búsqueda o quita el filtro.' : 'Guarda aquí a quién le vendes: tendrás su historial, cobros y notas en un solo sitio.'}</p>${q || filter !== 'todos' ? '' : html`<button class="btn primary" data-act="newClient">Crear el primero</button>`}</div>`}</div>`;
     },
     mount(root) {
-      bindExt(root);
+      bindExt(root); bindFiles(root);
       const tq = root.querySelector('#tlq'); tq?.addEventListener('input', () => { tlQ = tq.value; tlShow = 25; const pos = tq.selectionStart; window.dispatchEvent(new Event('rem-render')); const n = document.getElementById('tlq'); n?.focus(); n?.setSelectionRange(pos, pos); });
       root.querySelector('#csv-in')?.addEventListener('change', async (e) => {
         const f = e.target.files[0]; if (!f) return;
@@ -89,6 +90,7 @@ function detail(S, id) {
         <dt>Email</dt><dd>${c.email ? html`<a href="mailto:${c.email}">${c.email}</a>` : '—'}</dd><dt>Teléfono</dt><dd>${c.phone ? html`<a href="tel:${c.phone}">${c.phone}</a>` : '—'}</dd></dl>
         ${c.notes ? html`<hr style="border:0;border-top:1px solid var(--line);margin:14px 0"><p style="white-space:pre-wrap;color:var(--ink-2)">${c.notes}</p>` : ''}</div></section>
         ${extCard(S, 'clients', c.id)}
+        ${filesCard(S, 'client', c.id)}
         <section class="card"><div class="card-h"><h2>Lo que recuerda el asistente</h2><button class="btn sm ghost more" data-act="addMemory" data-client="${c.id}">${icon('plus', 'sm')}Añadir</button></div>${S.memory.filter((x) => x.client_id === c.id).length ? html`<ul class="list">${S.memory.filter((x) => x.client_id === c.id).map((x) => html`<li><div class="grow"><div class="t" style="white-space:normal">${x.text}</div><div class="d">${x.source === 'asistente' ? 'Propuesto y aprobado' : 'Escrito por ti'}</div></div><button class="btn ghost icon sm" data-act="editMemory" data-id="${x.id}" aria-label="Editar">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="delMemory" data-id="${x.id}" aria-label="Borrar">${icon('trash', 'sm')}</button></li>`)}</ul>` : html`<div class="empty" style="padding:22px"><p>Nada guardado. Apunta preferencias o acuerdos para que las tenga en cuenta.</p></div>`}</section>
         <section class="card"><div class="card-h"><h2>Tareas</h2><button class="btn sm ghost more" data-act="newTask" data-client="${c.id}">${icon('plus', 'sm')}Añadir</button></div>
           ${tasks.length ? html`<ul class="list">${tasks.map((k) => html`<li><input type="checkbox" class="check" data-act="toggleTask" data-id="${k.id}" ${k.done ? raw('checked') : ''} aria-label="Completar: ${k.title}"><div class="grow"><div class="t ${k.done ? 'done-t' : ''}">${k.title}</div><div class="d">${k.due ? fdateShort(k.due) : 'Sin fecha'}</div></div></li>`)}</ul>` : html`<div class="empty" style="padding:24px"><p>Sin tareas para este cliente.</p></div>`}</section>

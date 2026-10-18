@@ -20,6 +20,7 @@ import { createDocTemplates } from './lib/doctemplates.mjs';
 import { buildIcs } from './lib/calendar.mjs';
 import { buildXlsx } from './lib/xlsx.mjs';
 import { createNotifier } from './lib/notify.mjs';
+import { createFiles } from './lib/files.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
@@ -79,6 +80,7 @@ const hindsight = createHindsight({ settingsObj, saveSetting, log: (e) => agents
 const modules = createModules({ db, run, one, all, nowIso, str, HttpError, settingsObj, saveSetting, agents });
 const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument, createExpense: (b) => C.expenses.create(b) });
 const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpError, log });
+const files = createFiles({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, log });
 const notifier = createNotifier({ settingsObj, saveSetting, log: (e) => agents.log(e), count: () => {
   const t = today(), over = all("SELECT * FROM documents WHERE type='factura' AND status='emitida' AND total>0").map(docRow).filter((d) => docStatus(d, one('SELECT COALESCE(SUM(amount),0) s FROM payments WHERE document_id=?', d.id).s, t) === 'vencida');
   const eur = over.reduce((a, d) => a + d.total - one('SELECT COALESCE(SUM(amount),0) s FROM payments WHERE document_id=?', d.id).s, 0);
@@ -239,7 +241,7 @@ function state() {
     expenses: all('SELECT * FROM expenses ORDER BY date DESC, id DESC'),
     tasks: all('SELECT * FROM tasks ORDER BY done, CASE WHEN due=\'\' THEN 1 ELSE 0 END, due'),
     activity: all('SELECT * FROM activity ORDER BY id DESC LIMIT 60'),
-    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(), ...attachments.state(), ...modules.state(), ...recurring.state(), ...docTemplates.state(),
+    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(), ...attachments.state(), ...modules.state(), ...recurring.state(), ...docTemplates.state(), ...files.state(),
   };
 }
 
@@ -286,6 +288,7 @@ async function route(req_, url, body) {
   { const r = await modules.route(m, p, body); if (r !== undefined) return r; }
   { const r = await recurring.route(m, p, body); if (r !== undefined) return r; }
   { const r = await docTemplates.route(m, p, body); if (r !== undefined) return r; }
+  { const r = await files.route(m, p, body); if (r !== undefined) return r; }
   { const r = (await agents.route(m, p, body)) ?? (await inbox.route(m, p, body)); if (r !== undefined) return r; }
   let g;
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {
@@ -294,6 +297,7 @@ async function route(req_, url, body) {
     if (m === 'PUT' && id) return C[name].update(Number(id), body);
     if (m === 'DELETE' && id) {
       if (name === 'clients' && one('SELECT 1 FROM documents WHERE client_id=?', Number(id))) { run('UPDATE clients SET archived=1 WHERE id=?', Number(id)); return { archived: true }; }
+      if (name === 'clients') files.removeFor('client', Number(id));
       run(`DELETE FROM ${TABLE_OF[name]} WHERE id=?`, Number(id)); return { ok: true };
     }
   }
@@ -312,7 +316,7 @@ async function route(req_, url, body) {
   if ((g = p.match(/^\/api\/documents\/(\d+)$/))) {
     const id = Number(g[1]);
     if (m === 'PUT') return updateDocument(id, body);
-    if (m === 'DELETE') { const d = getDoc(id); if (d.status !== 'borrador' && !(d.type === 'presupuesto' && d.status !== 'facturado')) throw new HttpError(409, 'Los documentos emitidos no se borran: usa una factura rectificativa'); run('DELETE FROM documents WHERE id=?', id); log(`Eliminado ${d.number || 'borrador'}`); return { ok: true }; }
+    if (m === 'DELETE') { const d = getDoc(id); if (d.status !== 'borrador' && !(d.type === 'presupuesto' && d.status !== 'facturado')) throw new HttpError(409, 'Los documentos emitidos no se borran: usa una factura rectificativa'); files.removeFor('document', id); run('DELETE FROM documents WHERE id=?', id); log(`Eliminado ${d.number || 'borrador'}`); return { ok: true }; }
   }
   if ((g = p.match(/^\/api\/documents\/(\d+)\/(issue|rectify|convert|status|duplicate)$/)) && m === 'POST') {
     const id = Number(g[1]);
@@ -373,7 +377,7 @@ async function route(req_, url, body) {
     if (body.confirm !== 'BORRAR') throw bad('Confirmación necesaria');
     makeBackup('antes-de-borrar');
     inbox.stop();
-    for (const t of ['recurring_expenses', 'doc_templates', 'recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
+    for (const t of ['files', 'recurring_expenses', 'doc_templates', 'recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
     return { ok: true };
   }
   throw new HttpError(404, 'Ruta no encontrada');
@@ -401,6 +405,18 @@ const server = createServer(async (req, res) => {
       if (url.pathname === '/api/calendar.ics' && req.method === 'GET') {
         if (url.searchParams.get('t') !== icsToken()) throw new HttpError(403, 'Enlace no válido');
         res.writeHead(200, { ...headers, 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'inline; filename="rem-negocio.ics"', 'Cache-Control': 'no-store' }).end(icsText()); return;
+      }
+      if (url.pathname === '/api/files' && req.method === 'PUT') {
+        if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
+        const limit = Number(process.env.REM_MAX_FILE || 25 * 1024 * 1024); const chunks = []; let n = 0;
+        for await (const c of req) { n += c.length; if (n <= limit + 1024) chunks.push(c); else if (n > 200 * 1048576) { req.destroy?.(); break; } } // se descarta el exceso sin guardarlo
+        if (n > limit + 1024) throw new HttpError(413, `El archivo supera ${Math.round(limit / 1048576)} MB`);
+        const f = files.save({ owner_type: url.searchParams.get('owner_type'), owner_id: Number(url.searchParams.get('owner_id')), name: url.searchParams.get('name'), buffer: Buffer.concat(chunks) });
+        res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(f)); return;
+      }
+      if (req.method === 'GET' && /^\/api\/files\/\d+\/(download|view)$/.test(url.pathname)) {
+        const [, , , id, how] = url.pathname.split('/'), f = files.fileOf(Number(id)); if (!f) throw new HttpError(404, 'No existe'); const inline = how === 'view' && f.inline;
+        res.writeHead(200, { ...headers, 'Content-Security-Policy': f.kind === 'pdf' ? "frame-ancestors 'self'" : "frame-ancestors 'self'; sandbox", 'Content-Type': f.mime, 'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(f.name)}`, 'Cache-Control': 'private, max-age=600' }).end(readFileSync(f.path)); return;
       }
       if (url.pathname === '/api/pdf' && req.method === 'POST') {
         if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');

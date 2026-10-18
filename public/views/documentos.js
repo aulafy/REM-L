@@ -4,6 +4,7 @@ import { computeTotals, addDays, today } from '../calc.js';
 import { clientModal } from '../actions.js';
 import { extCard, bindExt } from '../ext.js';
 import { downloadPdf } from '../pdfdl.js';
+import { filesCard, bindFiles } from '../filesui.js';
 import { messageModal, reminderText, quoteText, invoiceText } from '../messages.js';
 
 const KIND = { facturas: { type: 'factura', one: 'Factura', many: 'Facturas', newLabel: 'Nueva factura', nuevo: 'nueva' }, presupuestos: { type: 'presupuesto', one: 'Presupuesto', many: 'Presupuestos', newLabel: 'Nuevo presupuesto', nuevo: 'nuevo' } };
@@ -37,7 +38,7 @@ function makeView(key) {
       return list(S, key);
     },
     mount(root, S, p) {
-      bindExt(root);
+      bindExt(root); bindFiles(root);
       const seg = p[0] || '';
       if (seg === K.nuevo || p[1] === 'editar' || (/^\d+$/.test(seg) && S.documents.find((x) => x.id === Number(seg))?.status === 'borrador' && key === 'facturas')) mountEditor(root, S, key);
       const i = root.querySelector('#dq');
@@ -217,6 +218,7 @@ function detail(S, key, d) {
           <div class="row" style="margin:8px 0 12px;justify-content:space-between"><span class="muted">Cobrado ${eur(paid)}</span><b>${pending > 0 ? `Pendiente ${eur(pending)}` : 'Al día'}</b></div>
           ${pays.length ? html`<ul class="list" style="margin:0 -18px -18px">${pays.map((p) => html`<li><div class="grow"><div class="t">${eur(p.amount)}</div><div class="d">${fdate(p.date)} · ${p.method}</div></div><button class="btn ghost icon sm" data-act="deletePayment" data-id="${p.id}" aria-label="Anular cobro">${icon('x', 'sm')}</button></li>`)}</ul>` : html`<p class="muted">Todavía no se ha registrado ningún cobro.</p>`}</div></section>` : ''}
         ${extCard(S, 'documents', d.id)}
+        ${filesCard(S, 'document', d.id, { title: 'Archivos adjuntos' })}
         ${src || cor || child || rect ? html`<section class="card"><div class="card-h"><h2>Relacionado</h2></div><ul class="list">${[src && [src, 'Presupuesto de origen'], cor && [cor, 'Factura que rectifica'], child && [child, 'Factura generada'], rect && [rect, 'Rectificada por']].filter(Boolean).map(([x, l]) => html`<li class="link" data-href="#/${x.type === 'factura' ? 'facturas' : 'presupuestos'}/${x.id}"><div class="grow"><div class="t">${x.number || 'Borrador'}</div><div class="d">${l}</div></div>${icon('arrow', 'sm')}</li>`)}</ul></section>` : ''}
       </aside></div>`;
 }

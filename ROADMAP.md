@@ -15,7 +15,7 @@ Estado a 18/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
 2. ~~Gastos recurrentes~~ ✅ hecho: se registran solos cada periodo (uno por cada periodo que faltó), con importe estimado opcional; la tesorería los usa
 3. ~~Notificaciones del sistema~~ ✅ hecho: Ajustes → Avisos (mensajes agrupados, resumen diario, propuestas, silencio, sin datos sensibles por defecto) y contador en el título de la pestaña
 4. ~~Historial único por cliente~~ ✅ hecho: en la ficha, línea de tiempo con mensajes, facturas, cobros, presupuestos, tareas y memoria, más «Próximamente»; filtros y búsqueda
-5. Adjuntar archivos a clientes y facturas
+5. ~~Adjuntar archivos a clientes y facturas~~ ✅ hecho: tarjeta «Archivos» en la ficha del cliente y en la factura/presupuesto (arrastrar o elegir, ver, descargar, renombrar, nota); lista de tipos permitida con comprobación de contenido, máx. 25 MB, y aparecen en el historial
 6. Importar facturas y gastos históricos desde Excel/CSV
 
 ## Archivos de Office (añadido)

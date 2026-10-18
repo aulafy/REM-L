@@ -175,3 +175,5 @@ details.opt>summary::-webkit-details-marker{display:none}details.opt:not([open])
 .tl .tl-row{align-items:flex-start;padding:12px 22px;gap:12px}.tl-ic{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--grey-bg);color:var(--grey);flex:none}
 .tl-ic.ok{background:var(--green-bg);color:var(--green)}.tl-ic.warn{background:var(--orange-bg);color:var(--orange)}.tl-ic.msg{background:var(--blue-bg);color:var(--blue)}
 .tl-d{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}.tl .when{font-size:12px;color:var(--muted);padding-top:2px}
+.thumb.ext{display:grid;place-items:center;font-size:10.5px;font-weight:700;color:var(--blue);background:var(--blue-bg);border-color:transparent}
+.dropzone{padding:26px 18px;text-align:center;border:1.5px dashed var(--line-2);border-radius:12px;margin:0 18px 18px}.files-card.over{outline:2px dashed var(--accent);outline-offset:-6px;background:var(--accent-soft)}.files-card .list li{padding:12px 18px}
