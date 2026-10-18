@@ -78,7 +78,12 @@ const date = (v, req = true) => { v = str(v, 10); if (!v && !req) return ''; if 
 
 function cleanLines(lines) {
   if (!Array.isArray(lines) || lines.length > 200) throw bad('Líneas no válidas');
-  return lines.map((l) => ({ desc: str(l.desc, 400), qty: Number(l.qty) || 0, price: int(l.price || 0), iva: rate(l.iva, 21), discount: rate(l.discount, 0) }));
+  return lines.map((l) => {
+    const qty = Number(l.qty ?? 0), price = int(l.price ?? 0);
+    if (!Number.isFinite(qty) || Math.abs(qty) > 1e6) throw bad('Cantidad no válida');
+    if (Math.abs(price) > 1e10) throw bad('Precio no válido');
+    return { desc: str(l.desc, 400), qty, price, iva: rate(l.iva, 21), discount: rate(l.discount, 0) };
+  });
 }
 
 function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM settings').map((r) => [r.key, JSON.parse(r.value)])); }
@@ -155,6 +160,7 @@ function nextNumber(type, year, series = 'F') {
 
 function saveTotals(d) {
   const t = computeTotals(d.lines, d.irpf);
+  if (![t.base, t.ivaTotal, t.irpfTotal, t.total].every(Number.isSafeInteger)) throw bad('Los importes son demasiado grandes');
   return { base: t.base, iva_total: t.ivaTotal, irpf_total: t.irpfTotal, total: t.total };
 }
 function docRow(r) { return { ...r, lines: JSON.parse(r.lines) }; }
@@ -206,7 +212,8 @@ function issueInvoice(id) {
     const d = getDoc(id);
     if (d.type !== 'factura' || d.status !== 'borrador') throw new HttpError(409, 'Solo se pueden emitir borradores de factura');
     if (!d.client_id) throw bad('Elige un cliente antes de emitir');
-    if (!d.lines.length || d.total === 0) throw bad('Añade al menos una línea con importe');
+    if (!d.lines.length || !Number.isSafeInteger(d.total) || d.total === 0) throw bad('Añade al menos una línea con importe');
+    if (d.total < 0) throw bad('El total no puede ser negativo: para corregir una factura usa una rectificativa');
     const client = one('SELECT * FROM clients WHERE id=?', d.client_id);
     const s = settingsObj();
     if (!s.company_name || !s.company_nif) throw bad('Completa los datos de tu empresa en Ajustes (nombre y NIF) antes de emitir');
