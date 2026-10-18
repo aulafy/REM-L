@@ -211,7 +211,9 @@ function issueInvoice(id) {
     const s = settingsObj();
     if (!s.company_name || !s.company_nif) throw bad('Completa los datos de tu empresa en Ajustes (nombre y NIF) antes de emitir');
     if (!client.nif) throw bad('El cliente necesita NIF/CIF para emitir una factura');
-    const number = nextNumber('factura', d.issue_date.slice(0, 4), d.series || 'F');
+    const prefix = d.series || 'F', year = d.issue_date.slice(0, 4), last = one("SELECT MAX(issue_date) m FROM documents WHERE type='factura' AND status<>'borrador' AND number LIKE ?", `${prefix}${year}-%`).m;
+    if (last && d.issue_date < last) throw new HttpError(409, `La serie ${prefix} ya tiene facturas emitidas el ${last.split('-').reverse().join('/')}: la fecha de esta no puede ser anterior (así los números siguen el orden de las fechas). Cámbiala.`);
+    const number = nextNumber('factura', year, prefix);
     run('UPDATE documents SET status=?, number=?, updated_at=? WHERE id=?', 'emitida', number, nowIso(), id);
     log(`Emitida la factura ${number}`, 'document', id);
     return getDoc(id);
