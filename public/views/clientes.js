@@ -3,6 +3,7 @@ import { extCard, bindExt } from '../ext.js';
 import { downloadPdf } from '../pdfdl.js';
 import { BUILTIN, mdToHtml, renderDoc, docVars, docCss } from '../doctpl.js';
 import { openModal } from '../core.js';
+import { timelineOf, GROUPS } from '../timeline.js';
 import { fdate as fd2 } from '../util.js';
 import { html, raw, eur, fdate, fdateShort, relDate, icon, badge, avatar, clientOf, paidOf, statusOf, norm, plural } from '../util.js';
 
@@ -18,7 +19,19 @@ function clientStats(S, c) {
   return { docs, billed, pending, overdue, last };
 }
 
-let q = '', filter = 'todos', sort = null;
+let q = '', filter = 'todos', sort = null, tlGroup = 'todo', tlQ = '', tlShow = 25;
+const MONTHS_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const tlWhen = (i) => (i.at.length > 10 && (i.group === 'mensajes') ? new Date(i.at).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : fdate(i.at.slice(0, 10)));
+const tlRow = (i) => html`<li class="tl-row ${i.href ? 'link' : ''}" ${i.href ? raw(`data-href="${i.href}" tabindex="0"`) : ''}><span class="tl-ic ${['vencida'].includes(i.kind) ? 'warn' : ['cobro', 'factura', 'rectificativa'].includes(i.kind) || i.kind.startsWith('presupuesto-a') ? 'ok' : i.group === 'mensajes' ? 'msg' : ''}">${icon(i.icon, 'sm')}</span><div class="grow"><div class="t">${i.title}</div>${i.detail ? html`<div class="d tl-d">${i.detail}</div>` : ''}</div><span class="when nowrap">${tlWhen(i)}</span></li>`;
+function historyCard(S, id) {
+  const tl = timelineOf(S, id), ok = (i) => (tlGroup === 'todo' || i.group === tlGroup) && (!tlQ || norm(`${i.title} ${i.detail || ''}`).includes(norm(tlQ)));
+  const up = tl.upcoming.filter(ok), past = tl.past.filter(ok), shown = past.slice(0, tlShow); let cur = '';
+  return html`<section class="card" style="margin-top:18px" aria-labelledby="h-tl"><div class="card-h" style="flex-wrap:wrap"><h2 id="h-tl">Historial</h2><span class="muted" style="font-size:12.5px">${tl.past.length} movimientos</span><span class="spacer"></span>
+    <div class="seg" role="group" aria-label="Filtrar historial">${[['todo', 'Todo'], ...Object.entries(GROUPS)].map(([k, l]) => html`<button data-act="tlf" data-k="${k}" aria-pressed="${tlGroup === k}">${l}</button>`)}</div><input class="input" id="tlq" type="search" placeholder="Buscar…" value="${tlQ}" aria-label="Buscar en el historial" style="max-width:200px;min-height:36px"></div>
+    ${up.length ? html`<div class="tl-h">Próximamente</div><ul class="list tl">${up.map(tlRow)}</ul>` : ''}
+    ${shown.length ? html`<ul class="list tl">${shown.map((i) => { const m = i.at.slice(0, 7), head = m !== cur ? (cur = m, html`<li class="tl-h" role="presentation">${MONTHS_ES[Number(m.slice(5)) - 1]} ${m.slice(0, 4)}</li>`) : ''; return html`${head}${tlRow(i)}`; })}</ul>${past.length > shown.length ? html`<div class="card-b" style="text-align:center"><button class="btn sm" data-act="tlmore">Ver más (${past.length - shown.length})</button></div>` : ''}`
+      : html`<div class="empty" style="padding:28px"><p>${tlQ || tlGroup !== 'todo' ? 'Nada con ese filtro.' : 'Aún no hay movimientos.'}</p></div>`}</section>`;
+}
 const CS = { nombre: ({ c }) => c.name.toLowerCase(), facturado: ({ s }) => s.billed, pendiente: ({ s }) => s.pending };
 const cth = (k, label, cls = '') => html`<th class="${cls}" aria-sort="${sort?.k === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}"><button class="sortbtn" data-act="csort" data-k="${k}">${label}<span class="arr">${sort?.k === k ? (sort.dir === 1 ? '↑' : '↓') : ''}</span></button></th>`;
 
@@ -42,6 +55,7 @@ export const views = {
     },
     mount(root) {
       bindExt(root);
+      const tq = root.querySelector('#tlq'); tq?.addEventListener('input', () => { tlQ = tq.value; tlShow = 25; const pos = tq.selectionStart; window.dispatchEvent(new Event('rem-render')); const n = document.getElementById('tlq'); n?.focus(); n?.setSelectionRange(pos, pos); });
       root.querySelector('#csv-in')?.addEventListener('change', async (e) => {
         const f = e.target.files[0]; if (!f) return;
         const rows = parseCsv(await f.text());
@@ -78,7 +92,8 @@ function detail(S, id) {
         <section class="card"><div class="card-h"><h2>Lo que recuerda el asistente</h2><button class="btn sm ghost more" data-act="addMemory" data-client="${c.id}">${icon('plus', 'sm')}Añadir</button></div>${S.memory.filter((x) => x.client_id === c.id).length ? html`<ul class="list">${S.memory.filter((x) => x.client_id === c.id).map((x) => html`<li><div class="grow"><div class="t" style="white-space:normal">${x.text}</div><div class="d">${x.source === 'asistente' ? 'Propuesto y aprobado' : 'Escrito por ti'}</div></div><button class="btn ghost icon sm" data-act="editMemory" data-id="${x.id}" aria-label="Editar">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="delMemory" data-id="${x.id}" aria-label="Borrar">${icon('trash', 'sm')}</button></li>`)}</ul>` : html`<div class="empty" style="padding:22px"><p>Nada guardado. Apunta preferencias o acuerdos para que las tenga en cuenta.</p></div>`}</section>
         <section class="card"><div class="card-h"><h2>Tareas</h2><button class="btn sm ghost more" data-act="newTask" data-client="${c.id}">${icon('plus', 'sm')}Añadir</button></div>
           ${tasks.length ? html`<ul class="list">${tasks.map((k) => html`<li><input type="checkbox" class="check" data-act="toggleTask" data-id="${k.id}" ${k.done ? raw('checked') : ''} aria-label="Completar: ${k.title}"><div class="grow"><div class="t ${k.done ? 'done-t' : ''}">${k.title}</div><div class="d">${k.due ? fdateShort(k.due) : 'Sin fecha'}</div></div></li>`)}</ul>` : html`<div class="empty" style="padding:24px"><p>Sin tareas para este cliente.</p></div>`}</section>
-        <button class="btn danger" data-act="deleteClient" data-id="${c.id}">${icon('trash', 'sm')}Eliminar cliente</button></div></div>`;
+        <button class="btn danger" data-act="deleteClient" data-id="${c.id}">${icon('trash', 'sm')}Eliminar cliente</button></div></div>
+    ${historyCard(S, c.id)}`;
 }
 
 on('cfilter', (el) => { filter = el.dataset.k; window.dispatchEvent(new Event('rem-render')); });
@@ -132,3 +147,6 @@ on('clientDoc', (el) => {
       m.querySelector('#dt-pdf').addEventListener('click', () => downloadPdf(`<style>${docCss}</style>${mdToHtml(txt.value)}`, `${all_[Number(sel.value)].name} - ${cl.name}`));
     } });
 });
+
+on('tlf', (el) => { tlGroup = el.dataset.k; tlShow = 25; window.dispatchEvent(new Event('rem-render')); });
+on('tlmore', () => { tlShow += 25; window.dispatchEvent(new Event('rem-render')); });
