@@ -1,6 +1,6 @@
 import { store, on, go, mutate, toast } from '../core.js';
 import { extCard, bindExt } from '../ext.js';
-import { downloadPdf } from '../pdfdl.js';
+import { downloadPdf, downloadDocx } from '../pdfdl.js';
 import { BUILTIN, mdToHtml, renderDoc, docVars, docCss } from '../doctpl.js';
 import { openModal } from '../core.js';
 import { timelineOf, GROUPS } from '../timeline.js';
@@ -140,12 +140,13 @@ on('clientDoc', (el) => {
     body: `<div class="docgrid"><div class="stack" style="gap:10px"><div class="field"><label for="dt-sel">Plantilla</label><select class="input" id="dt-sel">${all_.map((t, i) => `<option value="${i}">${e(t.name)}</option>`).join('')}</select><span class="hint" id="dt-note"></span></div>
       <div class="field"><label for="dt-txt">Texto (puedes editarlo)</label><textarea class="input" id="dt-txt" rows="18" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px"></textarea></div></div>
       <div><div class="lbl" style="margin-bottom:6px">Vista previa</div><div class="doc docprev" id="dt-prev"></div></div></div>`,
-    footer: `<button class="btn" id="dt-copy">${icon('copy', 'sm').toString()}Copiar texto</button><span class="spacer"></span><button class="btn" data-close>Cerrar</button><button class="btn primary" id="dt-pdf">${icon('download', 'sm').toString()}Descargar PDF</button>`,
+    footer: `<button class="btn" id="dt-copy">${icon('copy', 'sm').toString()}Copiar texto</button><span class="spacer"></span><button class="btn" data-close>Cerrar</button><button class="btn" id="dt-docx">${icon('download', 'sm').toString()}Descargar Word</button><button class="btn primary" id="dt-pdf">${icon('download', 'sm').toString()}Descargar PDF</button>`,
     onMount: (m) => {
       const sel = m.querySelector('#dt-sel'), txt = m.querySelector('#dt-txt'), prev = m.querySelector('#dt-prev'), note = m.querySelector('#dt-note');
       const load = () => { const t = all_[Number(sel.value)]; txt.value = renderDoc(t.body, vars); note.textContent = t.note || ''; draw(); }, draw = () => { prev.innerHTML = mdToHtml(txt.value); };
       sel.addEventListener('change', load); txt.addEventListener('input', draw); load();
       m.querySelector('#dt-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(txt.value); toast('Texto copiado'); } catch { toast('No se pudo copiar', 'err'); } });
+      m.querySelector('#dt-docx').addEventListener('click', () => downloadDocx(txt.value, `${all_[Number(sel.value)].name} - ${cl.name}`));
       m.querySelector('#dt-pdf').addEventListener('click', () => downloadPdf(`<style>${docCss}</style>${mdToHtml(txt.value)}`, `${all_[Number(sel.value)].name} - ${cl.name}`));
     } });
 });

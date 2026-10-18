@@ -23,6 +23,7 @@ import { createNotifier } from './lib/notify.mjs';
 import { createFiles } from './lib/files.mjs';
 import { createImporter } from './lib/importer.mjs';
 import { createOffice } from './lib/office.mjs';
+import { buildDocx } from './lib/docx.mjs';
 import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
@@ -430,6 +431,13 @@ const server = createServer(async (req, res) => {
         const b = JSON.parse(Buffer.concat(chunks).toString() || '{}'); if (typeof b.html !== 'string' || !b.html.trim()) throw bad('Falta el contenido');
         const pdf = htmlToPdf(b.html, DATA, readFileSync(join(PUBLIC, 'pdf.css'), 'utf8')); if (!pdf) throw new HttpError(501, 'Este equipo no puede generar PDF; usa Imprimir');
         res.writeHead(200, { ...headers, 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${String(b.filename || 'documento').replace(/[^\w.\- ]+/g, '_').slice(0, 80)}.pdf"`, 'Cache-Control': 'no-store' }).end(pdf); return;
+      }
+      if (url.pathname === '/api/docx' && req.method === 'POST') {
+        if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');
+        const chunks = []; let n = 0; for await (const c of req) { n += c.length; if (n > 1e6) throw bad('Demasiado grande'); chunks.push(c); }
+        let b; try { b = JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch { throw bad('JSON no válido'); } if (typeof b.text !== 'string' || !b.text.trim()) throw bad('Falta el contenido');
+        const name = String(b.filename || 'documento').replace(/[^\w.\- ñáéíóúüÑÁÉÍÓÚÜ]+/g, '_').slice(0, 80);
+        res.writeHead(200, { ...headers, 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(name)}.docx`, 'Cache-Control': 'no-store' }).end(buildDocx({ markdown: b.text.slice(0, 200000), title: String(b.filename || '').slice(0, 200), author: settingsObj().company_name || '' })); return;
       }
       if (url.pathname === '/api/tts' && req.method === 'POST') {
         if (req.headers['x-rem'] !== '1') throw new HttpError(403, 'Petición no autorizada');

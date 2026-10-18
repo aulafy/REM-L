@@ -10,3 +10,12 @@ export async function downloadPdf(html, filename) {
   catch (e) { toast(e.message + (/Imprimir/.test(e.message) ? '' : ''), 'err'); if (/no puede generar/.test(e.message)) window.print(); }
 }
 export const blobToBase64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+
+// Word editable (.docx) desde el mismo texto con formato sencillo; se genera en el servidor, sin internet.
+export async function downloadDocx(text, filename) {
+  try {
+    const r = await fetch('/api/docx', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-REM': '1' }, body: JSON.stringify({ text, filename }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'No se pudo generar el Word');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob()); a.download = filename.replace(/[^\w.\- ñáéíóúüÑÁÉÍÓÚÜ]+/g, '_') + '.docx'; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Word descargado');
+  } catch (e) { toast(e.message, 'err'); }
+}
