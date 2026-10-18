@@ -83,6 +83,7 @@ function render() {
 
 
 // ---------- eventos globales ----------
+document.addEventListener('error', (e) => { if (e.target?.classList?.contains('thumb')) e.target.style.visibility = 'hidden'; }, true);
 document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-act]');
   if (a && ACT[a.dataset.act]) { e.preventDefault(); ACT[a.dataset.act](a, e); return; }
@@ -132,7 +133,7 @@ document.addEventListener('keydown', (e) => {
 
 // Sondeo ligero: si llegan mensajes o borradores nuevos, repinta (o avisa si la persona está escribiendo).
 let sig = '';
-const signature = (S) => S.messages.map((m) => m.id + m.status + (m.draft ? 1 : 0)).join(',');
+const signature = (S) => S.messages.map((m) => m.id + m.status + (m.draft ? 1 : 0)).join(',') + '|' + (S.attachments || []).map((a) => a.id + a.status).join(',');
 setInterval(async () => {
   if (document.hidden || !store.S) return;
   try {

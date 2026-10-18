@@ -29,6 +29,10 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 - **Memoria:** `negocio.md` (reglas y tono), datos aprobados por ti (visibles y editables) y, opcional, [Hindsight](https://github.com/vectorize-io/hindsight) en local para memoria a largo plazo.
 - **Observabilidad:** registro de llamadas al modelo (duración, tokens, errores; nunca el texto) y tope por hora.
 
+## Tickets y documentos (OCR local)
+
+Sube una foto en **Gastos → Subir ticket** (o arrástrala): se lee en tu equipo (Apple Vision → Tesseract → modelo de visión de Ollama), la IA extrae proveedor, fecha, base, IVA y total, y la app **comprueba que los importes aparecen en el texto y que cuadran**. Si hay dudas, relee con el modelo de visión. Nada se crea sin tu revisión; los documentos personales (DNI…) no se envían a ningún modelo y se pueden borrar.
+
 ## Qué incluye
 
 | Área | Qué resuelve |
