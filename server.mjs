@@ -53,6 +53,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_doc_number ON documents(type, number) WHERE
 `);
 // Cuentas a pagar: pending=1 → factura de proveedor sin pagar (vence en `due`); los gastos de siempre cuentan como pagados.
 for (const [c, d] of [['pending', 'INTEGER DEFAULT 0'], ['due', "TEXT DEFAULT ''"], ['paid_date', "TEXT DEFAULT ''"]]) if (!db.prepare('PRAGMA table_info(expenses)').all().some((x) => x.name === c)) db.exec(`ALTER TABLE expenses ADD COLUMN ${c} ${d}`);
+if (!db.prepare('PRAGMA table_info(documents)').all().some((x) => x.name === 'series')) db.exec("ALTER TABLE documents ADD COLUMN series TEXT DEFAULT ''");
 if (!db.prepare('PRAGMA table_info(expenses)').all().some((x) => x.name === 'supplier_nif')) db.exec("ALTER TABLE expenses ADD COLUMN supplier_nif TEXT DEFAULT ''");
 
 const nowIso = () => new Date().toISOString();
@@ -79,7 +80,7 @@ function cleanLines(lines) {
 function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM settings').map((r) => [r.key, JSON.parse(r.value)])); }
 function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
 const SETTING_KEYS = ['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details', 'notify_quiet_from', 'notify_quiet_to', 'notify_digest_time', 'cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
-  'default_iva', 'default_irpf', 'hourly_rate', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
+  'default_iva', 'default_irpf', 'hourly_rate', 'invoice_series', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
 
 const llmlog = createLlmLog({ db, run, all, one, nowIso, settingsObj, HttpError });
 setLlmHooks({ log: llmlog.record, check: llmlog.check });
@@ -126,8 +127,17 @@ function xlsxBook(kind) {
   return buildXlsx(pick.map((k) => sheets[k]));
 }
 
-function nextNumber(type, year) {
-  const prefix = type === 'presupuesto' ? 'P' : type === 'rectificativa' ? 'R' : 'F';
+// Series de facturación: cada serie tiene su prefijo y su contador anual (F2026-0001, FA2026-0001…). La primera es la predeterminada.
+const SERIES_DEFAULT = [{ prefix: 'F', name: 'General' }];
+const seriesList = () => { const l = settingsObj().invoice_series; return Array.isArray(l) && l.length ? l : SERIES_DEFAULT; };
+const pickSeries = (v) => (seriesList().some((s) => s.prefix === v) ? v : seriesList()[0].prefix);
+function cleanSeries(v) {
+  if (!Array.isArray(v) || !v.length || v.length > 10) throw bad('Define entre 1 y 10 series');
+  const seen = new Set(); return v.map((s) => { const prefix = String(s?.prefix ?? '').trim().toUpperCase(), name = str(s?.name, 40) || prefix;
+    if (!/^[A-Z]{1,4}$/.test(prefix)) throw bad('El prefijo son de 1 a 4 letras (sin números)'); if (['P', 'R'].includes(prefix)) throw bad(`El prefijo ${prefix} está reservado (presupuestos y rectificativas)`); if (seen.has(prefix)) throw bad(`El prefijo ${prefix} está repetido`); seen.add(prefix); return { prefix, name }; });
+}
+function nextNumber(type, year, series = 'F') {
+  const prefix = type === 'presupuesto' ? 'P' : type === 'rectificativa' ? 'R' : series || 'F';
   const t = type === 'rectificativa' ? 'factura' : type;
   const rows = all(`SELECT number FROM documents WHERE type=? AND number LIKE ?`, t, `${prefix}${year}-%`);
   const max = rows.reduce((m, r) => Math.max(m, Number(r.number.split('-')[1]) || 0), 0);
@@ -153,9 +163,9 @@ function createDocument(b) {
   const number = type === 'presupuesto' ? nextNumber('presupuesto', issue.slice(0, 4)) : '';
   const cid = b.client_id ? Number(b.client_id) : null;
   if (cid && !one('SELECT id FROM clients WHERE id=?', cid)) throw bad('Cliente no encontrado');
-  const res = run(`INSERT INTO documents(type,status,number,client_id,issue_date,due_date,lines,irpf,notes,source_id,base,iva_total,irpf_total,total,created_at,updated_at)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, type, 'borrador', number, cid, issue, due, JSON.stringify(lines), irpf, str(b.notes, 2000), b.source_id ?? null,
-    tot.base, tot.iva_total, tot.irpf_total, tot.total, nowIso(), nowIso());
+  const res = run(`INSERT INTO documents(type,status,number,client_id,issue_date,due_date,lines,irpf,notes,source_id,base,iva_total,irpf_total,total,created_at,updated_at,series)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, type, 'borrador', number, cid, issue, due, JSON.stringify(lines), irpf, str(b.notes, 2000), b.source_id ?? null,
+    tot.base, tot.iva_total, tot.irpf_total, tot.total, nowIso(), nowIso(), type === 'factura' ? pickSeries(b.series) : '');
   const id = Number(res.lastInsertRowid);
   log(`Creado ${type === 'presupuesto' ? 'presupuesto ' + number : 'borrador de factura'}`, 'document', id);
   return getDoc(id);
@@ -175,6 +185,7 @@ function updateDocument(id, b) {
   const tot = saveTotals({ lines, irpf });
   const cid = b.client_id === undefined ? cur.client_id : (b.client_id ? Number(b.client_id) : null);
   if (cid && !one('SELECT id FROM clients WHERE id=?', cid)) throw bad('Cliente no encontrado');
+  if (cur.type === 'factura' && b.series !== undefined) run('UPDATE documents SET series=? WHERE id=?', pickSeries(b.series), id);
   run(`UPDATE documents SET client_id=?, issue_date=?, due_date=?, lines=?, irpf=?, notes=?, base=?, iva_total=?, irpf_total=?, total=?, updated_at=? WHERE id=?`,
     cid, b.issue_date ? date(b.issue_date) : cur.issue_date, b.due_date !== undefined ? date(b.due_date, false) : cur.due_date, JSON.stringify(lines), irpf,
     str(b.notes ?? cur.notes, 2000), tot.base, tot.iva_total, tot.irpf_total, tot.total, nowIso(), id);
@@ -191,7 +202,7 @@ function issueInvoice(id) {
     const s = settingsObj();
     if (!s.company_name || !s.company_nif) throw bad('Completa los datos de tu empresa en Ajustes (nombre y NIF) antes de emitir');
     if (!client.nif) throw bad('El cliente necesita NIF/CIF para emitir una factura');
-    const number = nextNumber('factura', d.issue_date.slice(0, 4));
+    const number = nextNumber('factura', d.issue_date.slice(0, 4), d.series || 'F');
     run('UPDATE documents SET status=?, number=?, updated_at=? WHERE id=?', 'emitida', number, nowIso(), id);
     log(`Emitida la factura ${number}`, 'document', id);
     return getDoc(id);
@@ -364,6 +375,7 @@ async function route(req_, url, body) {
     for (const k of SETTING_KEYS) if (body[k] !== undefined) {
       let v = body[k];
       if (['default_iva', 'default_irpf', 'payment_days', 'quote_days'].includes(k)) v = rate(v);
+      else if (k === 'invoice_series') v = cleanSeries(v);
       else if (k === 'hourly_rate') v = Math.max(0, Math.round(Number(v) || 0));
       else if (['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details'].includes(k)) v = !!v;
       else if (['notify_quiet_from', 'notify_quiet_to', 'notify_digest_time'].includes(k)) { v = String(v || ''); if (v && !/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) throw bad('Hora no válida'); }

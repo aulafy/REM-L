@@ -77,8 +77,8 @@ function editor(S, key, d) {
   const K = KIND[key];
   if (!draft || draft.id !== (d?.id ?? null) || draft.key !== key) {
     const cid = Number(store.query?.get('cliente')) || d?.client_id || '';
-    draft = d ? { key, id: d.id, client_id: d.client_id || '', issue_date: d.issue_date, due_date: d.due_date, irpf: d.irpf, notes: d.notes, lines: d.lines.map((l) => ({ ...l })) }
-      : { key, id: null, client_id: cid, issue_date: today(), due_date: addDays(today(), key === 'facturas' ? S.settings.payment_days ?? 30 : S.settings.quote_days ?? 30), irpf: S.settings.default_irpf ?? 0, notes: '', lines: [blankLine(S)] };
+    draft = d ? { key, id: d.id, client_id: d.client_id || '', issue_date: d.issue_date, due_date: d.due_date, irpf: d.irpf, notes: d.notes, series: d.series || '', lines: d.lines.map((l) => ({ ...l })) }
+      : { key, id: null, client_id: cid, issue_date: today(), due_date: addDays(today(), key === 'facturas' ? S.settings.payment_days ?? 30 : S.settings.quote_days ?? 30), irpf: S.settings.default_irpf ?? 0, notes: '', series: '', lines: [blankLine(S)] };
   }
   const t = computeTotals(draft.lines, draft.irpf);
   const isInv = key === 'facturas';
@@ -90,7 +90,8 @@ function editor(S, key, d) {
         <section class="card"><div class="card-b grid g2">
           <div class="field" style="grid-column:1/-1"><label for="e-client">Cliente</label><div class="row"><select class="input" id="e-client" data-f="client_id" data-combo><option value="">— Elige un cliente —</option>${S.clients.filter((c) => !c.archived || c.id === draft.client_id).map((c) => html`<option value="${c.id}" ${String(c.id) === String(draft.client_id) ? raw('selected') : ''}>${c.name}</option>`)}</select><button class="btn" data-act="quickClient" type="button">${icon('plus', 'sm')}Nuevo</button></div></div>
           <div class="field"><label for="e-date">Fecha</label><input class="input" id="e-date" type="date" data-f="issue_date" value="${draft.issue_date}"></div>
-          <div class="field"><label for="e-due">${isInv ? 'Vencimiento' : 'Válido hasta'}</label><input class="input" id="e-due" type="date" data-f="due_date" value="${draft.due_date}"></div></div></section>
+          <div class="field"><label for="e-due">${isInv ? 'Vencimiento' : 'Válido hasta'}</label><input class="input" id="e-due" type="date" data-f="due_date" value="${draft.due_date}"></div>
+          ${isInv && (S.settings.invoice_series || []).length > 1 ? html`<div class="field"><label for="e-series">Serie</label><select class="input" id="e-series" data-f="series">${S.settings.invoice_series.map((x) => html`<option value="${x.prefix}" ${(draft.series || S.settings.invoice_series[0].prefix) === x.prefix ? raw('selected') : ''}>${x.name} (${x.prefix})</option>`)}</select><span class="hint">Cada serie lleva su propia numeración.</span></div>` : ''}</div></section>
         <section class="card"><div class="card-h"><h2>Conceptos</h2><span class="spacer"></span>${S.items.length ? html`<select class="input" id="e-cat" style="width:auto;min-height:34px" aria-label="Añadir del catálogo"><option value="">Añadir del catálogo…</option>${S.items.map((i) => html`<option value="${i.id}">${i.name} · ${eur(i.price)}</option>`)}</select>` : ''}</div>
           <div class="card-b"><table class="lines"><thead><tr><th style="width:44%">Descripción</th><th style="width:9%">Cant.</th><th style="width:15%">Precio</th><th style="width:11%">IVA</th><th style="width:9%">Dto. %</th><th class="right" style="width:12%;text-align:right">Importe</th><th></th></tr></thead>
             <tbody id="lines">${draft.lines.map((l, i) => lineRow(l, i, t.detail[i]?.net))}</tbody></table>
@@ -146,7 +147,7 @@ on('quickClient', () => { readDraft(document); clientModal(null, (c) => { draft.
 
 async function persist(goAfter) {
   readDraft(document);
-  const payload = { type: KIND[draft.key].type, client_id: draft.client_id || null, issue_date: draft.issue_date, due_date: draft.due_date, irpf: draft.irpf, notes: draft.notes, lines: draft.lines.filter((l) => l.desc || l.price) };
+  const payload = { type: KIND[draft.key].type, client_id: draft.client_id || null, issue_date: draft.issue_date, due_date: draft.due_date, irpf: draft.irpf, notes: draft.notes, series: draft.series || undefined, lines: draft.lines.filter((l) => l.desc || l.price) };
   if (!payload.lines.length) { toast('Añade al menos un concepto.', 'err'); throw new Error('vacío'); }
   const d = await mutate(draft.id ? 'PUT' : 'POST', draft.id ? `/api/documents/${draft.id}` : '/api/documents', payload);
   draft = null; return d;

@@ -34,14 +34,14 @@ export const views = {
           ${field({ name: 'company_zip', label: 'Código postal', value: v(s.company_zip) })}${field({ name: 'company_email', label: 'Email', type: 'email', value: v(s.company_email) })}${field({ name: 'company_phone', label: 'Teléfono', value: v(s.company_phone) })}
           ${field({ name: 'company_iban', label: 'IBAN para cobros', value: v(s.company_iban), hint: 'Se muestra en tus facturas' })}</div>
           <div class="card-h" style="border-top:1px solid var(--line);border-bottom:0"><span class="spacer"></span><button class="btn primary" type="submit">Guardar cambios</button></div></form>`,
-        facturacion: html`<form data-save class="card"><div class="card-h"><h2>Valores por defecto</h2></div><div class="card-b grid g2">
+        facturacion: html`<div class="stack"><form data-save class="card"><div class="card-h"><h2>Valores por defecto</h2></div><div class="card-b grid g2">
           ${field({ name: 'default_iva', label: 'IVA habitual', options: [[21, '21 % general'], [10, '10 % reducido'], [4, '4 % superreducido'], [0, '0 % exento']], value: s.default_iva ?? 21 })}
           ${field({ name: 'default_irpf', label: 'Retención IRPF habitual', options: [[0, 'Ninguna'], [7, '7 %'], [15, '15 %'], [19, '19 %']], value: s.default_irpf ?? 0 })}
           ${field({ name: 'hourly_rate', label: 'Tarifa por hora (€, sin IVA)', value: s.hourly_rate ? eurPlain(s.hourly_rate) : '', hint: 'Se usa por defecto al apuntar horas', attrs: 'inputmode="decimal"' })}
           ${field({ name: 'payment_days', label: 'Plazo de pago (días)', type: 'number', value: s.payment_days ?? 30, attrs: 'min="0" max="365"' })}${field({ name: 'quote_days', label: 'Validez de presupuestos (días)', type: 'number', value: s.quote_days ?? 30, attrs: 'min="1" max="365"' })}
           <div style="grid-column:1/-1">${field({ name: 'invoice_footer', label: 'Pie de las facturas', rows: 2, value: v(s.invoice_footer), hint: 'Ej.: datos del Registro Mercantil, texto de protección de datos…' })}</div>
           <div style="grid-column:1/-1">${field({ name: 'quote_footer', label: 'Pie de los presupuestos', rows: 2, value: v(s.quote_footer) })}</div></div>
-          <div class="card-h" style="border-top:1px solid var(--line);border-bottom:0"><span class="spacer"></span><button class="btn primary" type="submit">Guardar cambios</button></div></form>`,
+          <div class="card-h" style="border-top:1px solid var(--line);border-bottom:0"><span class="spacer"></span><button class="btn primary" type="submit">Guardar cambios</button></div></form>${seriesCard(S)}</div>`,
         catalogo: html`<section class="card"><div class="card-h"><h2>Artículos y servicios</h2><button class="btn sm more" data-act="newItem">${icon('plus', 'sm')}Nuevo</button></div>
           ${S.items.length ? html`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th class="right">Precio</th><th class="hide-sm">IVA</th><th></th></tr></thead><tbody>${S.items.map((i) => html`<tr><td><span class="name">${i.name}</span><br><small class="muted">${i.description}</small></td><td class="right num">${eur(i.price)} <small class="muted">/ ${i.unit}</small></td><td class="hide-sm">${i.iva} %</td>
             <td class="right nowrap"><button class="btn ghost icon sm" data-act="editItem" data-id="${i.id}" aria-label="Editar ${i.name}">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="deleteItem" data-id="${i.id}" aria-label="Eliminar ${i.name}">${icon('trash', 'sm')}</button></td></tr>`)}</tbody></table></div>`
@@ -266,3 +266,26 @@ on('delDocTpl', async (el) => { const t = store.S.docTemplates.find((x) => 't:' 
 
 on('notifyTest', async (el) => { el.disabled = true; try { const r = await api('POST', '/api/notify/test', {}); toast(r.ok ? 'Aviso enviado: debería aparecer en unos segundos' : 'No se pudo enviar el aviso. Revisa los permisos de notificaciones de macOS.', r.ok ? '' : 'err'); } catch (e) { toast(e.message, 'err'); } finally { el.disabled = false; } });
 on('quietClear', () => mutate('PUT', '/api/settings', { notify_quiet_from: '', notify_quiet_to: '' }, 'Horario de silencio quitado'));
+
+// ---------- series de facturación ----------
+const SERIES_DEFAULT = [{ prefix: 'F', name: 'General' }];
+const nextOf = (S, prefix) => { const y = S.serverDate.slice(0, 4), re = new RegExp(`^${prefix}${y}-(\\d+)$`); return `${prefix}${y}-${String(Math.max(0, ...S.documents.map((d) => Number(re.exec(d.number || '')?.[1] || 0))) + 1).padStart(4, '0')}`; };
+function seriesCard(S) {
+  const list = S.settings.invoice_series?.length ? S.settings.invoice_series : SERIES_DEFAULT;
+  return html`<section class="card"><div class="card-h"><h2>Series de facturación</h2><button class="btn sm more" data-act="newSeries">${icon('plus', 'sm')}Nueva serie</button></div>
+    <ul class="list">${list.map((x, i) => html`<li><span class="badge blue">${x.prefix}</span><div class="grow"><div class="t">${x.name}${i === 0 ? html` <span class="badge grey">Por defecto</span>` : ''}</div><div class="d">Próxima factura: ${nextOf(S, x.prefix)}</div></div>
+      ${i > 0 ? html`<button class="btn sm" data-act="seriesDefault" data-i="${i}">Hacer principal</button>` : ''}<button class="btn ghost icon sm" data-act="editSeries" data-i="${i}" aria-label="Editar serie ${x.name}">${icon('edit', 'sm')}</button>${list.length > 1 ? html`<button class="btn ghost icon sm" data-act="delSeries" data-i="${i}" aria-label="Quitar serie ${x.name}">${icon('trash', 'sm')}</button>` : ''}</li>`)}</ul>
+    <div class="card-b" style="border-top:1px solid var(--line)"><p class="muted" style="margin:0;font-size:12.5px">Úsalas para separar numeraciones (por ejemplo, una por actividad o por local). Se elige al crear cada factura; los presupuestos (P) y las rectificativas (R) tienen su propia numeración.</p></div></section>`;
+}
+const curSeries = () => (store.S.settings.invoice_series?.length ? store.S.settings.invoice_series : SERIES_DEFAULT).map((x) => ({ ...x }));
+const saveSeries = (list, msg) => mutate('PUT', '/api/settings', { invoice_series: list }, msg);
+function seriesModal(i) {
+  const list = curSeries(), cur = i == null ? null : list[i];
+  formModal({ title: cur ? 'Editar serie' : 'Nueva serie', submit: cur ? 'Guardar' : 'Crear serie',
+    fields: [field({ name: 'prefix', label: 'Prefijo', value: cur?.prefix || '', required: true, hint: 'De 1 a 4 letras, por ejemplo FA o T', attrs: `maxlength="4" autofocus ${cur ? 'readonly' : ''} style="text-transform:uppercase"` }), field({ name: 'name', label: 'Nombre', value: cur?.name || '', required: true, placeholder: 'Ej.: Taller, Tienda online' })].join(''),
+    onSubmit: async (v, close) => { const next = { prefix: v.prefix.toUpperCase(), name: v.name }; if (cur) list[i] = next; else list.push(next); await saveSeries(list, cur ? 'Serie actualizada' : 'Serie creada'); close(); } });
+}
+on('newSeries', () => seriesModal(null));
+on('editSeries', (el) => seriesModal(Number(el.dataset.i)));
+on('seriesDefault', async (el) => { const list = curSeries(), [x] = list.splice(Number(el.dataset.i), 1); list.unshift(x); await saveSeries(list, `«${x.name}» es ahora la serie principal`); });
+on('delSeries', async (el) => { const list = curSeries(), x = list[Number(el.dataset.i)]; if (await confirmBox({ title: 'Quitar serie', text: `Se quita «${x.name}» (${x.prefix}) de las opciones. Las facturas ya emitidas conservan su número.`, ok: 'Quitar', danger: true })) { list.splice(Number(el.dataset.i), 1); await saveSeries(list, 'Serie quitada'); } });

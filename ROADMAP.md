@@ -31,7 +31,7 @@ Estado a 18/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
 10. ~~Cuentas a pagar~~ ✅ hecho: un gasto puede quedar «pendiente de pago» con vencimiento; aviso de lo que debes en Gastos y en Hoy, botón «Pagado», filtro, pagos en la Tesorería (sin contarlos dos veces), calendario .ics, resumen de la mañana y exportaciones
 11. ~~Control de horas por cliente → factura~~ ✅ hecho: Dinero → Horas (apuntar, cronómetro, tarifa por hora, «Facturar horas» crea un borrador con una línea por entrada; borrar el borrador libera las horas)
 12. ~~Resúmenes trimestrales 130 / 115 / 347~~ ✅ hecho: Dinero → Modelos con 130 (acumulado, 20 %, retenciones, pagos anteriores), 303 (IVA por tipos), 115 (alquileres 19 %) y 347 (> 3.005,06 € con desglose trimestral, NIF de proveedor), CSV y aviso de que son orientativos; no presenta nada
-13. Series de facturación configurables
+13. ~~Series de facturación configurables~~ ✅ hecho: Ajustes → Facturación → Series (prefijo de 1-4 letras, contador anual propio, predeterminada), selector en cada factura; P y R reservados
 14. Albaranes → factura
 15. Tareas con repetición, prioridad y subtareas
 16. Arranque automático + icono en barra de menús · bloqueo con PIN
