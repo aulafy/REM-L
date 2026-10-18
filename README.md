@@ -26,7 +26,7 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 
 - **Política y aprobación:** cada acción de un agente tiene un modo (hacerlo solo / preguntar / dejármelo). El suelo en código (enviar mensajes solos, emitir facturas, borrar o exportar datos) no lo desbloquea ninguna regla. «Parar todo» detiene y vacía la cola.
 - **Tres agentes, un trabajo cada uno:** Mañana (resumen del día), Cobros (máx. 3 sugerencias al día) y Noche (cierre y tareas a mañana, máx. 15). Solo leen; se ejecutan a su hora y se ponen al día al arrancar.
-- **Memoria:** `negocio.md` (reglas y tono), datos aprobados por ti (visibles y editables) y, opcional, [Hindsight](https://github.com/vectorize-io/hindsight) en local para memoria a largo plazo.
+- **Memoria:** `negocio.md` (reglas y tono), datos aprobados por ti (visibles y editables) y, **solo si quieres**, [Hindsight](https://github.com/vectorize-io/hindsight) en local para memoria a largo plazo (apagado por defecto; la app funciona igual sin él).
 - **Observabilidad:** registro de llamadas al modelo (duración, tokens, errores; nunca el texto) y tope por hora.
 
 ## Tickets y documentos (OCR local)
