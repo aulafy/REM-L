@@ -348,7 +348,9 @@ const normNif = (v) => str(v, 20).toUpperCase().replace(/[\s.-]/g, '');
 const NIF_SQL = "replace(replace(replace(upper(nif),' ',''),'.',''),'-','')";
 const nifOwner = (nif, exceptId = 0) => (nif ? one(`SELECT id, name, archived FROM clients WHERE ${NIF_SQL}=? AND id<>? LIMIT 1`, nif, exceptId) : null);
 function assertNifFree(b, id = 0) {
-  if (b.nif === undefined) return; const o = nifOwner(normNif(b.nif), id);
+  if (b.nif === undefined) return; const nif = normNif(b.nif), cur = id ? one('SELECT nif FROM clients WHERE id=?', id) : null;
+  if (cur && normNif(cur.nif) === nif) return; // sin cambios: no bloquea guardar fichas que ya estaban repetidas en bases antiguas
+  const o = nifOwner(nif, id);
   if (o) throw new HttpError(409, `Ya existe un cliente con ese NIF: ${o.name}${o.archived ? ' (archivado)' : ''}`);
 }
 const S = (n = 300) => (v) => str(v, n);

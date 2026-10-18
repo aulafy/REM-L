@@ -67,3 +67,11 @@ test('al arrancar se limpian las referencias colgantes que dejaron versiones ant
   assert.equal(sql('SELECT document_id FROM tasks WHERE id=?', tid)[0].document_id, null);
   assert.equal(sql('SELECT COUNT(*) n FROM ext_values WHERE entity_id=424242')[0].n, 0);
 });
+
+test('NIF repetido heredado de una base antigua: se puede seguir editando la ficha sin cambiar el NIF', async () => {
+  const db = new DatabaseSync(join(api.dataDir, 'negocio.db'));
+  const ids = ['Viejo A', 'Viejo B'].map((n) => Number(db.prepare("INSERT INTO clients(name,nif,created_at) VALUES(?, 'A11111111', 'x')").run(n).lastInsertRowid)); db.close();
+  assert.equal((await api.request('PUT', `/api/clients/${ids[1]}`, { name: 'Viejo B', nif: 'A11111111', city: 'Lorca' })).status, 200);
+  assert.equal((await api.request('PUT', `/api/clients/${ids[1]}`, { nif: 'A-1111111-1' })).status, 200, 'misma forma normalizada');
+  assert.equal((await api.request('POST', '/api/clients', { name: 'Nuevo', nif: 'A11111111' })).status, 409);
+});
