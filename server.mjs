@@ -5,7 +5,7 @@ import { readFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, statSync,
 import { join, extname, dirname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
-import { computeTotals, today, addDays, docStatus, advanceDate } from './public/calc.js';
+import { computeTotals, today, addDays, docStatus, advanceDate, isIsoDate } from './public/calc.js';
 import { createInbox } from './lib/inbox.mjs';
 import { createAgents } from './lib/agents.mjs';
 import { speak, setLlmHooks } from './lib/ai.mjs';
@@ -74,7 +74,7 @@ const bad = (m) => new HttpError(400, m);
 const str = (v, max = 500) => String(v ?? '').trim().slice(0, max);
 const int = (v) => { const n = Math.round(Number(v)); if (!Number.isFinite(n)) throw bad('Importe no válido'); return n; };
 const rate = (v, d = 0) => { const n = Number(v ?? d); if (!Number.isFinite(n) || n < 0 || n > 100) throw bad('Porcentaje no válido'); return n; };
-const date = (v, req = true) => { v = str(v, 10); if (!v && !req) return ''; if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || isNaN(Date.parse(v))) throw bad('Fecha no válida'); return v; };
+const date = (v, req = true) => { v = str(v, 10); if (!v && !req) return ''; if (!isIsoDate(v)) throw bad('Fecha no válida'); return v; };
 
 function cleanLines(lines) {
   if (!Array.isArray(lines) || lines.length > 200) throw bad('Líneas no válidas');

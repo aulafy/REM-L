@@ -21,6 +21,12 @@ export function computeTotals(lines = [], irpf = 0) {
   return { base, ivaGroups, ivaTotal, irpfTotal, total: base + ivaTotal - irpfTotal, detail };
 }
 
+// Fecha ISO real: rechaza 2026-02-31 (Date.parse la acepta y la corre a marzo).
+export const isIsoDate = (v) => {
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const [y, m, d] = v.split('-').map(Number), t = new Date(Date.UTC(y, m - 1, d));
+  return y >= 1900 && y <= 2200 && t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+};
 export const today = () => new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD local
 export const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv-SE'); };
 
