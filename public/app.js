@@ -1,6 +1,7 @@
 import { store, ACT, reload, go, toast, openPalette, openModal, refresh } from './core.js';
 import { html, raw, icon, esc, statusOf, paidOf } from './util.js';
 import { today } from './calc.js';
+import { upgradeCombos } from './combo.js';
 
 const VIEWS = {};
 const NAV = [['hoy', 'Hoy'], ['mensajes', 'Mensajes'], ['clientes', 'Clientes'], ['dinero', 'Dinero']];
@@ -34,7 +35,7 @@ function shell(S, key, content) {
       <div class="brand"><span class="logo">${st.logo ? html`<img src="${st.logo}" alt="">` : (st.company_name || 'R')[0].toUpperCase()}</span><div><b>${st.company_name || 'Tu negocio'}</b><small>REM Negocio</small></div></div>
       <nav class="nav">${NAV.map(([k, l]) => link(k, l))}</nav>
       <div class="side-foot">
-        <div class="safe">${icon('shield', 'sm')}<span>Tus datos se guardan solo en este equipo. Última copia: ${S.backups[0] ? S.backups[0].name.slice(8, 18) : 'ninguna'}.</span></div>
+        <button class="btn ghost sm" data-act="shortcuts" style="justify-content:flex-start;margin-bottom:4px">${icon('menu', 'sm')}Atajos <kbd style="margin-left:auto">?</kbd></button><div class="safe">${icon('shield', 'sm')}<span>Tus datos se guardan solo en este equipo. Última copia: ${S.backups[0] ? S.backups[0].name.slice(8, 18) : 'ninguna'}.</span></div>
         <nav class="nav">${link('ajustes', 'Ajustes')}</nav>
       </div>
     </aside>
@@ -70,10 +71,12 @@ function render() {
   const k = VIEWS[key] ? key : 'hoy';
   const y = window.scrollY, same = !fresh; fresh = false;
   root.innerHTML = shell(S, k, v.render(S, params)).toString();
+  upgradeCombos(root);
   v.mount?.(root, S, params);
   document.title = `${v.title?.(S, params) || 'REM Negocio'} · REM Negocio`;
   store.view = k;
   window.scrollTo(0, same ? y : 0);
+  if (!same) document.getElementById('page')?.classList.add('enter');
   const top = document.getElementById('top');
   clearTimeout(scrollSpy); top && (top.classList.toggle('scrolled', window.scrollY > 4));
 }
@@ -95,6 +98,7 @@ window.addEventListener('scroll', () => document.getElementById('top')?.classLis
 window.addEventListener('hashchange', () => { fresh = true; render(); });
 window.addEventListener('rem-render', render);
 ACT.palette = () => openPalette();
+ACT.shortcuts = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
 ACT.theme = () => {
   const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   const next = cur === 'dark' ? 'light' : 'dark';
@@ -106,6 +110,25 @@ ACT.quick = () => {
     .map(([h, i, l, act]) => `<button class="btn" style="justify-content:flex-start;min-height:52px" ${act ? `data-act="${act}"` : `data-href="#/${h}"`} data-close>${icon(i).toString()}${l}</button>`).join('')}</div>`,
     onMount: (el) => el.addEventListener('click', (e) => { const b = e.target.closest('[data-href]'); if (b) go(b.dataset.href); }) });
 };
+
+
+// ---------- atajos de teclado (estilo Linear/Twenty) ----------
+let chord = 0;
+const typing = (t) => t?.matches?.('input,textarea,select,[contenteditable]') || document.querySelector('.overlay');
+const SHORTCUTS = [['⌘K', 'Buscar o crear'], ['?', 'Ver atajos'], ['G luego H', 'Ir a Hoy'], ['G luego M', 'Ir a Mensajes'], ['G luego C', 'Ir a Clientes'], ['G luego D', 'Ir a Dinero'], ['G luego A', 'Ir a Ajustes'], ['J / K', 'Mensaje siguiente / anterior'], ['R', 'Responder (enfoca el borrador)'], ['E', 'Archivar mensaje'], ['⌘ Enter', 'Enviar o marcar respondido']];
+document.addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
+  const k = e.key.toLowerCase();
+  if (e.key === '?') { e.preventDefault(); openModal({ title: 'Atajos de teclado', body: `<ul class="list" style="margin:0 -22px">${SHORTCUTS.map(([a, b]) => `<li style="padding:10px 22px"><span class="grow">${esc(b)}</span><span>${a.split(' ').map((x) => (/^(luego|\/)$/.test(x) ? `<small class="muted"> ${x} </small>` : `<kbd>${esc(x)}</kbd>`)).join('')}</span></li>`).join('')}</ul>` }); return; }
+  if (chord && Date.now() - chord < 1200) { chord = 0; const to = { h: '#/hoy', m: '#/mensajes', c: '#/clientes', d: '#/facturas', a: '#/ajustes' }[k]; if (to) { e.preventDefault(); go(to); } return; }
+  if (k === 'g') { chord = Date.now(); return; }
+  if (store.view === 'mensajes') {
+    const rows = [...document.querySelectorAll('.mrow')], cur = rows.findIndex((r) => r.classList.contains('sel'));
+    if (k === 'j' || k === 'k') { const n = rows[Math.max(0, Math.min(rows.length - 1, cur + (k === 'j' ? 1 : -1)))]; if (n) { e.preventDefault(); go(n.getAttribute('href')); } }
+    else if (k === 'r') { const t = document.getElementById('draft'); if (t) { e.preventDefault(); t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }
+    else if (k === 'e') document.querySelector('[data-act="msgArchive"]')?.click();
+  }
+});
 
 // Sondeo ligero: si llegan mensajes o borradores nuevos, repinta (o avisa si la persona está escribiendo).
 let sig = '';

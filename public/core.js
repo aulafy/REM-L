@@ -1,5 +1,6 @@
 // Infraestructura compartida: estado, navegación, capas, avisos y acciones.
 import { html, raw, esc, icon, api, norm } from './util.js';
+import { upgradeCombos } from './combo.js';
 
 export const store = { S: null, view: null, params: [] };
 export const ACT = {};          // acciones por data-act
@@ -46,7 +47,7 @@ export function openModal({ title, body, footer = '', wide = false, cls = '', la
   });
   document.body.append(ov); document.body.style.overflow = 'hidden';
   (ov.querySelector('[autofocus]') || ov.querySelector('input,select,textarea') || ov.querySelector('.modal')).focus?.();
-  onMount?.(ov, close);
+  upgradeCombos(ov); onMount?.(ov, close);
   return api_;
 }
 export const topModal = () => stack[stack.length - 1];
@@ -61,10 +62,10 @@ export function confirmBox({ title, text, ok = 'Confirmar', danger = false }) {
 }
 
 // ---------- formularios ----------
-export function field({ name, label, type = 'text', value = '', hint = '', required = false, options, rows, placeholder = '', attrs = '', cls = '' }) {
+export function field({ name, label, type = 'text', value = '', hint = '', required = false, options, rows, placeholder = '', attrs = '', cls = '', combo = false }) {
   const id = 'f_' + name + Math.random().toString(36).slice(2, 6);
   let ctl;
-  if (options) ctl = html`<select class="input" id="${id}" name="${name}">${options.map(([v, l]) => html`<option value="${v}" ${String(v) === String(value) ? raw('selected') : ''}>${l}</option>`)}</select>`;
+  if (options) ctl = html`<select class="input" id="${id}" name="${name}" ${combo ? raw('data-combo') : ''}>${options.map(([v, l]) => html`<option value="${v}" ${String(v) === String(value) ? raw('selected') : ''}>${l}</option>`)}</select>`;
   else if (rows) ctl = html`<textarea class="input" id="${id}" name="${name}" rows="${rows}" placeholder="${placeholder}">${value}</textarea>`;
   else ctl = html`<input class="input" id="${id}" name="${name}" type="${type}" value="${value}" placeholder="${placeholder}" ${required ? raw('required') : ''} ${raw(attrs)}>`;
   return html`<div class="field ${cls}"><label for="${id}">${label}${required ? html` <span class="muted">*</span>` : ''}</label>${ctl}${hint ? html`<span class="hint">${hint}</span>` : ''}</div>`;

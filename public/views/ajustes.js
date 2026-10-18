@@ -159,7 +159,7 @@ export function memoryModal(item, clientId) {
 }
 on('addMemory', (el) => memoryModal(null, el.dataset.client));
 on('editMemory', (el) => memoryModal(store.S.memory.find((x) => x.id === Number(el.dataset.id)), null));
-on('delMemory', async (el) => { await mutate('DELETE', `/api/memory/${el.dataset.id}`, undefined, 'Dato borrado'); });
+on('delMemory', async (el) => { const x = store.S.memory.find((y) => y.id === Number(el.dataset.id)); await mutate('DELETE', `/api/memory/${el.dataset.id}`); toast('Dato borrado', '', { label: 'Deshacer', run: () => mutate('POST', '/api/memory', { text: x.text, client_id: x.client_id }, 'Recuperado') }); });
 on('clearMemory', async () => { if (await confirmBox({ title: 'Borrar toda la memoria', text: 'El asistente olvidará todos los datos guardados. No afecta a clientes ni a mensajes.', ok: 'Borrar todo', danger: true })) await mutate('POST', '/api/memory/clear', {}, 'Memoria borrada'); });
 
 on('hsOff', () => mutate('POST', '/api/hindsight', { disconnect: true }, 'Memoria avanzada desconectada'));

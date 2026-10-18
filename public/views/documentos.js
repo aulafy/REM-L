@@ -6,7 +6,9 @@ import { messageModal, reminderText, quoteText, invoiceText } from '../messages.
 
 const KIND = { facturas: { type: 'factura', one: 'Factura', many: 'Facturas', newLabel: 'Nueva factura', nuevo: 'nueva' }, presupuestos: { type: 'presupuesto', one: 'Presupuesto', many: 'Presupuestos', newLabel: 'Nuevo presupuesto', nuevo: 'nuevo' } };
 const filters = { facturas: [['todas', 'Todas'], ['borrador', 'Borradores'], ['pendientes', 'Pendientes'], ['vencidas', 'Vencidas'], ['cobradas', 'Cobradas']], presupuestos: [['todos', 'Todos'], ['borrador', 'Borrador'], ['enviado', 'Enviados'], ['aceptado', 'Aceptados'], ['rechazado', 'Rechazados'], ['facturado', 'Facturados']] };
-const state = { facturas: { f: 'todas', q: '' }, presupuestos: { f: 'todos', q: '' } };
+const state = { facturas: { f: 'todas', q: '', sort: null }, presupuestos: { f: 'todos', q: '', sort: null } };
+const th = (key, k, label, cls = '') => { const s = state[key].sort, on = s && s.k === k; return html`<th class="${cls}" aria-sort="${on ? (s.dir === 1 ? 'ascending' : 'descending') : 'none'}"><button class="sortbtn" data-act="sortBy" data-t="${key}" data-k="${k}">${label}<span class="arr">${on ? (s.dir === 1 ? '↑' : '↓') : ''}</span></button></th>`; };
+const SORTS = { numero: (S, d) => d.number || '~', cliente: (S, d) => clientOf(S, d.client_id)?.name || '', fecha: (S, d) => d.issue_date, venc: (S, d) => d.due_date || '', total: (S, d) => d.total };
 let draft = null;
 
 const base = (S, d) => ({ ...d });
@@ -48,12 +50,13 @@ function list(S, key) {
   if (store.query?.get('f') && filters[key].some(([k]) => k === store.query.get('f'))) { st.f = store.query.get('f'); history.replaceState(null, '', '#/' + key); }
   const docs = S.documents.filter((d) => d.type === K.type).filter((d) => matchFilter(S, key, d))
     .filter((d) => !st.q || norm(`${d.number} ${clientOf(S, d.client_id)?.name || ''}`).includes(norm(st.q)));
+  if (st.sort) docs.sort((a, b) => { const x = SORTS[st.sort.k](S, a), y = SORTS[st.sort.k](S, b); return (x < y ? -1 : x > y ? 1 : 0) * st.sort.dir; });
   const total = docs.reduce((a, d) => a + d.total, 0), pend = key === 'facturas' ? docs.filter((d) => d.status === 'emitida').reduce((a, d) => a + Math.max(0, d.total - paidOf(S, d.id)), 0) : 0;
   return html`
     <div class="page-head"><div><h1>${K.many}</h1><p class="sub">${key === 'facturas' ? 'Emite, cobra y reclama sin salir de aquí.' : 'Prepara ofertas y conviértelas en factura con un clic.'}</p></div><div class="actions"><a class="btn primary" href="#/${key}/${K.nuevo}">${icon('plus', 'sm')}${K.newLabel}</a></div></div>
     ${key === 'facturas' ? html`<div class="notice warn" style="margin-bottom:14px">${icon('alert')}<span>REM Negocio es una herramienta de gestión interna: <b>no es software de facturación certificado</b> (Verifactu/SII). Para facturas oficiales usa un sistema conforme a la normativa.</span></div>` : ''}
     <div class="toolbar"><input class="input" id="dq" type="search" placeholder="Buscar por número o cliente…" value="${st.q}" aria-label="Buscar"><div class="seg" role="group" aria-label="Filtrar por estado">${filters[key].map(([k, l]) => html`<button data-act="dfilter" data-key="${key}" data-k="${k}" aria-pressed="${st.f === k}">${l}</button>`)}</div></div>
-    <div class="card">${docs.length ? html`<div class="tbl-wrap"><table class="tbl cards"><thead><tr><th>Número</th><th>Cliente</th><th class="hide-sm">Fecha</th><th class="hide-sm">${key === 'facturas' ? 'Vencimiento' : 'Válido hasta'}</th><th>Estado</th><th class="right">Total</th></tr></thead><tbody>
+    <div class="card">${docs.length ? html`<div class="tbl-wrap"><table class="tbl cards"><thead><tr>${th(key, 'numero', 'Número')}${th(key, 'cliente', 'Cliente')}${th(key, 'fecha', 'Fecha', 'hide-sm')}${th(key, 'venc', key === 'facturas' ? 'Vencimiento' : 'Válido hasta', 'hide-sm')}<th>Estado</th>${th(key, 'total', 'Total', 'right')}</tr></thead><tbody>
       ${docs.map((d) => { const stt = statusOf(S, d), c = clientOf(S, d.client_id); return html`<tr class="link" data-href="#/${key}/${d.id}" tabindex="0"><td class="name nowrap a-num">${d.number || html`<span class="muted">Borrador</span>`}</td>
         <td class="a-cli"><div class="cell-client">${c ? avatar(c.name) : ''}<div><span>${c?.name || html`<span class="muted">Sin cliente</span>`}</span></div></div></td><td class="hide-sm nowrap">${fdate(d.issue_date)}</td>
         <td class="hide-sm nowrap" style="${stt === 'vencida' ? 'color:var(--red)' : ''}">${d.status === 'borrador' ? '—' : fdate(d.due_date)}${stt === 'vencida' ? html`<br><small>${relDate(d.due_date, S.serverDate)}</small>` : ''}</td><td class="a-st">${badge(stt)}</td><td class="right num nowrap a-tot"><b>${eur(d.total)}</b></td></tr>`; })}</tbody></table></div>
@@ -81,7 +84,7 @@ function editor(S, key, d) {
     <div class="editor" id="editor">
       <div class="stack">
         <section class="card"><div class="card-b grid g2">
-          <div class="field" style="grid-column:1/-1"><label for="e-client">Cliente</label><div class="row"><select class="input" id="e-client" data-f="client_id"><option value="">— Elige un cliente —</option>${S.clients.filter((c) => !c.archived || c.id === draft.client_id).map((c) => html`<option value="${c.id}" ${String(c.id) === String(draft.client_id) ? raw('selected') : ''}>${c.name}</option>`)}</select><button class="btn" data-act="quickClient" type="button">${icon('plus', 'sm')}Nuevo</button></div></div>
+          <div class="field" style="grid-column:1/-1"><label for="e-client">Cliente</label><div class="row"><select class="input" id="e-client" data-f="client_id" data-combo><option value="">— Elige un cliente —</option>${S.clients.filter((c) => !c.archived || c.id === draft.client_id).map((c) => html`<option value="${c.id}" ${String(c.id) === String(draft.client_id) ? raw('selected') : ''}>${c.name}</option>`)}</select><button class="btn" data-act="quickClient" type="button">${icon('plus', 'sm')}Nuevo</button></div></div>
           <div class="field"><label for="e-date">Fecha</label><input class="input" id="e-date" type="date" data-f="issue_date" value="${draft.issue_date}"></div>
           <div class="field"><label for="e-due">${isInv ? 'Vencimiento' : 'Válido hasta'}</label><input class="input" id="e-due" type="date" data-f="due_date" value="${draft.due_date}"></div></div></section>
         <section class="card"><div class="card-h"><h2>Conceptos</h2><span class="spacer"></span>${S.items.length ? html`<select class="input" id="e-cat" style="width:auto;min-height:34px" aria-label="Añadir del catálogo"><option value="">Añadir del catálogo…</option>${S.items.map((i) => html`<option value="${i.id}">${i.name} · ${eur(i.price)}</option>`)}</select>` : ''}</div>
@@ -147,7 +150,7 @@ async function persist(goAfter) {
 on('saveDraft', async (el) => { const key = draft.key; const d = await persist(); toast(key === 'facturas' ? 'Borrador guardado' : 'Presupuesto guardado'); go(`#/${key}/${d.id}`); });
 on('saveIssue', async () => {
   readDraft(document);
-  if (!draft.client_id) { toast('Elige un cliente para emitir la factura.', 'err'); document.getElementById('e-client')?.focus(); return; }
+  if (!draft.client_id) { toast('Elige un cliente para emitir la factura.', 'err'); document.getElementById('e-client')?.nextElementSibling?.focus(); return; }
   const t = computeTotals(draft.lines, draft.irpf);
   if (!(await confirmBox({ title: 'Emitir factura', text: `Se le asignará el siguiente número de la serie y dejará de poder editarse (si hay un error, se corrige con una factura rectificativa). Total: ${eur(t.total)}.`, ok: 'Emitir factura' }))) return;
   try { const d = await persist(); const issued = await mutate('POST', `/api/documents/${d.id}/issue`, {}, 'Factura emitida'); go(`#/facturas/${issued.id}`); }
@@ -225,3 +228,5 @@ on('rectify', async (el) => {
 });
 
 on('print', () => window.print());
+
+on('sortBy', (el) => { const st = state[el.dataset.t], k = el.dataset.k, first = k === 'total' || k === 'fecha' ? -1 : 1; if (!st.sort || st.sort.k !== k) st.sort = { k, dir: first }; else if (st.sort.dir === first) st.sort = { k, dir: -first }; else st.sort = null; window.dispatchEvent(new Event('rem-render')); });

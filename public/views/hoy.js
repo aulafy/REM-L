@@ -55,6 +55,16 @@ export const views = {
           <a class="card kpi ${overdue.length ? 'warn' : ''}" href="#/facturas?f=vencidas"><div class="l"><span class="kchip red">${icon('alert', 'sm')}</span>Vencido</div><div class="v">${eur(overdueSum)}</div><div class="s">${overdue.length ? `${overdue.length} por reclamar` : 'Todo al día'}</div></a>
           <a class="card kpi" href="#/informes"><div class="l"><span class="kchip green">${icon('dinero', 'sm')}</span>Este mes</div><div class="v" style="${factMes - gastoMes < 0 ? 'color:var(--red)' : ''}">${eur(factMes - gastoMes)}</div><div class="s">${eur(factMes)} − ${eur(gastoMes)} gastos</div></a>
         </div>
+        ${(() => { const s = S.settings, steps = [
+            [!!(s.company_name && s.company_nif), 'Completa los datos de tu negocio', 'Nombre y NIF para poder facturar', '#/ajustes', 'empresa'],
+            [S.channels.telegram.on || S.channels.email.on, 'Conecta un canal de mensajes', 'Telegram o correo', '#/ajustes', 'canales'],
+            [!!S.negocio.trim(), 'Cuéntale al asistente cómo trabajas', 'Tono y límites en «Mi negocio»', '#/ajustes', 'negocio'],
+            [S.knowledge.length > 0, 'Añade tus tarifas y condiciones', 'Para que responda con datos reales', '#/ajustes', 'conocimiento'],
+            [S.channels.ai.on, 'Activa la IA local', 'Opcional: borradores automáticos', '#/ajustes', 'ia'],
+            [S.documents.some((d) => d.type === 'factura' && d.status !== 'borrador'), 'Emite tu primera factura', 'Con numeración automática', '#/facturas/nueva', null]], done = steps.filter((x) => x[0]).length, next = steps.find((x) => !x[0]);
+          return next && !s.checklist_dismissed ? html`<section class="card checklist" aria-labelledby="h-ck"><div class="card-h"><h2 id="h-ck">Primeros pasos</h2><span class="muted" style="font-size:13px">${done} de ${steps.length}</span><span class="spacer"></span><button class="btn ghost icon sm" data-act="dismissChecklist" aria-label="Ocultar primeros pasos" title="Ocultar">${icon('x', 'sm')}</button></div>
+            <div class="card-b" style="padding-top:0"><div class="progress" role="progressbar" aria-valuenow="${done}" aria-valuemin="0" aria-valuemax="${steps.length}" aria-label="Progreso"><i style="width:${done / steps.length * 100}%;background:var(--accent)"></i></div>
+              <ul class="steps-l">${steps.map((x) => html`<li class="${x[0] ? 'ok' : x === next ? 'now' : ''}"><span class="tick">${x[0] ? icon('check', 'sm') : ''}</span><div class="grow"><div class="t">${x[1]}</div><div class="d">${x[2]}</div></div>${x === next ? html`<a class="btn sm primary" href="${x[3]}" ${x[4] ? raw(`data-act="goTab" data-tab="${x[4]}"`) : ''}>Empezar</a>` : ''}</li>`)}</ul></div></section>` : ''; })()}
         <div class="cols"><div class="stack">
           ${(() => { const b = S.briefings.find((x) => x.kind === 'manana' && x.date === S.today) || S.briefings.find((x) => x.kind === 'noche') || S.briefings[0]; return b ? html`<section class="card" aria-labelledby="h-br"><div class="card-h"><h2 id="h-br">${b.kind === 'manana' ? 'Tu mañana' : 'Revisión de la noche'}</h2><span class="muted more" style="font-size:12.5px">${b.date === S.today ? 'hoy' : fdateShort(b.date)}</span></div><div class="card-b" style="padding-top:0"><p style="font-size:15px;color:var(--ink-2)">${b.summary}</p>${b.items.length ? html`<ul class="list" style="margin:12px -22px -22px">${b.items.slice(0, 6).map((i) => html`<li class="link" data-href="${i.href}" style="padding:12px 22px"><span class="badge ic-only ${i.kind === 'cobro' ? 'red' : i.kind === 'aviso' ? 'amber' : i.kind === 'mensajes' ? 'blue' : 'green'}" style="padding:5px" aria-hidden="true">${icon(i.kind === 'cobro' ? 'coins' : i.kind === 'mensajes' ? 'mensajes' : i.kind === 'aviso' ? 'alert' : 'check', 'sm')}</span><div class="grow t" style="white-space:normal">${i.text}</div>${icon('arrow', 'sm')}</li>`)}</ul>` : ''}</div></section>` : ''; })()}
           ${S.approvals.length ? html`<section class="card" aria-labelledby="h-ap"><div class="card-h"><h2 id="h-ap">Pendiente de tu aprobación</h2><span class="badge violet">${S.approvals.length}</span></div>
@@ -93,3 +103,6 @@ on('followQuote', (el) => { const S = store.S, d = S.documents.find((x) => x.id 
 
 on('approveAp', async (el) => { try { await mutate('POST', `/api/approvals/${el.dataset.id}/approve`, {}, 'Aprobado'); } catch {} });
 on('rejectAp', (el) => mutate('POST', `/api/approvals/${el.dataset.id}/reject`, {}));
+
+on('dismissChecklist', () => mutate('PUT', '/api/settings', { checklist_dismissed: true }));
+on('goTab', (el) => { import('./ajustes.js').then((a) => a.openTab(el.dataset.tab)); go(el.getAttribute('href')); });

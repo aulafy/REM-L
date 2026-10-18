@@ -41,7 +41,7 @@ export function taskModal(t = null, preset = {}) {
   formModal({
     title: t ? 'Editar tarea' : 'Nueva tarea', submit: t ? 'Guardar' : 'Añadir tarea',
     fields: [field({ name: 'title', label: '¿Qué hay que hacer?', value: val(t?.title ?? preset.title), required: true, attrs: 'autofocus' }), field({ name: 'due', label: 'Fecha límite', type: 'date', value: t?.due ?? preset.due ?? '' }),
-      field({ name: 'client_id', label: 'Cliente (opcional)', options: [['', '— Ninguno —'], ...S.clients.filter((c) => !c.archived).map((c) => [c.id, c.name])], value: t?.client_id ?? preset.client_id ?? '' })].join(''),
+      field({ name: 'client_id', label: 'Cliente (opcional)', combo: true, options: [['', '— Ninguno —'], ...S.clients.filter((c) => !c.archived).map((c) => [c.id, c.name])], value: t?.client_id ?? preset.client_id ?? '' })].join(''),
     onSubmit: async (v, close) => { await mutate(t ? 'PUT' : 'POST', t ? `/api/tasks/${t.id}` : '/api/tasks', { ...t, ...v, document_id: t?.document_id ?? preset.document_id }, t ? 'Tarea actualizada' : 'Tarea añadida'); close(); },
   });
 }
@@ -83,7 +83,7 @@ export function registerActions() {
   on('newItem', () => itemModal());
   on('editItem', (el) => itemModal(byId(el, 'items')));
   on('toggleTask', async (el) => { const t = byId(el, 'tasks'); await mutate('PUT', `/api/tasks/${t.id}`, { ...t, done: t.done ? 0 : 1 }); });
-  on('deleteTask', async (el) => { const t = byId(el, 'tasks'); await mutate('DELETE', `/api/tasks/${t.id}`); toast('Tarea eliminada'); });
+  on('deleteTask', async (el) => { const t = byId(el, 'tasks'); await mutate('DELETE', `/api/tasks/${t.id}`); toast('Tarea eliminada', '', { label: 'Deshacer', run: () => mutate('POST', '/api/tasks', { title: t.title, due: t.due, client_id: t.client_id, done: t.done }, 'Tarea recuperada') }); });
   on('deleteExpense', async (el) => { const e = byId(el, 'expenses'); if (await confirmBox({ title: 'Eliminar gasto', text: `Se eliminará «${e.concept}» (${eur(e.total)}).`, ok: 'Eliminar', danger: true })) await mutate('DELETE', `/api/expenses/${e.id}`, undefined, 'Gasto eliminado'); });
   on('deleteItem', async (el) => { const e = byId(el, 'items'); if (await confirmBox({ title: 'Eliminar artículo', text: `Se eliminará «${e.name}» del catálogo.`, ok: 'Eliminar', danger: true })) await mutate('DELETE', `/api/items/${e.id}`, undefined, 'Artículo eliminado'); });
   on('deleteClient', async (el) => {

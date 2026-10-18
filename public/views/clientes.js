@@ -13,7 +13,9 @@ function clientStats(S, c) {
   return { docs, billed, pending, overdue, last };
 }
 
-let q = '', filter = 'todos';
+let q = '', filter = 'todos', sort = null;
+const CS = { nombre: ({ c }) => c.name.toLowerCase(), facturado: ({ s }) => s.billed, pendiente: ({ s }) => s.pending };
+const cth = (k, label, cls = '') => html`<th class="${cls}" aria-sort="${sort?.k === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}"><button class="sortbtn" data-act="csort" data-k="${k}">${label}<span class="arr">${sort?.k === k ? (sort.dir === 1 ? '↑' : '↓') : ''}</span></button></th>`;
 
 export const views = {
   clientes: {
@@ -22,11 +24,12 @@ export const views = {
       if (p[0]) return detail(S, Number(p[0]));
       const list = S.clients.filter((c) => !c.archived).map((c) => ({ c, s: clientStats(S, c) }))
         .filter(({ c, s }) => (!q || norm(`${c.name} ${c.nif} ${c.email} ${c.city} ${c.phone}`).includes(norm(q))) && (filter === 'todos' || (filter === 'deuda' && s.pending > 0) || (filter === 'vencido' && s.overdue > 0)));
+      if (sort) list.sort((a, b) => { const x = CS[sort.k](a), y = CS[sort.k](b); return (x < y ? -1 : x > y ? 1 : 0) * sort.dir; });
       return html`
         <div class="page-head"><div><h1>Clientes</h1><p class="sub">${plural(S.clients.filter((c) => !c.archived).length, 'cliente', 'clientes')}</p></div><div class="actions"><label class="btn" for="csv-in">${icon('download', 'sm')}Importar CSV</label><input id="csv-in" class="sr" type="file" accept=".csv,text/csv"><button class="btn primary" data-act="newClient">${icon('plus', 'sm')}Nuevo cliente</button></div></div>
         <div class="toolbar"><input class="input" id="cq" type="search" placeholder="Buscar por nombre, NIF, email…" value="${q}" aria-label="Buscar clientes">
           <div class="seg" role="group" aria-label="Filtrar">${[['todos', 'Todos'], ['deuda', 'Con deuda'], ['vencido', 'Con vencidas']].map(([k, l]) => html`<button data-act="cfilter" data-k="${k}" aria-pressed="${filter === k}">${l}</button>`)}</div></div>
-        <div class="card">${list.length ? html`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Cliente</th><th class="hide-sm">Contacto</th><th class="right">Facturado</th><th class="right">Pendiente</th></tr></thead><tbody>
+        <div class="card">${list.length ? html`<div class="tbl-wrap"><table class="tbl"><thead><tr>${cth('nombre', 'Cliente')}<th class="hide-sm">Contacto</th>${cth('facturado', 'Facturado', 'right')}${cth('pendiente', 'Pendiente', 'right')}</tr></thead><tbody>
           ${list.map(({ c, s }) => html`<tr class="link" data-href="#/clientes/${c.id}" tabindex="0"><td><div class="cell-client">${avatar(c.name)}<div><span class="name">${c.name}</span><small>${[c.nif, c.city].filter(Boolean).join(' · ') || 'Sin datos fiscales'}</small></div></div></td>
             <td class="hide-sm"><div>${c.email || '—'}</div><small class="muted">${c.phone}</small></td><td class="right num">${eur(s.billed)}</td>
             <td class="right num">${s.pending ? html`<span style="${s.overdue ? 'color:var(--red);font-weight:600' : ''}">${eur(s.pending)}</span>` : html`<span class="muted">—</span>`}</td></tr>`)}</tbody></table></div>`
@@ -92,3 +95,5 @@ function parseCsv(text) {
   const idx = Object.fromEntries(Object.entries(map).map(([k, re]) => [k, head.findIndex((h) => re.test(h.trim()))]));
   return data.map((r) => Object.fromEntries(Object.entries(idx).map(([k, i]) => [k, i >= 0 ? (r[i] || '').trim() : ''])));
 }
+
+on('csort', (el) => { const k = el.dataset.k, asc = k === 'nombre'; sort = !sort || sort.k !== k ? { k, dir: asc ? 1 : -1 } : sort.dir === (asc ? 1 : -1) ? { k, dir: -sort.dir } : null; window.dispatchEvent(new Event('rem-render')); });
