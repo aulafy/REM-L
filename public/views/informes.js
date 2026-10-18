@@ -1,6 +1,7 @@
 import { store, on } from '../core.js';
 import { html, raw, eur, fdate, icon, clientOf, badge } from '../util.js';
 import { computeTotals } from '../calc.js';
+import { reportsCard } from '../ext.js';
 
 let year = null, q = 0; // q: 0 = año completo, 1..4 = trimestre
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -45,7 +46,7 @@ export const views = {
           <div class="notice warn">${icon('alert')}<span>Son cifras orientativas calculadas con lo que has registrado aquí. No sustituyen a tu asesor ni a la presentación oficial de impuestos.</span></div></div>
         <div class="stack"><section class="card"><div class="card-h"><h2>Gastos por categoría</h2></div><div class="card-b stack" style="gap:12px">${Object.entries(R.byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => html`<div><div class="row" style="justify-content:space-between;margin-bottom:5px"><span>${k[0].toUpperCase() + k.slice(1)}</span><b class="num">${eur(v)}</b></div><div class="progress"><i style="width:${v / maxC * 100}%;background:var(--accent)"></i></div></div>`) || ''}${!Object.keys(R.byCat).length ? html`<p class="muted">Sin gastos en este periodo.</p>` : ''}</div></section>
           <section class="card"><div class="card-h"><h2>Mejores clientes</h2></div>${top.length ? html`<ul class="list">${top.map(([id, v]) => html`<li class="link" data-href="#/clientes/${id}"><span class="grow t">${clientOf(S, Number(id))?.name}</span><b class="num">${eur(v)}</b></li>`)}</ul>` : html`<div class="empty" style="padding:24px"><p>Sin facturas en este periodo.</p></div>`}</section>
-          <section class="card"><div class="card-h"><h2>Exportar para tu asesor</h2></div><div class="card-b stack" style="gap:8px">${[['facturas', 'Facturas emitidas'], ['gastos', 'Gastos'], ['clientes', 'Clientes']].map(([k, l]) => html`<a class="btn" href="/api/export.csv?kind=${k}" download style="justify-content:flex-start">${icon('download', 'sm')}${l} (CSV)</a>`)}</div></section></div></div>`;
+          <section class="card"><div class="card-h"><h2>Exportar para tu asesor</h2></div><div class="card-b stack" style="gap:8px">${[['facturas', 'Facturas emitidas'], ['gastos', 'Gastos'], ['clientes', 'Clientes']].map(([k, l]) => html`<a class="btn" href="/api/export.csv?kind=${k}" download style="justify-content:flex-start">${icon('download', 'sm')}${l} (CSV)</a>`)}</div></section></div></div>${reportsCard(S)}`;
     },
     mount(root) { root.querySelector('#ry')?.addEventListener('change', (e) => { year = Number(e.target.value); window.dispatchEvent(new Event('rem-render')); }); },
   },

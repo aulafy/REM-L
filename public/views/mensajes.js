@@ -1,6 +1,7 @@
 import { store, on, go, mutate, toast, openModal, formModal, field, confirmBox, refresh } from '../core.js';
 import { html, raw, esc, icon, avatar, clientOf, fdate, api } from '../util.js';
 import { dictate, say, canDictate } from '../voice.js';
+import { templatesFor, templateVars, renderTemplate } from '../ext.js';
 
 const CH = { telegram: ['Telegram', 'send'], email: ['Correo', 'mail'], whatsapp: ['WhatsApp', 'mensajes'], imessage: ['iMessage', 'mensajes'], otro: ['Mensaje', 'mensajes'] };
 let filter = 'pendientes';
@@ -36,11 +37,12 @@ function detail(S, m) {
     <div class="thread" id="thread">${thread.map((x) => html`<div class="bubble ${x.direction === 'out' ? 'out' : 'in'}">${x.subject && x.direction === 'in' ? html`<div class="bsub">${x.subject}</div>` : ''}<div class="btxt">${x.body}</div><div class="bmeta">${x.direction === 'out' ? 'Tú · ' : ''}${ago(x.created_at)}${x.direction === 'in' ? html` · <button class="linkbtn" data-act="speakMsg" data-text="${x.body}" aria-label="Escuchar mensaje" aria-pressed="false">${icon('speaker', 'sm')}Escuchar</button>` : ''}</div></div>`)}</div>
     ${['archivado', 'respondido'].includes(m.status) ? html`<div class="notice" style="margin:0 20px 20px">${icon('check')}<span>${m.status === 'respondido' ? 'Ya has respondido a este mensaje.' : 'Archivado.'} <a href="#" data-act="msgReopen" data-id="${m.id}">Volver a abrir</a></span></div>` : html`
     <div class="composer"><div class="comp-h"><label for="draft">Tu respuesta</label>${m.draft && drafts[m.id] === undefined ? html`<span class="chip ok">${icon('sparkle', 'sm')}Borrador del asistente · revísalo</span>` : m.status === 'nuevo' && S.channels.ai.on ? html`<span class="chip busy"><i class="dots"></i>El asistente está redactando…</span>` : ''}<span class="spacer"></span>
-      ${m.intent && m.intent !== 'error' ? html`<span class="chip">${m.intent}</span>` : ''}</div>
-      ${m.intent === 'error' ? html`<div class="notice warn" style="margin-bottom:8px">${icon('alert')}<span>El asistente no ha podido preparar una respuesta (¿está Ollama abierto?). Puedes escribirla tú o <a href="#" data-act="redraft" data-id="${m.id}">intentarlo de nuevo</a>.</span></div>` : ''}<textarea id="draft" class="input" rows="6" data-id="${m.id}" placeholder="Escribe tu respuesta o dicta con el micrófono…">${text}</textarea>
+      ${m.intent && !['error', 'adjunto'].includes(m.intent) ? html`<span class="chip">${m.intent}</span>` : ''}</div>
+      ${m.intent === 'adjunto' ? html`<div class="notice" style="margin-bottom:8px">${icon('book')}<span>Solo ha enviado un adjunto: no hay nada que responder. <a href="#/gastos"><b>Revisarlo en Gastos</b></a>.</span></div>` : ''}${m.intent === 'error' ? html`<div class="notice warn" style="margin-bottom:8px">${icon('alert')}<span>El asistente no ha podido preparar una respuesta (¿está Ollama abierto?). Puedes escribirla tú o <a href="#" data-act="redraft" data-id="${m.id}">intentarlo de nuevo</a>.</span></div>` : ''}<textarea id="draft" class="input" rows="6" data-id="${m.id}" placeholder="Escribe tu respuesta o dicta con el micrófono…">${text}</textarea>
       ${m.sources.length ? html`<details class="src"><summary>${icon('book', 'sm')}Basado en ${m.sources.length} dato${m.sources.length > 1 ? 's' : ''} de tu negocio</summary>${m.sources.map((s) => html`<p><b>${s.title}</b> — ${s.text}</p>`)}</details>` : (S.channels.ai.on ? html`<p class="hint muted" style="font-size:12.5px;margin:6px 2px 0">No he encontrado datos del negocio relacionados. <a href="#/ajustes" data-act="goKnowledge">Añade tus tarifas y condiciones</a> para respuestas mejores.</p>` : '')}
       <div class="comp-f"><div class="row wrap" style="gap:6px">
         ${canDictate ? html`<button class="btn sm icon" data-act="dictate" aria-pressed="false" aria-label="Dictar respuesta" title="Dictar">${icon('mic', 'sm')}</button>` : ''}
+        ${templatesFor(S).length ? html`<select class="input" id="tpl" aria-label="Insertar plantilla" style="min-height:32px;width:auto;padding:2px 10px;font-size:13px"><option value="">Plantilla…</option>${templatesFor(S).map((t, i) => html`<option value="${i}">${t.name}</option>`)}</select>` : ''}
         <button class="btn sm icon" data-act="speakDraft" aria-pressed="false" aria-label="Escuchar la respuesta" title="Escuchar">${icon('speaker', 'sm')}</button>
         ${S.channels.ai.on ? html`<button class="btn sm icon" data-act="redraft" data-id="${m.id}" aria-label="Pedir otra versión" title="Otra versión">${icon('refresh', 'sm')}</button>` : ''}</div><span class="spacer"></span>
         ${send ? html`<button class="btn primary" data-act="msgSend" data-id="${m.id}">${icon('send', 'sm')}Enviar por ${CH[m.channel][0]}</button>`
@@ -65,6 +67,7 @@ export const views = {
         ta.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') root.querySelector('[data-act="msgSend"],[data-act="msgDone"]')?.click(); });
       }
       root.querySelectorAll('[data-act-change="linkClient"]').forEach((sel) => sel.addEventListener('change', async () => { if (sel.value) { try { await mutate('POST', `/api/messages/${sel.dataset.id}/client`, { client_id: sel.value }, 'Contacto vinculado'); } catch {} } }));
+      root.querySelector('#tpl')?.addEventListener('change', (e) => { const t = templatesFor(S)[Number(e.target.value)]; if (!t) return; const cur = S.messages.find((x) => x.id === Number(p[0])), ta = root.querySelector('#draft'); const txt = renderTemplate(t.text, templateVars(S, cur?.client_id)); ta.value = ta.value.trim() ? ta.value.replace(/\s*$/, '\n\n') + txt : txt; ta.dispatchEvent(new Event('input')); e.target.value = ''; ta.focus(); });
       const th = root.querySelector('#thread'); if (th) th.scrollTop = th.scrollHeight;
     },
   },

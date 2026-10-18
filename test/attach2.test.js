@@ -76,6 +76,7 @@ test('Telegram: fotos y PDF llegan a la cola y a Mensajes; otros archivos se ign
   const tgA = st.attachments.filter((a) => a.source === 'telegram'); assert.equal(tgA.length, 2); assert.ok(tgA.every((a) => a.peer === 'Ana'));
   assert.deepEqual(tgA.map((a) => a.mime).sort(), ['application/pdf', 'image/jpeg']);
   const msgs = st.messages.filter((m) => m.channel === 'telegram'); assert.ok(msgs.some((m) => /📎 Adjunto \(foto\.jpg\): ticket del taller/.test(m.body))); assert.ok(msgs.some((m) => /factura\.pdf/.test(m.body)));
+  const docOnly = msgs.find((x) => /^📎 Adjunto \(factura\.pdf\)$/.test(x.body)); assert.ok(docOnly); await until(async () => (await state()).messages.find((x) => x.id === docOnly.id && x.intent === 'adjunto')); assert.equal((await state()).messages.find((x) => x.id === docOnly.id).draft, '', 'un adjunto solo no genera respuesta');
   const photo = await until(async () => (await state()).attachments.find((a) => a.source === 'telegram' && a.mime === 'image/jpeg' && a.status === 'por_revisar')); assert.equal(photo.parsed.total, 55);
 });
 

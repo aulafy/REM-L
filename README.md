@@ -33,6 +33,10 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 
 Sube una foto o un PDF en **Gastos → Subir ticket** (o arrástralo), o envíalo por **Telegram o correo**: los adjuntos llegan solos a la cola de revisión. Se lee en tu equipo (PDF con texto directamente; escaneados y fotos con Apple Vision → Tesseract → modelo de visión de Ollama), la IA extrae proveedor, fecha, base, IVA y total, y la app **comprueba que los importes aparecen en el texto y que cuadran**. Si hay dudas, relee con el modelo de visión. Nada se crea sin tu revisión; los documentos personales (DNI…) no se envían a ningún modelo y se pueden borrar.
 
+## Módulos a medida
+
+En **Ajustes → Módulos** el autónomo amplía la app sin código: campos extra en clientes y facturas, plantillas de mensajes con variables, reglas que solo *proponen* tareas e informes propios. Se instalan desde una galería, pegando un JSON o **describiéndoselo a Claude** con su propia clave de API (opcional, guardada en el llavero; solo se envía el texto que escribe, nunca datos de clientes). Un módulo es **datos, no código**: se valida de forma estricta, se muestra qué podrá hacer antes de instalarlo, pasa por la política de aprobación y se puede quitar.
+
 ## Qué incluye
 
 | Área | Qué resuelve |
