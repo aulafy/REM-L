@@ -100,6 +100,10 @@ En Ajustes → Datos, **Borrar todos los datos** crea primero una copia de la ba
 
 En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook —inglés y español—, vCard, CSV o Excel), **facturas emitidas** y **gastos** (también **tablas DBF** de programas antiguos y **Facturae XML**, el formato de factura electrónica, con varias líneas por factura y continuidad de la numeración). Vista previa con duplicados y errores, copia automática antes de importar y **deshacer** por lote. Si el archivo es raro (títulos, otro programa, columnas con otros nombres), **«Ordenar con IA»** envía a Claude —con tu clave— solo una **muestra enmascarada** (la ves antes) y recibe un *plan declarativo* que REM valida y aplica en tu equipo: la IA propone, no ejecuta ni toca tus datos. Estrategia para los programas más usados en España: [docs/migraciones-espana.md](docs/migraciones-espana.md).
 
+## REM Clientes (prototipo)
+
+Un **enlace** para que tus clientes te escriban desde el móvil sin app, sin cuenta y sin darte su teléfono, con cifrado de extremo a extremo y tarjetas de presupuesto (aceptable), pago y estado del pedido. Los mensajes llegan a *Mensajes*. Necesita un relé ciego (`relay/`). Guía del piloto: [docs/rem-clientes-prototipo.md](docs/rem-clientes-prototipo.md); visión del producto: [docs/app-clientes.md](docs/app-clientes.md).
+
 ## App de Mac y copias cifradas
 
 En `mac/` hay una **app nativa para macOS** (SwiftUI) que lleva dentro el servidor y guía paso a paso: tu negocio, cómo facturas, copias de seguridad, acceso y arranque. Las copias son archivos **`.rembak` cifrados** (AES-256-GCM, clave derivada de tu frase de paso con scrypt) en la carpeta que elijas (USB, NAS, iCloud Drive); se hace una al día y otra al salir, se verifican descifrándolas, y el asistente **prueba una restauración** antes de darlas por buenas. Incluye una hoja de recuperación con un código por si olvidas la frase. Detalles en [mac/README.md](mac/README.md) y [docs/asistente-macos.md](docs/asistente-macos.md). Compilar: `scripts/build-mac-app.sh`.

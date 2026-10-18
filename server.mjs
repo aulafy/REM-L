@@ -34,7 +34,8 @@ import { randomBytes } from 'node:crypto';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 import { migrateSchema, databaseHealth, cleanSoftRefs, fixForeignKeys, SCHEMA_VERSION } from './lib/schema.mjs';
 import { pruneBackups } from './lib/backups.mjs';
-import { clearAllSecrets, getSecret, setSecret } from './lib/secrets.mjs';
+import { clearAllSecrets, getSecret, setSecret, delSecret } from './lib/secrets.mjs';
+import { createClientChannel } from './lib/clientchannel.mjs';
 import { createBackupEngine } from './lib/backup-engine.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -102,6 +103,9 @@ const modules = createModules({ db, run, one, all, nowIso, str, HttpError, setti
 const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument, createExpense: (b) => C.expenses.create(b) });
 const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpError, log });
 const importer = createImporter({ db, run, one, all, tx, nowIso, log, settingsObj, addDays, makeBackup, HttpError, computeTotals, getSecret, nextNumber: (t, y, s) => nextNumber(t, y, s), defaultSeries: () => seriesList()[0].prefix });
+const clientChannel = createClientChannel({ db, run, one, all, nowIso, str, HttpError, log, settingsObj, saveSetting, getSecret, setSecret, delSecret, ingest: (m) => inbox.ingest(m),
+  getQuote: (id) => { const d = getDoc(id); if (d.type !== 'presupuesto') throw new HttpError(409, 'Solo se envían presupuestos'); return d; },
+  setQuoteStatus: (id, status) => { const d = getDoc(id); if (d.type === 'presupuesto' && ['borrador', 'enviado'].includes(d.status)) { run('UPDATE documents SET status=?, updated_at=? WHERE id=?', status, nowIso(), id); log(`El cliente ha ${status === 'aceptado' ? 'aceptado' : 'rechazado'} el presupuesto ${d.number} (REM Clientes)`, 'document', id); } return getDoc(id); } });
 const office = createOffice({ HttpError });
 const autostart = createAutostart({ script: fileURLToPath(import.meta.url), dataDir: DATA, port: PORT, HttpError });
 const menubar = createMenubar({ dataDir: DATA, port: PORT, settingsObj, saveSetting, counts: () => notifier.counts(), HttpError, log: (t) => log(t) });
@@ -117,13 +121,14 @@ agents.setOnApproval((s) => notifier.approval(s));
 const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError, modules, recurring, notifier });
 const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, settingsObj, agents, createExpense: (b) => C.expenses.create(b) });
 const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments, modules, notifier });
+inbox.setChannel('rem', { send: (m, text) => clientChannel.sendText(m, text) });
 cleanSoftRefs(db);
 // Modo reparación: con relaciones rotas o una base dañada el servidor arranca igual, pero solo deja restaurar una copia sana o reparar (con copia previa).
 let repair = null;
 const checkHealth = () => { const h = databaseHealth(db); repair = h.ok ? null : { damaged: !(h.quick.length === 1 && h.quick[0] === 'ok'), broken: h.foreignKeys.length, tables: [...new Set(h.foreignKeys.map((f) => f.table))] }; return !repair; };
 checkHealth();
 let backupTimer = null;
-const startServices = () => { inbox.start(); scheduler.start(); menubar.start(); clearInterval(backupTimer); setTimeout(() => backupEngine.tick(), 20000).unref?.(); backupTimer = setInterval(() => backupEngine.tick(), 60000); backupTimer.unref?.(); };
+const startServices = () => { inbox.start(); scheduler.start(); menubar.start(); clientChannel.start(); clearInterval(backupTimer); setTimeout(() => backupEngine.tick(), 20000).unref?.(); backupTimer = setInterval(() => backupEngine.tick(), 60000); backupTimer.unref?.(); };
 const REPAIR_OPEN = new Set(['GET /api/lock', 'POST /api/unlock', 'POST /api/lock', 'GET /api/repair', 'POST /api/repair/restore', 'POST /api/repair/fix']);
 
 const icsToken = () => { let t = settingsObj().ics_token; if (!t) { t = randomBytes(16).toString('hex'); saveSetting('ics_token', t); } return t; };
@@ -368,7 +373,7 @@ function state() {
     expenses: all('SELECT * FROM expenses ORDER BY date DESC, id DESC'),
     tasks: all('SELECT * FROM tasks ORDER BY done, CASE WHEN due=\'\' THEN 1 ELSE 0 END, due'),
     activity: all('SELECT * FROM activity ORDER BY id DESC LIMIT 60'),
-    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(), ...attachments.state(), ...modules.state(), ...recurring.state(), ...docTemplates.state(), ...files.state(), ...timeTrack.state(), ...importer.state(),
+    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(), ...attachments.state(), ...modules.state(), ...recurring.state(), ...docTemplates.state(), ...files.state(), ...timeTrack.state(), ...importer.state(), ...clientChannel.state(),
   };
 }
 
@@ -470,6 +475,7 @@ async function route(req_, url, body) {
   { const r = await timeTrack.route(m, p, body); if (r !== undefined) return r; }
   { const r = await autostart.route(m, p, body); if (r !== undefined) return r; }
   { const r = await menubar.route(m, p, body); if (r !== undefined) return r; }
+  { const r = await clientChannel.route(m, p, body); if (r !== undefined) return r; }
   { const r = backupRoute(m, p, body); if (r !== undefined) return r; }
   { const r = setupRoute(m, p, body); if (r !== undefined) return r; }
   { const r = (await agents.route(m, p, body)) ?? (await inbox.route(m, p, body)); if (r !== undefined) return r; }

@@ -219,6 +219,7 @@ function detail(S, key, d) {
             ${['enviado'].includes(d.status) ? html`<button class="btn" data-act="quoteStatus" data-id="${d.id}" data-s="rechazado" style="width:100%;justify-content:flex-start">${icon('x', 'sm')}Marcar como rechazado</button>` : ''}
             ${['aceptado', 'enviado', 'borrador'].includes(d.status) ? btn('convert', 'facturas', 'Convertir en factura', d.status === 'aceptado' ? 'primary' : '') : ''}
             ${d.status === 'enviado' || d.status === 'rechazado' ? btn('sendQuote', 'mail', 'Reenviar') : ''}
+            ${S.relay?.on && ['borrador', 'enviado'].includes(d.status) && d.client_id ? btn('sendQuoteRem', 'send', 'Enviar por REM Clientes') : ''}
             ${d.status !== 'facturado' ? html`<a class="btn" href="#/presupuestos/${d.id}/editar" style="width:100%;justify-content:flex-start">${icon('edit', 'sm')}Editar</a>` : ''}`}
           <button class="btn" data-act="dlPdf" data-id="${d.id}" style="width:100%;justify-content:flex-start">${icon('download', 'sm')}Descargar PDF</button>
           ${d.type === 'presupuesto' ? html`<a class="btn" href="/api/documents/${d.id}/pptx" download style="width:100%;justify-content:flex-start">${icon('download', 'sm')}Descargar propuesta (PowerPoint)</a>` : ''}
@@ -240,6 +241,7 @@ const docOf = (el) => store.S.documents.find((x) => x.id === Number(el.dataset.i
 on('remind', (el) => { const S = store.S, d = docOf(el); messageModal({ title: 'Reclamar el pago', client: clientOf(S, d.client_id), ...reminderText(S, d) }); });
 on('sendInvoice', (el) => { const S = store.S, d = docOf(el); messageModal({ title: 'Enviar factura', client: clientOf(S, d.client_id), ...invoiceText(S, d), pdf: pdfOf(d) }); });
 on('sendQuote', (el) => { const S = store.S, d = docOf(el); messageModal({ title: 'Enviar presupuesto', client: clientOf(S, d.client_id), ...quoteText(S, d), pdf: pdfOf(d), onDone: async () => { if (d.status === 'borrador') await mutate('POST', `/api/documents/${d.id}/status`, { status: 'enviado' }); } }); });
+on('sendQuoteRem', async (el) => { try { await mutate('POST', '/api/client-channel/send-quote', { doc_id: Number(el.dataset.id) }, 'Presupuesto enviado por REM Clientes'); } catch { /* ya avisado */ } });
 on('quoteStatus', (el) => mutate('POST', `/api/documents/${el.dataset.id}/status`, { status: el.dataset.s || 'aceptado' }, 'Estado actualizado'));
 on('convert', async (el) => { const inv = await mutate('POST', `/api/documents/${el.dataset.id}/convert`, {}, 'Borrador de factura creado'); go(`#/facturas/${inv.id}`); });
 on('duplicate', async (el) => { const d = docOf(el), n = await mutate('POST', `/api/documents/${d.id}/duplicate`, {}, 'Documento duplicado'); go(`#/${{ factura: 'facturas', albaran: 'albaranes' }[d.type] || 'presupuestos'}/${n.id}${n.type !== 'factura' ? '/editar' : ''}`); });

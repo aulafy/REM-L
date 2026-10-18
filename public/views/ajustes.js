@@ -62,6 +62,7 @@ export const views = {
               ${field({ name: 'email_user', label: 'Tu correo', type: 'email', required: true })}${field({ name: 'email_pass', label: 'Contraseña de aplicación', type: 'password', required: true })}
               ${field({ name: 'imap_host', label: 'Servidor de entrada (IMAP)', placeholder: 'imap.gmail.com', required: true })}${field({ name: 'smtp_host', label: 'Servidor de salida (SMTP)', placeholder: 'smtp.gmail.com', required: true })}
               <div style="grid-column:1/-1"><button class="btn primary" type="submit">Conectar correo</button><span class="muted" id="mail-err" style="margin-left:12px;color:var(--red)"></span></div></form>`}</div></section>
+          ${remCard(S)}
           <section class="card"><div class="card-h"><h2>WhatsApp e iMessage</h2></div><div class="card-b"><p class="muted">WhatsApp Business oficial exige verificar tu negocio con Meta y un servidor público, así que de momento se hace de forma sencilla y segura: <b>pega el mensaje</b> del cliente (Mensajes → Pegar mensaje), el asistente te prepara la respuesta y la abres en WhatsApp con un clic. Lo mismo con iMessage.</p></div></section></div>`,
         avisos: html`<div class="stack"><section class="card"><div class="card-h"><h2>Avisos del sistema</h2>${s.notify_on ? html`<span class="pill-on more">● Activados</span>` : html`<span class="badge grey more">Desactivados</span>`}</div><div class="card-b stack">
           <p class="muted">Notificaciones de macOS, aunque la pestaña esté cerrada (mientras REM Negocio esté en marcha). Nada sale de tu equipo.</p>
@@ -142,6 +143,8 @@ export const views = {
     mount(root, S) {
       root.querySelector('#lock-idle')?.addEventListener('change', (e) => mutate('PUT', '/api/settings', { lock_idle_min: Number(e.target.value) }, 'Guardado'));
       if (store.S.startup?.menubar?.building) setTimeout(async () => { if (tab === 'acceso') { await reload(); refresh(); } }, 3000);
+      root.querySelector('#rem-on')?.addEventListener('submit', async (e) => { e.preventDefault(); const d = formValues(e.target), err = root.querySelector('#rem-err'); err.textContent = ''; try { await mutate('POST', '/api/client-channel/enable', { relay: d.relay, invite: d.invite }, 'REM Clientes activado'); } catch (x) { err.textContent = x.message; } });
+      root.querySelector('#rem-prof')?.addEventListener('submit', async (e) => { e.preventDefault(); await mutate('POST', '/api/client-channel/profile', formValues(e.target), 'Perfil guardado'); });
       const form = root.querySelector('form[data-save]');
       form?.addEventListener('submit', async (e) => {
         e.preventDefault(); const d = formValues(form);
@@ -323,3 +326,19 @@ on('pinChange', () => pinModal('change'));
 on('pinRemove', () => formModal({ title: 'Quitar el PIN', submit: 'Quitar PIN', fields: field({ name: 'current', label: 'PIN actual', type: 'password', required: true, attrs: 'inputmode="numeric" maxlength="12" autofocus autocomplete="off"' }), onSubmit: async (v, close) => { await mutate('POST', '/api/pin/remove', { current: v.current }, 'PIN desactivado'); close(); } }));
 on('autostartToggle', (el) => mutate('POST', '/api/autostart', { on: el.dataset.on === '1' }, el.dataset.on === '1' ? 'Se iniciará con tu sesión' : 'Arranque automático desactivado'));
 on('menubarToggle', (el) => mutate('POST', '/api/menubar-app', { on: el.dataset.on === '1' }, el.dataset.on === '1' ? 'Preparando el icono…' : 'Icono quitado'));
+
+// ---------- REM Clientes (prototipo): canal para que tus clientes te escriban por un enlace ----------
+function remCard(S) {
+  const r = S.relay || {};
+  return html`<section class="card"><div class="card-h"><h2>REM Clientes <span class="badge amber" style="margin-left:6px">Prototipo</span></h2>${r.on ? html`<span class="pill-on more">● Activo</span>` : ''}</div><div class="card-b stack">
+    ${r.on ? html`<p class="muted" style="margin:0">Comparte este enlace (o imprímelo en un cartel o en tu factura): tus clientes te escriben desde el móvil <b>sin app, sin cuenta y sin darte su teléfono</b>. Los mensajes llegan a Mensajes y viajan cifrados de extremo a extremo.</p>
+      <div class="row"><input class="input" id="rem-link" readonly value="${r.link}" style="flex:1" aria-label="Enlace para tus clientes"><button class="btn" data-act="remCopy">${icon('copy', 'sm')}Copiar</button><a class="btn" href="${r.link}" target="_blank" rel="noopener">Abrir</a></div>
+      ${r.error ? html`<div class="notice warn">${icon('alert')}<span>${r.error}</span></div>` : ''}
+      <details><summary class="lbl" style="cursor:pointer">Perfil que ven tus clientes</summary><form id="rem-prof" class="grid g2" style="margin-top:10px">${field({ name: 'tagline', label: 'Frase corta', placeholder: 'Fontanería y calefacción en Valencia' })}${field({ name: 'hours', label: 'Horario', placeholder: 'L-V 9:00-18:00' })}<div style="grid-column:1/-1">${field({ name: 'welcome', label: 'Mensaje de bienvenida', placeholder: 'Cuéntanos qué necesitas y te respondemos hoy.' })}</div><div style="grid-column:1/-1"><button class="btn primary" type="submit">Guardar perfil</button></div></form></details>
+      <p class="muted" style="margin:0;font-size:12.5px">${r.peers} ${r.peers === 1 ? 'cliente ha' : 'clientes han'} escrito. <b>Prototipo:</b> el relé solo ve mensajes cifrados, pero sin garantía de disponibilidad ni auditoría de seguridad todavía.</p>
+      <div><button class="btn danger" data-act="remOff">Desactivar</button></div>`
+    : html`<p class="muted" style="margin:0">Un enlace para que tus clientes te escriban sin WhatsApp. Necesita un relé (un pequeño servidor que guarda mensajes cifrados mientras tu Mac está apagado) y un código de invitación del piloto.</p>
+      <form id="rem-on" class="grid g2">${field({ name: 'relay', label: 'Dirección del relé', placeholder: 'https://rem-relay.ejemplo.com', required: true })}${field({ name: 'invite', label: 'Código de invitación', required: true, attrs: 'autocomplete="off"' })}<div style="grid-column:1/-1"><button class="btn primary" type="submit">Activar REM Clientes</button><span class="muted" id="rem-err" style="margin-left:12px;color:var(--red)"></span></div></form>`}</div></section>`;
+}
+on('remCopy', async () => { try { await navigator.clipboard.writeText(document.getElementById('rem-link').value); toast('Enlace copiado'); } catch { document.getElementById('rem-link').select(); } });
+on('remOff', async () => { if (await confirmBox({ title: 'Desactivar REM Clientes', text: 'El enlace dejará de aceptar mensajes nuevos. Tus conversaciones se conservan.', ok: 'Desactivar', danger: true })) await mutate('POST', '/api/client-channel/disable', {}, 'Desactivado'); });
