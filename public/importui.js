@@ -20,7 +20,25 @@ function decode(buf) {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { return new TextDecoder('windows-1252').decode(buf); }
 }
 
+// Facturae XML (factura electrónica): uno o varios archivos; si no se sabe si son emitidas o recibidas, se pregunta.
+async function startFacturae() {
+  const inp = Object.assign(document.createElement('input'), { type: 'file', accept: '.xml,text/xml,application/xml', multiple: true });
+  inp.addEventListener('change', async () => {
+    const fs = [...inp.files]; if (!fs.length) return; if (fs.some((f) => f.size > 12e6)) return toast('Algún archivo es demasiado grande (máximo 12 MB).', 'err');
+    const texts = []; for (const f of fs) texts.push(decode(await f.arrayBuffer())); const name = fs.length === 1 ? fs[0].name : `${fs.length} facturas Facturae`;
+    const go = async (direction) => { const src = { kind: 'facturae', facturae: texts, direction }; const p = await api('POST', '/api/import/preview', src); wizard(p.kind, null, name, null, 0, src); };
+    try { await go(''); }
+    catch (e) {
+      if (!/emitidas.*recibidas/.test(e.message)) return toast(e.message, 'err');
+      openModal({ title: '¿Emitidas o recibidas?', body: '<p style="margin:0">No he podido saber por el NIF si estas facturas las has <b>emitido tú</b> (tus ventas) o las has <b>recibido</b> (tus compras). Completa el NIF de tu negocio en Ajustes → Mi negocio para que se detecte solo.</p>', footer: '<button class="btn" data-close>Cancelar</button><button class="btn" data-dir="recibidas">Son recibidas (gastos)</button><button class="btn primary" data-dir="emitidas">Son emitidas (ventas)</button>',
+        onMount: (el, close) => el.querySelectorAll('[data-dir]').forEach((b) => b.addEventListener('click', async () => { close(); try { await go(b.dataset.dir); } catch (err) { toast(err.message, 'err'); } })) });
+    }
+  });
+  inp.click();
+}
+
 function start(kind) {
+  if (kind === 'facturae') return startFacturae();
   const inp = Object.assign(document.createElement('input'), { type: 'file', accept: kind === 'clientes' ? '.csv,.tsv,.txt,.xlsx,.vcf,text/csv,text/vcard' : '.csv,.tsv,.txt,.xlsx,text/csv' });
   inp.addEventListener('change', async () => {
     const f = inp.files[0]; if (!f) return;
@@ -121,7 +139,7 @@ function wizard(kind, text, fileName, sheets = null, sheet = 0, extra = null) {
 }
 
 export const importCard = (S) => `<section class="card"><div class="card-h"><h2>Importar datos antiguos</h2></div><div class="card-b"><p class="muted" style="margin-bottom:12px">Trae tus <b>clientes</b> (Contactos de Mac, Google, Outlook o una hoja de cálculo: CSV, vCard o Excel), tus <b>facturas emitidas</b> o tus <b>gastos</b> de otros programas. Verás una vista previa y no se guarda nada hasta que confirmes; antes de importar se crea una copia de seguridad y puedes <b>deshacer</b> cada importación. Si el archivo es raro, la IA te ayuda a entenderlo.</p>
-  <div class="row wrap"><button class="btn" data-act="importPick" data-kind="clientes">${icon('clientes', 'sm').toString()}Importar clientes / contactos…</button><button class="btn" data-act="importPick" data-kind="facturas">${icon('facturas', 'sm').toString()}Importar facturas…</button><button class="btn" data-act="importPick" data-kind="gastos">${icon('gastos', 'sm').toString()}Importar gastos…</button></div></div>
+  <div class="row wrap"><button class="btn" data-act="importPick" data-kind="clientes">${icon('clientes', 'sm').toString()}Importar clientes / contactos…</button><button class="btn" data-act="importPick" data-kind="facturas">${icon('facturas', 'sm').toString()}Importar facturas…</button><button class="btn" data-act="importPick" data-kind="gastos">${icon('gastos', 'sm').toString()}Importar gastos…</button><button class="btn" data-act="importPick" data-kind="facturae">${icon('facturas', 'sm').toString()}Facturas electrónicas (Facturae XML)…</button></div></div>
   ${(S?.importBatches || []).length ? `<ul class="list" style="border-top:1px solid var(--line)">${S.importBatches.slice(0, 6).map((b) => `<li><div class="grow"><div class="t">${b.counts.imported} ${NOUN[b.kind] || b.kind}${b.source ? ` · ${esc(b.source)}` : ''}</div><div class="d">${fdate(b.created_at.slice(0, 10))}${b.undone_at ? ' · deshecha' : ''}</div></div>${b.undone_at ? '' : `<button class="btn sm" data-act="importUndo" data-id="${b.id}">Deshacer</button>`}</li>`).join('')}</ul>` : ''}</section>`;
 on('importPick', (el) => start(el.dataset.kind));
 on('importUndo', async (el) => {
