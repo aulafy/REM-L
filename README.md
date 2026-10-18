@@ -98,4 +98,4 @@ En Ajustes → Datos, **Borrar todos los datos** crea primero una copia de la ba
 
 ## Licencia
 
-Solo para **uso personal** (ver [LICENSE](LICENSE)). Uso en empresa, comercial, como servicio o redistribución: requiere permiso por escrito. No es software de facturación certificado.
+Uso **propio** gratuito, también en tu propio negocio (ver [LICENSE](LICENSE)). Prohibido revenderlo, ofrecerlo como servicio a terceros, redistribuirlo o incorporarlo a otros productos sin permiso por escrito. No es software de facturación certificado.
