@@ -41,7 +41,7 @@ function shell(S, key, content) {
     </aside>
     <div class="main">
       <header class="top" id="top">
-        <button class="search-btn" data-act="palette" aria-label="Buscar o crear">${icon('search', 'sm')}<span>Buscar…</span><kbd>⌘K</kbd></button>
+        <button class="search-btn" data-act="palette" aria-label="Buscar, crear u ordenar">${icon('search', 'sm')}<span>Buscar…</span><kbd>⌘K</kbd></button>
         <span class="grow"></span>
         ${st.pin_on ? html`<button class="btn ghost icon" data-act="lockNow" aria-label="Bloquear la aplicación" title="Bloquear">${icon('lock')}</button>` : ''}<button class="btn ghost icon" data-act="theme" aria-label="Cambiar entre tema claro y oscuro" title="Tema">${icon(theme === 'dark' ? 'sun' : 'moon')}</button>
         <span class="me" title="${st.company_name || ''}">${st.logo ? html`<img src="${st.logo}" alt="">` : (st.company_name || 'R')[0].toUpperCase()}</span><button class="btn primary" data-act="quick"><span class="hide-sm" style="display:contents">${icon('plus', 'sm')}</span> Nuevo</button>
@@ -116,14 +116,17 @@ ACT.quick = () => {
 
 
 // ---------- atajos de teclado (estilo Linear/Twenty) ----------
-let chord = 0;
+let chord = 0, nchord = 0;
 const typing = (t) => t?.matches?.('input,textarea,select,[contenteditable]') || document.querySelector('.overlay');
-const SHORTCUTS = [['⌘K', 'Buscar o crear'], ['?', 'Ver atajos'], ['G luego H', 'Ir a Hoy'], ['G luego M', 'Ir a Mensajes'], ['G luego C', 'Ir a Clientes'], ['G luego D', 'Ir a Dinero'], ['G luego A', 'Ir a Ajustes'], ['J / K', 'Mensaje siguiente / anterior'], ['R', 'Responder (enfoca el borrador)'], ['E', 'Archivar mensaje'], ['⌘ Enter', 'Enviar o marcar respondido']];
+const SHORTCUTS = [['⌘K', 'Buscar, crear u ordenar'], ['/', 'Buscar u ordenar'], ['N luego F', 'Nueva factura'], ['N luego P', 'Nuevo presupuesto'], ['N luego C', 'Nuevo cliente'], ['N luego G', 'Nuevo gasto'], ['N luego T', 'Nueva tarea'], ['?', 'Ver atajos'], ['G luego H', 'Ir a Hoy'], ['G luego M', 'Ir a Mensajes'], ['G luego C', 'Ir a Clientes'], ['G luego D', 'Ir a Dinero'], ['G luego A', 'Ir a Ajustes'], ['J / K', 'Mensaje siguiente / anterior'], ['R', 'Responder (enfoca el borrador)'], ['E', 'Archivar mensaje'], ['⌘ Enter', 'Enviar o marcar respondido']];
 document.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
   const k = e.key.toLowerCase();
   if (e.key === '?') { e.preventDefault(); openModal({ title: 'Atajos de teclado', body: `<ul class="list" style="margin:0 -22px">${SHORTCUTS.map(([a, b]) => `<li style="padding:10px 22px"><span class="grow">${esc(b)}</span><span>${a.split(' ').map((x) => (/^(luego|\/)$/.test(x) ? `<small class="muted"> ${x} </small>` : `<kbd>${esc(x)}</kbd>`)).join('')}</span></li>`).join('')}</ul>` }); return; }
   if (chord && Date.now() - chord < 1200) { chord = 0; const to = { h: '#/hoy', m: '#/mensajes', c: '#/clientes', d: '#/facturas', a: '#/ajustes' }[k]; if (to) { e.preventDefault(); go(to); } return; }
+  if (nchord && Date.now() - nchord < 1200) { nchord = 0; const go_ = { f: () => go('#/facturas/nueva'), p: () => go('#/presupuestos/nuevo'), c: () => ACT.newClient(), g: () => ACT.newExpense(), t: () => ACT.newTask(), m: () => ACT.pasteMsg() }[k]; if (go_) { e.preventDefault(); go_(); } return; }
+  if (k === 'n') { nchord = Date.now(); return; }
+  if (e.key === '/') { e.preventDefault(); ACT.palette(); return; }
   if (k === 'g') { chord = Date.now(); return; }
   if (store.view === 'mensajes') {
     const rows = [...document.querySelectorAll('.mrow')], cur = rows.findIndex((r) => r.classList.contains('sel'));

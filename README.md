@@ -103,6 +103,9 @@ En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook �
 ## Tarjetas por correo (nivel 0)
 Presupuestos con botones Aceptar/Rechazar, solicitudes de pago y avisos de estado por **email normal**, con respuesta verificada (token de un solo uso + remitente + SPF/DKIM). Ver `docs/app-clientes.md` §14.1.
 
+## Órdenes en lenguaje natural y atajos
+Escribe en la barra de Hoy o en ⌘K cosas como «factura a Marta por 3 horas a 40 €», «recuérdame llamar a Pedro mañana», «gasto gasolina 45,50 €», «nuevo cliente Ana López 612345678» o «abre clientes». REM lo interpreta con reglas (sin IA) o, si tienes un modelo local, con él; **muestra lo que va a hacer y solo lo ejecuta si confirmas** (las facturas se crean como borrador; si hay dos clientes parecidos, eliges). Atajos: `/` busca u ordena, `N` luego `F`/`P`/`C`/`G`/`T` crea factura/presupuesto/cliente/gasto/tarea. En móvil los botones tienen al menos 44 px y respetan la zona segura. Código: `public/commands.js` (puro y probado), `public/assistant.js`.
+
 ## Test masivo
 `npm run stress` (opciones: `--clients 5000 --invoices 10000 --customers 1000 --only a|b`) levanta una empresa y un relé reales y comprueba: **A)** miles de clientes y facturas con escrituras concurrentes (numeración sin duplicados ni huecos, totales, cobros, exportaciones, copia y `integrity_check`); **B)** miles de clientes de REM Clientes cifrando mensajes a la vez (sin pérdidas ni duplicados, cada cliente recibe solo lo suyo, presupuestos aceptados/rechazados en masa, relé ciego, abuso y suplantación). Referencia en un Mac: 10.000 facturas emitidas en ~26 s; 5.000 mensajes cifrados en ~2,6 s. Límite conocido: con 5.000 clientes y 10.000 facturas, `/api/state` pesa ~6 MB y tarda ~1,4 s (pendiente: paginar).
 

@@ -1,6 +1,8 @@
 // Infraestructura compartida: estado, navegación, capas, avisos y acciones.
 import { html, raw, esc, icon, api, norm } from './util.js';
 import { upgradeCombos } from './combo.js';
+import { parseCommand } from './commands.js';
+import { today } from './calc.js';
 
 export const store = { S: null, view: null, params: [] };
 export const ACT = {};          // acciones por data-act
@@ -104,12 +106,13 @@ export function openPalette() {
     ...S.documents.map((d) => { const c = S.clients.find((x) => x.id === d.client_id); return { g: { factura: 'Facturas', albaran: 'Albaranes' }[d.type] || 'Presupuestos', t: (d.number || 'Borrador') + (c ? ' · ' + c.name : ''), s: '', href: `#/${{ factura: 'facturas', albaran: 'albaranes' }[d.type] || 'presupuestos'}/${d.id}`, i: d.type === 'factura' ? 'facturas' : 'presupuestos' }; }),
   ];
   let sel = 0, shown = [];
-  const m = openModal({ cls: 'palette', label: 'Buscar', body: `<input id="pq" placeholder="Busca clientes, facturas, o escribe una acción…" autocomplete="off" aria-label="Buscar"><ul id="pl" role="listbox"></ul>`,
+  const m = openModal({ cls: 'palette', label: 'Buscar', body: `<input id="pq" placeholder="Busca, o ordena: «gasto gasolina 45 €», «tarea llamar a Pedro mañana»…" autocomplete="off" aria-label="Buscar"><ul id="pl" role="listbox"></ul>`,
     onMount: (el, close) => {
       const q = el.querySelector('#pq'), ul = el.querySelector('#pl');
       const draw = () => {
         const t = norm(q.value);
         shown = (t ? items.filter((x) => norm(x.t + ' ' + (x.s || '') + ' ' + (x.k || '')).includes(t)) : items.filter((x) => x.g === 'Ir a' || x.g === 'Crear')).slice(0, 30);
+        { const cmd = q.value.trim().length > 2 ? parseCommand(q.value, { clients: S.clients, today: today(), defaultIva: Number(S.settings?.default_iva ?? 21) }) : null; if (cmd) shown.unshift({ g: 'Orden', t: 'Hacer: ' + cmd.summary, i: 'sparkle', run: () => import('./assistant.js').then((a) => a.confirmActions(cmd.actions, cmd.summary)) }); }
         if (q.value.trim().length > 2) shown.push({ g: 'Asistente', t: `Preguntar: ${q.value.trim()}`, i: 'sparkle', run: () => import('./views/hoy.js').then((h) => h.askModal(q.value.trim())), keep: true });
         sel = Math.min(sel, Math.max(0, shown.length - 1));
         let last = '';

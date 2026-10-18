@@ -47,8 +47,8 @@ before(async () => {
     if (q.url === '/redir') { r.writeHead(302, { Location: '/' }); return r.end(); } if (q.url === '/pdf') return h(200, 'application/pdf', '%PDF'); if (q.url === '/enorme') { r.writeHead(200, { 'Content-Type': 'text/html' }); r.write('x'.repeat(2e6)); return r.end(); }
     h(404, 'text/plain', 'no');
   });
-  ai = http.createServer(async (q, r) => { let b = ''; for await (const c of q) b += c; aiSeen = b; r.writeHead(200, { 'Content-Type': 'application/json' }); r.end(JSON.stringify({ content: [{ type: 'text', text: aiAnswer }] })); });
-  webPort = await listen(web); const aiPort = await listen(ai);
+  ai = http.createServer(async (q, r) => { let b = ''; for await (const c of q) b += c; aiSeen = b; r.writeHead(200, { 'Content-Type': 'application/json' }); if (q.url === '/api/generate') return r.end(JSON.stringify({ response: aiAnswer })); r.end(JSON.stringify({ content: [{ type: 'text', text: aiAnswer }] })); });
+  webPort = await listen(web); const aiPort = await listen(ai); globalThis.__aiPort = aiPort;
   const port = await new Promise((r) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); }); base = `http://127.0.0.1:${port}`;
   child = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server.mjs'], { env: { ...process.env, REM_PORT: String(port), REM_DATA_DIR: mkdtempSync(join(tmpdir(), 'rem-wp-')), REM_NO_KEYCHAIN: '1', REM_WEB_ALLOW_LOCAL: '1', REM_ANTHROPIC_BASE: `http://127.0.0.1:${aiPort}` }, stdio: 'pipe' });
   await until(async () => { try { await fetch(base + '/api/state'); return true; } catch { return false; } });
@@ -75,4 +75,10 @@ test('IA opcional con Claude: completa lo que falta, marcado como resumen de IA'
   const r = await call('POST', '/api/company/from-web', { url: `http://127.0.0.1:${webPort}/pobre`, ai: 'claude' }); assert.equal(r.status, 200);
   const d = r.json.fields.find((x) => x.key === 'description'); assert.equal(d.value, 'Fontanería y reformas en Murcia.'); assert.match(d.source, /IA/); assert.match(r.json.ai, /Claude/);
   assert.match(aiSeen, /<texto_de_la_web>/); assert.ok(r.json.ai_sent_chars > 0);
+});
+
+test('IA opcional con el modelo local: mismo resultado, nada sale del equipo', async () => {
+  await call('PUT', '/api/settings', { ollama_url: `http://127.0.0.1:${globalThis.__aiPort}`, ollama_model: 'x' });
+  const r = await call('POST', '/api/company/from-web', { url: `http://127.0.0.1:${webPort}/pobre`, ai: 'local' }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal(r.json.ai, 'modelo local');
+  assert.equal(r.json.fields.find((x) => x.key === 'hours').value, 'L-V 9:00-18:00'); assert.match(r.json.fields.find((x) => x.key === 'description').source, /IA/);
 });

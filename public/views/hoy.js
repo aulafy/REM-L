@@ -1,4 +1,5 @@
 import { store, on, go, openModal, mutate } from '../core.js';
+import { tryCommand } from '../assistant.js';
 import { esc, api } from '../util.js';
 import { ago, pending } from './mensajes.js';
 import { html, raw, eur, fdate, fdateShort, relDate, icon, badge, avatar, clientOf, paidOf, statusOf, docLabel } from '../util.js';
@@ -51,7 +52,7 @@ export const views = {
           <p>${heroSub}</p>
           <div class="cta">${pending(S).length ? html`<a class="btn" href="#/mensajes/${pending(S)[0].id}">${icon('mensajes', 'sm')}Revisar mensajes</a>` : html`<a class="btn" href="#/mensajes">${icon('mensajes', 'sm')}Abrir mensajes</a>`}${overdue.length ? html`<a class="btn ghostw" href="#/facturas?f=vencidas">Reclamar cobros</a>` : html`<a class="btn ghostw" href="#/facturas/nueva">Nueva factura</a>`}</div></div>
           <div class="big">${nm}<small>${nm === 1 ? 'mensaje por responder' : 'mensajes por responder'}</small></div></section>
-        <form class="askbar" data-ask role="search"><span class="ic-wrap">${icon('sparkle')}</span><input id="ask" class="input" placeholder="Pregunta a tu asistente: ¿cuánto cuesta el desplazamiento?" aria-label="Preguntar al asistente" autocomplete="off"><button class="btn primary" type="submit">Preguntar</button></form>
+        <form class="askbar" data-ask role="search"><span class="ic-wrap">${icon('sparkle')}</span><input id="ask" class="input" placeholder="Pregunta u ordena: «factura a Marta por 3 horas a 40 €»" aria-label="Preguntar al asistente" autocomplete="off"><button class="btn primary" type="submit">Preguntar</button></form>
         ${empty ? html`<div class="card"><div class="empty">${icon('hoy')}<h3>Empieza por conectar tus mensajes</h3><p>Conecta Telegram o tu correo, cuéntale al asistente cómo trabajas y deja que te prepare las respuestas.</p><div class="row wrap" style="justify-content:center"><a class="btn primary" href="#/ajustes" data-act="goChannels">Conectar canales</a><button class="btn" data-act="newClient">Crear cliente</button><button class="btn" data-act="loadDemo">Ver con datos de ejemplo</button></div></div></div>` : html`
         <div class="kpis k3">
           <a class="card kpi" href="#/facturas?f=pendientes"><div class="l"><span class="kchip blue">${icon('coins', 'sm')}</span>Por cobrar</div><div class="v">${eur(pend)}</div><div class="s">${invoices.filter((d) => d.total > paidOf(S, d.id)).length} facturas abiertas</div></a>
@@ -85,7 +86,7 @@ export const views = {
     },
     mount(root) {
       root.querySelector('[data-ask]')?.addEventListener('submit', async (e) => {
-        e.preventDefault(); const q = root.querySelector('#ask').value.trim(); if (q) askModal(q);
+        e.preventDefault(); const inp = root.querySelector('#ask'), q = inp.value.trim(); if (!q) return; if (await tryCommand(q)) inp.value = ''; else askModal(q);
       });
     },
   },
