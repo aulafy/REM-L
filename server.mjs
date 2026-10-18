@@ -8,7 +8,10 @@ import { homedir } from 'node:os';
 import { computeTotals, today, addDays } from './public/calc.js';
 import { createInbox } from './lib/inbox.mjs';
 import { createAgents } from './lib/agents.mjs';
-import { speak } from './lib/ai.mjs';
+import { speak, setLlmHooks } from './lib/ai.mjs';
+import { createLlmLog } from './lib/llmlog.mjs';
+import { createHindsight } from './lib/hindsight.mjs';
+import { createScheduler } from './lib/scheduler.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(ROOT, 'public');
@@ -56,11 +59,15 @@ function cleanLines(lines) {
 
 function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM settings').map((r) => [r.key, JSON.parse(r.value)])); }
 function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
-const SETTING_KEYS = ['embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
+const SETTING_KEYS = ['llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'logo',
   'default_iva', 'default_irpf', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
 
+const llmlog = createLlmLog({ db, run, all, one, nowIso, settingsObj, HttpError });
+setLlmHooks({ log: llmlog.record, check: llmlog.check });
 const agents = createAgents({ db, run, one, all, dataDir: DATA, nowIso, HttpError, settingsObj, saveSetting });
-const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA });
+const hindsight = createHindsight({ settingsObj, saveSetting, log: (e) => agents.log(e) });
+const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError });
+const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight });
 
 function nextNumber(type, year) {
   const prefix = type === 'presupuesto' ? 'P' : type === 'rectificativa' ? 'R' : 'F';
@@ -188,7 +195,7 @@ function state() {
     expenses: all('SELECT * FROM expenses ORDER BY date DESC, id DESC'),
     tasks: all('SELECT * FROM tasks ORDER BY done, CASE WHEN due=\'\' THEN 1 ELSE 0 END, due'),
     activity: all('SELECT * FROM activity ORDER BY id DESC LIMIT 60'),
-    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(),
+    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(),
   };
 }
 
@@ -225,6 +232,12 @@ const TABLE_OF = { clients: 'clients', items: 'items', expenses: 'expenses', tas
 async function route(req_, url, body) {
   const m = req_.method, p = url.pathname;
   if (m === 'GET' && p === '/api/state') return state();
+  if (m === 'POST' && p === '/api/hindsight') {
+    if (body.disconnect) { hindsight.disconnect(); return hindsight.state().hindsight; }
+    try { await hindsight.connect(str(body.url, 200) || 'http://127.0.0.1:8888'); } catch (e) { throw new HttpError(400, 'No se pudo conectar con Hindsight: ' + e.message); }
+    return hindsight.state().hindsight;
+  }
+  { const r = await scheduler.route(m, p, body); if (r !== undefined) return r; }
   { const r = (await agents.route(m, p, body)) ?? (await inbox.route(m, p, body)); if (r !== undefined) return r; }
   let g;
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {
@@ -277,6 +290,7 @@ async function route(req_, url, body) {
     for (const k of SETTING_KEYS) if (body[k] !== undefined) {
       let v = body[k];
       if (['default_iva', 'default_irpf', 'payment_days', 'quote_days'].includes(k)) v = rate(v);
+      else if (k === 'llm_max_per_hour') v = Math.min(1000, Math.max(1, Math.round(Number(v)) || 60));
       else if (typeof v === 'string') v = k === 'logo' ? (v.length < 400000 && /^data:image\/(png|jpeg|svg\+xml|webp);base64,/.test(v) ? v : '') : str(v, 400);
       run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v));
     }
@@ -290,7 +304,7 @@ async function route(req_, url, body) {
     if (body.confirm !== 'BORRAR') throw bad('Confirmación necesaria');
     makeBackup('antes-de-borrar');
     inbox.stop();
-    for (const t of ['memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
+    for (const t of ['briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
     return { ok: true };
   }
   throw new HttpError(404, 'Ruta no encontrada');
@@ -343,5 +357,5 @@ function csv(url, res, headers) {
   res.writeHead(200, { ...headers, 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${kind}-${today()}.csv"` }).end('﻿' + rows.map((r) => r.map(q).join(';')).join('\r\n'));
 }
 
-server.listen(PORT, '127.0.0.1', () => { console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`); inbox.start(); });
+server.listen(PORT, '127.0.0.1', () => { console.log(`REM Negocio en http://127.0.0.1:${PORT}/\nDatos: ${DATA}`); inbox.start(); scheduler.start(); });
 export { server, db };
