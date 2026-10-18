@@ -2,10 +2,11 @@ import { store, on, mutate, toast, confirmBox, field, formValues, formModal, go,
 import { html, raw, eur, eurPlain, icon, api, fdate, clientOf } from '../util.js';
 import { openModal } from '../core.js';
 import { validNif } from '../calc.js';
+import { BUILTIN, VARS } from '../doctpl.js';
 
 let tab = 'canales';
 const NEG_TPL = `# Mi negocio\n\n## Qué hacemos\n(Describe tu actividad en dos líneas.)\n\n## Cómo hablamos con los clientes\n- Trato: tuteo, cercano y profesional.\n- Respuestas cortas; siempre una propuesta de siguiente paso.\n\n## Nunca\n- Prometer descuentos ni fechas sin confirmarlo conmigo.\n- Dar precios que no estén en las tarifas.\n- Hablar de otros clientes.\n\n## Objetivos\n- Responder a todos en menos de 2 horas laborables.\n- Cobrar las facturas a 30 días.\n`;
-const TABS = [['canales', 'Canales'], ['negocio', 'Mi negocio'], ['conocimiento', 'Conocimiento'], ['memoria', 'Memoria'], ['agentes', 'Agentes'], ['modulos', 'Módulos'], ['ia', 'IA y voz'], ['empresa', 'Empresa'], ['facturacion', 'Facturación'], ['catalogo', 'Catálogo'], ['datos', 'Datos y copias']];
+const TABS = [['canales', 'Canales'], ['negocio', 'Mi negocio'], ['conocimiento', 'Conocimiento'], ['memoria', 'Memoria'], ['agentes', 'Agentes'], ['modulos', 'Módulos'], ['documentos', 'Documentos'], ['ia', 'IA y voz'], ['empresa', 'Empresa'], ['facturacion', 'Facturación'], ['catalogo', 'Catálogo'], ['datos', 'Datos y copias']];
 export const openTab = (k) => { tab = k; };
 const v = (x) => x ?? '';
 
@@ -106,6 +107,10 @@ export const views = {
             <div class="notice">${icon('book')}<span>Un módulo es solo una definición (campos, plantillas, reglas, informes), <b>no código</b>. Verás exactamente qué hará antes de instalarlo y puedes quitarlo cuando quieras.</span></div></div></section>
           <section class="card"><div class="card-h"><h2>Galería</h2></div><ul class="list">${S.gallery.map((g) => html`<li><div class="grow"><div class="t">${g.name}</div><div class="d" style="white-space:normal">${g.description}</div></div>${g.installed ? html`<span class="badge green">Instalado</span>` : html`<button class="btn sm" data-act="modGallery" data-id="${g.id}">Ver e instalar</button>`}</li>`)}</ul></section>
           <section class="card"><details class="src" style="margin:0"><summary style="padding:16px 22px">${icon('book', 'sm')}Avanzado: pegar un módulo (JSON)</summary><div class="card-b stack" style="padding-top:0"><textarea id="mod-json" class="input" rows="6" style="font-family:ui-monospace,Menlo,monospace;font-size:13px" placeholder='{"id":"mi-modulo","name":"…","custom_fields":[…]}'></textarea><div><button class="btn" data-act="modPaste">Revisar</button></div></div></details></section></div>`,
+        documentos: html`<div class="stack"><section class="card"><div class="card-h"><h2>Plantillas de cartas y contratos</h2><button class="btn sm more" data-act="newDocTpl">${icon('plus', 'sm')}Nueva</button></div>
+          <div class="card-b" style="padding-top:0"><p class="muted">Se rellenan con los datos del cliente y de tu negocio y se descargan en PDF desde la ficha del cliente («Documento…»). Los modelos de serie son orientativos: revísalos con tu asesor.</p></div>
+          <ul class="list">${[...BUILTIN, ...S.docTemplates.map((t) => ({ ...t, id: 't:' + t.id, mine: true }))].map((t) => html`<li><span class="badge ic-only ${t.mine ? 'green' : 'blue'}" style="padding:7px">${icon('presupuestos', 'sm')}</span><div class="grow"><div class="t">${t.name}</div><div class="d" style="white-space:normal">${t.mine ? 'Tu plantilla' : t.note}</div></div>
+            ${t.mine ? html`<button class="btn ghost icon sm" data-act="editDocTpl" data-id="${t.id}" aria-label="Editar">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="delDocTpl" data-id="${t.id}" aria-label="Eliminar">${icon('trash', 'sm')}</button>` : html`<button class="btn sm" data-act="copyDocTpl" data-id="${t.id}">Usar como base</button>`}</li>`)}</ul></section></div>`,
         ia: html`<form data-save class="card"><div class="card-h"><h2>IA local</h2></div><div class="card-b stack"><div class="notice">${icon('sparkle')}<span>REM funciona completo sin IA. Con un modelo local (Ollama) el asistente redacta respuestas y contesta preguntas. <b>Nada sale de tu ordenador</b>; solo se admiten direcciones locales.</span></div>
           <div class="grid g2">${field({ name: 'ollama_url', label: 'Dirección de Ollama', value: v(s.ollama_url), placeholder: 'http://127.0.0.1:11434' })}${field({ name: 'ollama_model', label: 'Modelo de texto', value: v(s.ollama_model), placeholder: 'p. ej. qwen3:8b', hint: S.channels.ai.on ? 'Activado' : 'Rellena dirección y modelo para activarlo' })}
           ${field({ name: 'embed_model', label: 'Modelo de embeddings (opcional)', value: v(s.embed_model), placeholder: 'nomic-embed-text', hint: 'Mejora la búsqueda en tu conocimiento' })}</div>
@@ -219,3 +224,16 @@ function askRestore(name, s) {
     onMount: (el, close) => el.querySelector('#rs-ok').addEventListener('click', async (e) => { e.currentTarget.disabled = true; try { await mutate('POST', '/api/backups/restore', { name }, 'Copia restaurada'); close(); go('#/hoy'); } catch { e.target.disabled = false; } }) });
 }
 on('restoreBackup', async (el) => { try { askRestore(el.dataset.name, await api('GET', `/api/backups/${el.dataset.name}/summary`)); } catch (e) { toast(e.message, 'err'); } });
+
+// ---------- plantillas de documentos ----------
+function tplModal(t, base) {
+  const chips = VARS.map(([k, l]) => `<button type="button" class="chip var" data-var="${k}" title="${esc2(l)}">{{${k}}}</button>`).join(' ');
+  formModal({ title: t ? 'Editar plantilla' : 'Nueva plantilla', wide: true, submit: 'Guardar',
+    fields: `<div style="grid-column:1/-1">${field({ name: 'name', label: 'Nombre', value: t?.name || (base ? base.name + ' (mía)' : ''), required: true, attrs: 'autofocus' })}</div><div style="grid-column:1/-1">${field({ name: 'body', label: 'Texto', rows: 16, value: t?.body || base?.body || '', required: true, hint: '# Título, ## Apartado, - lista, **negrita**, [firma] = espacio para firmar. Pulsa una variable para insertarla:' })}<div id="tpl-vars" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">${chips}</div></div>`,
+    onSubmit: async (v, close) => { await mutate(t ? 'PUT' : 'POST', t ? `/api/doc-templates/${t.id}` : '/api/doc-templates', v, 'Plantilla guardada'); close(); } });
+  document.getElementById('tpl-vars')?.addEventListener('click', (e) => { const b = e.target.closest('[data-var]'); if (!b) return; const ta = document.querySelector('.overlay textarea'), s = ta.selectionStart; ta.value = ta.value.slice(0, s) + `{{${b.dataset.var}}}` + ta.value.slice(ta.selectionEnd); ta.focus(); ta.selectionStart = ta.selectionEnd = s + b.dataset.var.length + 4; });
+}
+on('newDocTpl', () => tplModal(null));
+on('copyDocTpl', (el) => tplModal(null, BUILTIN.find((b) => b.id === el.dataset.id)));
+on('editDocTpl', (el) => tplModal(store.S.docTemplates.find((t) => 't:' + t.id === el.dataset.id)));
+on('delDocTpl', async (el) => { const t = store.S.docTemplates.find((x) => 't:' + x.id === el.dataset.id); if (await confirmBox({ title: 'Eliminar plantilla', text: `Se eliminará «${t.name}».`, ok: 'Eliminar', danger: true })) await mutate('DELETE', `/api/doc-templates/${t.id}`, undefined, 'Eliminada'); });

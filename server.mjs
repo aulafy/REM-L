@@ -16,6 +16,7 @@ import { createScheduler } from './lib/scheduler.mjs';
 import { createAttachments } from './lib/attachments.mjs';
 import { createModules } from './lib/modules.mjs';
 import { createRecurring } from './lib/recurring.mjs';
+import { createDocTemplates } from './lib/doctemplates.mjs';
 import { restoreFrom, summarize, isSqlite } from './lib/restore.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -73,6 +74,7 @@ const agents = createAgents({ db, run, one, all, dataDir: DATA, nowIso, HttpErro
 const hindsight = createHindsight({ settingsObj, saveSetting, log: (e) => agents.log(e) });
 const modules = createModules({ db, run, one, all, nowIso, str, HttpError, settingsObj, saveSetting, agents });
 const recurring = createRecurring({ db, run, one, all, nowIso, str, HttpError, log, today, createDocument });
+const docTemplates = createDocTemplates({ db, run, one, all, nowIso, str, HttpError, log });
 const scheduler = createScheduler({ db, run, one, all, nowIso, settingsObj, saveSetting, agents, HttpError, modules });
 const attachments = createAttachments({ db, run, one, all, dataDir: DATA, nowIso, str, HttpError, settingsObj, agents, createExpense: (b) => C.expenses.create(b) });
 const inbox = createInbox({ db, run, one, all, log, tx, HttpError, nowIso, str, settingsObj, saveSetting, agents, dataDir: DATA, hindsight, attachments, modules });
@@ -203,7 +205,7 @@ function state() {
     expenses: all('SELECT * FROM expenses ORDER BY date DESC, id DESC'),
     tasks: all('SELECT * FROM tasks ORDER BY done, CASE WHEN due=\'\' THEN 1 ELSE 0 END, due'),
     activity: all('SELECT * FROM activity ORDER BY id DESC LIMIT 60'),
-    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(), ...attachments.state(), ...modules.state(), ...recurring.state(),
+    backups: listBackups(), serverDate: today(), ...inbox.state(), ...agents.state(), ...llmlog.state(), ...hindsight.state(), ...scheduler.state(), ...attachments.state(), ...modules.state(), ...recurring.state(), ...docTemplates.state(),
   };
 }
 
@@ -249,6 +251,7 @@ async function route(req_, url, body) {
   { const r = await attachments.route(m, p, body); if (r !== undefined) return r; }
   { const r = await modules.route(m, p, body); if (r !== undefined) return r; }
   { const r = await recurring.route(m, p, body); if (r !== undefined) return r; }
+  { const r = await docTemplates.route(m, p, body); if (r !== undefined) return r; }
   { const r = (await agents.route(m, p, body)) ?? (await inbox.route(m, p, body)); if (r !== undefined) return r; }
   let g;
   if ((g = p.match(/^\/api\/(clients|items|expenses|tasks)(?:\/(\d+))?$/))) {
@@ -330,7 +333,7 @@ async function route(req_, url, body) {
     if (body.confirm !== 'BORRAR') throw bad('Confirmación necesaria');
     makeBackup('antes-de-borrar');
     inbox.stop();
-    for (const t of ['recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
+    for (const t of ['doc_templates', 'recurring', 'ext_values', 'modules', 'attachments', 'briefings', 'llm_calls', 'briefings', 'memory', 'approvals', 'messages', 'chunks', 'knowledge', 'payments', 'documents', 'tasks', 'expenses', 'items', 'clients', 'activity', 'settings']) run(`DELETE FROM ${t}`);
     return { ok: true };
   }
   throw new HttpError(404, 'Ruta no encontrada');
