@@ -1,0 +1,104 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>REM · presentación</title><style>
+*{box-sizing:border-box;margin:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#0b1020;font-family:-apple-system,"SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:linear-gradient(135deg,#f7f9ff,#e6edfd 60%,#dbe6ff)}
+.blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55}
+.abs{position:absolute}.fade{opacity:0}
+.cap{position:absolute;left:96px;font-weight:700;letter-spacing:-.025em;color:#0e1630;line-height:1.05}
+.chip{position:absolute;left:96px;top:96px;padding:10px 20px;border-radius:99px;background:#0e1630;color:#fff;font-weight:600;font-size:22px;letter-spacing:.08em}
+.dev{position:absolute;border-radius:22px;background:#fff;box-shadow:0 2px 4px rgba(10,20,50,.08),0 40px 90px -20px rgba(20,40,110,.38),0 0 0 1.5px rgba(10,20,50,.10);overflow:hidden}
+.dev img{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bar{height:34px;background:linear-gradient(#f4f5f8,#e9ebf0);display:flex;align-items:center;gap:8px;padding-left:16px;position:relative;z-index:2}.bar i{width:12px;height:12px;border-radius:50%;display:block}
+.phone{position:absolute;border-radius:62px;background:#0c0d12;padding:14px;box-shadow:0 0 0 2px #2a2c36,0 50px 100px -25px rgba(10,30,100,.5)}
+.phone .scr{position:relative;width:100%;height:100%;border-radius:50px;overflow:hidden;background:#fff}.phone img{position:absolute;left:0;top:50px;width:100%;height:calc(100% - 50px);object-fit:cover;object-position:top}
+.phone:before{content:"";position:absolute;left:50%;top:22px;width:110px;height:32px;border-radius:20px;background:#000;transform:translateX(-50%);z-index:5}
+.pill{position:absolute;padding:26px 30px;border-radius:30px;background:rgba(255,255,255,.82);backdrop-filter:blur(20px);box-shadow:0 2px 3px rgba(10,20,50,.06),0 30px 60px -24px rgba(20,40,110,.35);width:420px}
+.pill b{display:block;font-size:30px;letter-spacing:-.02em;color:#0e1630;margin-top:18px}.pill span{display:block;font-size:22px;color:#4b556e;margin-top:8px;line-height:1.3}
+.tile{width:72px;height:72px;border-radius:27%;display:grid;place-items:center;color:#fff;font-size:38px;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 0 0 .5px rgba(255,255,255,.3),0 3px 8px rgba(0,0,0,.25)}
+.hl{position:absolute;border:4px solid #0a84ff;border-radius:18px;box-shadow:0 0 0 8px rgba(10,132,255,.18)}
+</style></head><body><div id="stage">
+<div class="blob" id="b1" style="width:760px;height:760px;background:#7aa8ff;left:-160px;top:-200px"></div><div class="blob" id="b2" style="width:640px;height:640px;background:#b6f0e4;right:-120px;bottom:-200px"></div><div class="blob" id="b3" style="width:480px;height:480px;background:#ffd3a8;right:360px;top:-180px;opacity:.4"></div>
+
+<!-- Intro / Outro -->
+<div id="intro" class="abs fade" style="inset:0;display:grid;place-items:center;text-align:center"><div>
+  <img id="ico" src="shots/icon.png" style="width:260px;height:260px;border-radius:58px;box-shadow:0 40px 80px -20px rgba(20,50,160,.55)">
+  <div id="t1" style="font-size:112px;font-weight:700;letter-spacing:-.04em;color:#0e1630;margin-top:44px">REM Negocio</div>
+  <div id="t2" style="font-size:44px;color:#4b556e;margin-top:12px;letter-spacing:-.01em">Tu negocio, en tu Mac. Sin nubes ajenas.</div></div></div>
+
+<!-- Empresa -->
+<div id="chipE" class="chip fade">PARA TU EMPRESA</div>
+<div id="capE" class="cap fade" style="top:170px;font-size:84px;width:640px"></div>
+<div id="lap" class="dev fade" style="left:760px;top:150px;width:1080px;height:709px"><div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div><div style="position:relative;height:675px;overflow:hidden"><img id="lapA" src="shots/e1-hoy.png"><img id="lapB" src="shots/e2-facturas.png"><img id="lapC" src="shots/e3-factura.png"><img id="lapD" src="shots/e4-ask-0.png"><div id="typeWrap" class="abs" style="inset:0;overflow:hidden"><img id="lapD2" src="shots/e4-ask-2.png"></div><img id="lapE" src="shots/e5-confirm.png"><img id="lapF" src="shots/e6-borrador.png"></div></div>
+<div id="hlAsk" class="hl fade" style="left:0;top:0;width:0;height:0"></div>
+
+<!-- Transición -->
+<div id="mid" class="abs fade" style="inset:0;display:grid;place-items:center;text-align:center"><div style="font-size:96px;font-weight:700;letter-spacing:-.035em;color:#0e1630;line-height:1.05">Y tu cliente,<br><span style="background:linear-gradient(90deg,#0a84ff,#30d158);-webkit-background-clip:text;color:transparent">sin instalar nada.</span></div></div>
+
+<!-- Cliente -->
+<div id="chipC" class="chip fade" style="background:#0a7aff">PARA TU CLIENTE</div>
+<div id="capC" class="cap fade" style="top:170px;font-size:80px;width:560px"></div>
+<div id="subC" class="abs fade" style="left:96px;top:620px;width:540px;font-size:32px;color:#4b556e;line-height:1.3"></div>
+<div id="ph" class="phone fade" style="left:690px;top:84px;width:402px;height:912px"><div class="scr"><img id="p1" src="shots/c1-inicio.png"><img id="p2" src="shots/c2-escribe.png"><img id="p3" src="shots/c3-enviado.png"><img id="p4" src="shots/c4-presupuesto.png"><img id="p5" src="shots/c5-aceptado.png"><img id="p6" src="shots/c6-pago.png"><img id="p7" src="shots/c7-estado.png"></div></div>
+<div id="lap2" class="dev fade" style="left:1150px;top:300px;width:700px"><div class="bar" style="height:26px"><i style="background:#ff5f57;width:10px;height:10px"></i><i style="background:#febc2e;width:10px;height:10px"></i><i style="background:#28c840;width:10px;height:10px"></i></div><div style="position:relative;height:437px"><img id="q1" src="shots/e7-mensaje-cliente.png"><img id="q2" src="shots/e8-presupuesto-aceptado.png"></div></div>
+<div id="tagC" class="abs fade" style="left:1150px;top:222px;font-size:34px;font-weight:700;color:#0e1630;letter-spacing:-.02em"></div>
+
+<!-- Pilares -->
+<div id="pil" class="abs fade" style="inset:0"><div class="cap" style="left:0;right:0;top:120px;text-align:center;font-size:84px">Pensado para trabajar tranquilo</div>
+ <div class="pill" id="k1" style="left:120px;top:380px"><div class="tile" style="background:linear-gradient(#5ac8fa,#0a84ff)">⌂</div><b>Tus datos, en tu Mac</b><span>Local-first: tu información vive en tu equipo, no en una nube ajena.</span></div>
+ <div class="pill" id="k2" style="left:570px;top:380px"><div class="tile" style="background:linear-gradient(#5be584,#27a94a)">🔒</div><b>Cifrado con tu cliente</b><span>Los mensajes se cifran en el navegador de tu cliente. El servidor no puede leerlos.</span></div>
+<div class="pill" id="k3" style="left:1020px;top:380px"><div class="tile" style="background:linear-gradient(#d68bff,#a54be0)">✦</div><b>IA local, si quieres</b><span>Órdenes en lenguaje natural con confirmación. Sin enviar tus datos fuera.</span></div>
+ <div class="pill" id="k4" style="left:1470px;top:380px"><div class="tile" style="background:linear-gradient(#ffc04d,#ff9500)">✉</div><b>Sin cuentas ni apps</b><span>Tu cliente solo abre un enlace. Sin registro, sin descargas.</span></div></div>
+
+<div id="foot" class="abs fade" style="left:0;right:0;bottom:36px;text-align:center;font-size:22px;color:#5b6580">Vídeo de demostración · todos los nombres, logotipos, importes y datos son ficticios</div>
+</div>
+<script>
+const $=(id)=>document.getElementById(id), clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)), seg=(t,a,b)=>clamp((t-a)/(b-a));
+const eo=(x)=>1-Math.pow(1-x,3), eio=(x)=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2, spring=(x)=>{x=clamp(x);return 1-Math.exp(-6*x)*Math.cos(10*x)};
+const show=(el,v,y=0,s=1,x=0)=>{el.style.opacity=clamp(v);el.style.transform=`translate(${x}px,${y}px) scale(${s})`;};
+const win=(t,a,b,f=.5)=>Math.min(seg(t,a,a+f),1-seg(t,b-f,b)); // 1 dentro de [a,b] con fundido
+const set=(el,t,a,b,f=.4)=>{el.style.opacity=win(t,a,b,f)};
+function caption(el,t,a,b,text,f=.55){ if(el.dataset.t!==text){el.innerHTML=text;el.dataset.t=text} const v=win(t,a,b,f); el.style.opacity=v; el.style.transform=`translateY(${(1-eo(seg(t,a,a+f)))*28}px)`; }
+function caps(el,t,list,f=.55){ const c=list.find(([a,b])=>t>=a&&t<b); if(!c){el.style.opacity=0;return;} caption(el,t,c[0],c[1],c[2],f); }
+const imgs=[...document.images];
+window.__ready=Promise.all(imgs.map(i=>i.decode().catch(()=>{}))).then(()=>true);
+function render(t){
+  // fondo vivo
+  $('b1').style.transform=`translate(${Math.sin(t*.25)*70}px,${Math.cos(t*.2)*50}px)`;$('b2').style.transform=`translate(${Math.cos(t*.22)*80}px,${Math.sin(t*.27)*60}px)`;$('b3').style.transform=`translate(${Math.sin(t*.3)*60}px,${Math.cos(t*.25)*40}px)`;
+  // INTRO 0–5
+  const iv=win(t,0,5,.7); $('intro').style.opacity=t<5?iv:0; $('ico').style.transform=`scale(${.6+.4*spring(seg(t,0,1.2))}) translateY(${(1-eo(seg(t,0,1)))*40}px)`; show($('t1'),seg(t,.5,1.4)*(t<4.3?1:1-seg(t,4.3,5)),(1-eo(seg(t,.5,1.4)))*30); show($('t2'),seg(t,1,1.9)*(t<4.3?1:1-seg(t,4.3,5)),(1-eo(seg(t,1,1.9)))*24);
+  // LAPTOP: escenas empresa 5–27
+  const lapOn=t>4.6&&t<27.4, lv=win(t,4.8,27.2,.6); const lap=$('lap'); lap.style.opacity=lapOn?lv:0;
+  const enter=eo(seg(t,4.8,6.2)); let sc=1+0.045*seg(t,5,15)-(t>15?0:0), tx=(1-enter)*260, ty=0, rot=(1-enter)*-9;
+  if(t>=15){ // asistente: acercar a la barra de órdenes
+    const z=eio(seg(t,15,16.4)); sc=1.045+z*0.20; tx=0; ty=0; if(t>20.5){const z2=eio(seg(t,20.5,21.8)); sc=1.245-z2*.20;} }
+  lap.style.transform=`translate(${tx}px,${ty}px) scale(${sc}) perspective(1600px) rotateY(${rot}deg)`; lap.style.transformOrigin=t>=15&&t<21.8?'0% 24%':'50% 50%';
+  const L=(id,a,b,f=.45)=>{ $(id).style.opacity=0; $(id).dataset.a=a; $(id).dataset.b=b; $(id).style.opacity=win(t,a,b,f)*1; };
+  // imágenes: fundido cruzado con solape
+  const x=(id,a,b)=>{ $(id).style.opacity= (t>=a&&t<b)? Math.min(seg(t,a,a+.4),1-seg(t,b-.0,b+.0001)) : 0; };
+  const A=t<5?0:1; $('lapA').style.opacity= t>=5&&t<9.6?1:0; $('lapB').style.opacity= t>=9.2&&t<12.9?seg(t,9.2,9.7):0; $('lapC').style.opacity= t>=12.5&&t<15.1?seg(t,12.5,13):0; $('lapD').style.opacity= t>=14.8&&t<21.4?seg(t,14.8,15.3):0;
+  // «escribir»: la imagen con el texto aparece barrida de izquierda a derecha
+  const ty2=eio(seg(t,16.2,19.4)); $('typeWrap').style.opacity=t>=16.2&&t<21.4?1:0; $('typeWrap').style.clipPath=`inset(0 ${100-ty2*100}% 0 0)`;
+  $('lapE').style.opacity=t>=20.6&&t<24.2?seg(t,20.6,21.2):0; $('lapF').style.opacity=t>=23.8&&t<27.4?seg(t,23.8,24.4):0;
+  $('lapA').style.display=$('lapB').style.display=$('lapC').style.display='block';
+  $('chipE').style.opacity=win(t,5,26.6,.5); $('chipE').style.transform=`translateY(${(1-eo(seg(t,5,5.6)))*-20}px)`;
+  caps($('capE'),t,[[5.6,9.2,'Todo tu negocio,<br>en una pantalla.'],[9.2,12.5,'Facturas, cobros y<br>vencimientos al día.'],[12.5,15,'Documentos claros,<br>listos para enviar.'],[15,20.4,'Díselo como<br>se lo dirías.'],[20.4,23.8,'Tú confirmas.<br>Nada se hace solo.'],[23.8,27,'Borrador listo<br>en segundos.']]);
+  // TRANSICIÓN 27–29.5
+  $('mid').style.opacity=win(t,27,29.8,.5); $('mid').firstElementChild.style.transform=`translateY(${(1-eo(seg(t,27,27.7)))*40}px)`;
+  // CLIENTE 29.5–47
+  const cOn=t>29.4&&t<47.4; $('chipC').style.opacity=cOn?win(t,29.6,47,.5):0;
+  const pv=win(t,29.6,47.2,.6), pe=eo(seg(t,29.6,31)); $('ph').style.opacity=cOn?pv:0; $('ph').style.transform=`translateY(${(1-pe)*120}px) scale(${.96+.04*pe})`;
+  const P=[[29.6,32],[32,34.2],[34.2,36.4],[36.4,40.2],[40.2,42.6],[42.6,45],[45,47.4]];
+  P.forEach(([a,b],i)=>{const e=$('p'+(i+1)); e.style.opacity= t>=a-.1&&t<b+.4? (i===0?1:seg(t,a,a+.45)):0; e.style.zIndex=i;});
+  $('p1').style.opacity= t>=29.6&&t<47.4?1:0;
+  const lv2=win(t,33.6,47.2,.6), le=eo(seg(t,33.6,35)); $('lap2').style.opacity=lv2; $('lap2').style.transform=`translateX(${(1-le)*140}px) scale(${.98+.02*le})`;
+  $('q1').style.opacity= t>=33.6&&t<40.8?1:0; $('q2').style.opacity= t>=40.2?seg(t,40.2,40.9):0;
+  $('tagC').style.opacity=win(t,33.8,47,.5);$('tagC').dataset.t||0; $('tagC').innerHTML= t<40.4?'Tú lo recibes al instante':'Aceptado. Sin llamadas.';
+  caps($('capC'),t,[[29.8,34,'Un enlace.<br>Nada más.'],[34,40.2,'Pide, recibe<br>y decide.'],[40.2,45,'Acepta con<br>un toque.'],[45,47.2,'Paga y sigue<br>su pedido.']]);
+  caps($('subC'),t,[[29.9,34,'Sin cuenta, sin app, sin teléfono.'],[34,40.2,'Presupuesto con líneas, IVA y validez.'],[40.2,45,'Y tú lo ves reflejado en tu panel.'],[45,47.2,'Datos de pago y estado del pedido.']],.4);
+  // PILARES 47.4–54.6
+  $('pil').style.opacity=win(t,47.4,55,.6); ['k1','k2','k3','k4'].forEach((id,i)=>{const e=seg(t,48+i*.35,48.9+i*.35); $(id).style.opacity=e*(t>54?1-seg(t,54,55):1); $(id).style.transform=`translateY(${(1-eo(e))*50}px)`;});
+  // OUTRO 55–60
+  const ov=seg(t,55,56)*(1-seg(t,59.4,60)); if(t>=55){ $('intro').style.opacity=ov; $('t2').textContent='Hecho para autónomos y pymes.'; $('ico').style.transform=`scale(${.9+.1*spring(seg(t,55,56.2))})`; show($('t1'),1,0); show($('t2'),1,0);} 
+  $('foot').style.opacity= t>=55?ov:(t<5?0:.0);
+}
+window.render=render; render(0);
+</script></body></html>

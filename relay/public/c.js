@@ -25,7 +25,7 @@ function askName() {
   app.replaceChildren(header(), $('div', { class: 'card hello' }, $('h2', {}, profile.welcome ? profile.welcome : `Escribe a ${profile.name}`), $('p', { class: 'mute' }, 'No hace falta cuenta ni teléfono. Solo un nombre para que sepan quién eres.'), inp,
     $('button', { class: 'p', onclick: async () => { name = inp.value.trim().slice(0, 40) || 'Cliente web'; store.set(`rem-name:${biz}`, name); await post({ t: 'hello', name, ts: Date.now() }); view(); loop(); } }, 'Empezar')), footer()); inp.focus();
 }
-const header = () => $('header', {}, $('h1', {}, profile.name), $('p', {}, [profile.tagline, profile.hours && `Horario: ${profile.hours}`].filter(Boolean).join(' · ') || ' '));
+const header = () => $('header', {}, $('span', { class: 'av', 'aria-hidden': 'true' }, [...String(profile.name || '?').trim()][0].toUpperCase()), $('div', { class: 'hd' }, $('h1', {}, profile.name), $('p', {}, [profile.tagline, profile.hours && `Horario: ${profile.hours}`].filter(Boolean).join(' · ') || ' ')));
 const footer = () => $('footer', {}, 'Prototipo de REM Clientes · tus mensajes se cifran en este navegador · ', $('a', { href: '#', onclick: (e) => { e.preventDefault(); if (confirm('Se borrarán de este navegador tus mensajes, tu nombre y tu clave con esta empresa. ¿Seguro?')) { for (const k of ['rem-th', 'rem-since', 'rem-name', 'rem-id', 'rem-qr']) store.del(`${k}:${biz}`); location.reload(); } } }, 'borrar mis datos'));
 
 async function post(payload) {

@@ -20,3 +20,14 @@ form.c textarea{flex:1;font:inherit;border:1px solid var(--line);border-radius:1
 .chips{display:flex;gap:6px;overflow-x:auto;padding:8px 12px 0}.chips button{white-space:nowrap;font-size:13.5px;padding:5px 11px;border-radius:99px}
 .hello{margin:16px;padding:16px}.hello input{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:10px 0;background:var(--bg);color:var(--ink)}
 footer{padding:6px 16px 14px;color:var(--mute);font-size:12px;text-align:center}footer a{color:inherit}
+
+/* Acabado tipo mensajería nativa */
+header{display:flex;gap:12px;align-items:center;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:saturate(1.6) blur(16px)}
+.av{width:42px;height:42px;border-radius:30%;display:grid;place-items:center;flex:none;font-weight:700;font-size:19px;color:#fff;background:linear-gradient(160deg,#5eead4,#2563eb 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 1px 3px rgba(0,0,0,.2)}
+.hd{min-width:0}header h1{font-size:17px;letter-spacing:-.01em}
+.b{border-radius:20px;padding:10px 14px;box-shadow:0 1px 1px rgba(0,0,0,.04)}.me{background:linear-gradient(180deg,#2e96ff,#0a7aff);border-bottom-right-radius:6px}.them{background:#e9e9ee;color:#15171c;border-color:transparent;border-bottom-left-radius:6px}
+@media (prefers-color-scheme:dark){.them{background:#2a2d36;color:#eceff4}}
+.card.q{border-radius:20px;border:0;box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 24px -10px rgba(0,0,0,.18);padding:16px}
+button.p,.btn.p{background:linear-gradient(180deg,#34c759,#27a94a);border-color:transparent;border-radius:12px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.ok{background:#dcf5e5;color:#1a6b3c}.banner{border-radius:12px}form.c textarea{border-radius:20px}form.c button.p{border-radius:20px;background:#0a7aff}
+.chips button{background:var(--card);border-radius:99px}
