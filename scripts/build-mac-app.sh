@@ -27,7 +27,7 @@ cat > "$APP/Contents/Info.plist" <<P
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict>
 <key>CFBundleName</key><string>REM Negocio</string><key>CFBundleDisplayName</key><string>REM Negocio</string>
 <key>CFBundleIdentifier</key><string>app.rem.negocio</string><key>CFBundleExecutable</key><string>RemNegocio</string>
-<key>CFBundleIconFile</key><string>AppIcon</string><key>CFBundleVersion</key><string>0.2.0</string><key>CFBundleShortVersionString</key><string>0.2.0</string>
+<key>CFBundleIconFile</key><string>AppIcon</string><key>CFBundleVersion</key><string>1.0.0</string><key>CFBundleShortVersionString</key><string>1.0.0</string>
 <key>CFBundlePackageType</key><string>APPL</string><key>LSMinimumSystemVersion</key><string>13.0</string><key>NSHighResolutionCapable</key><true/>
 <key>LSApplicationCategoryType</key><string>public.app-category.business</string>
 <key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>

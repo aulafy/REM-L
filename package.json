@@ -1,6 +1,6 @@
 {
   "name": "rem-negocio",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Clientes, presupuestos, facturas, cobros y gastos para pymes y autónomos, en local y sin dependencias.",
   "type": "module",

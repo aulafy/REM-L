@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Carrusel REM</title>
+<style>
+@page { size: 1080px 1350px; margin: 0 }
+* { box-sizing: border-box; margin: 0 }
+html, body { font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #0e1630 }
+.s { width: 1080px; height: 1350px; position: relative; overflow: hidden; page-break-after: always; padding: 96px 88px; background: linear-gradient(160deg, #f7f9ff 0%, #e8eefc 60%, #dce7ff 100%) }
+.s.dark { background: linear-gradient(160deg, #0a6cd9 0%, #0b4fb0 55%, #0a2f78 100%); color: #fff }
+.blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .5; pointer-events: none }
+.kick { font-size: 28px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #0a6cd9; margin-bottom: 26px }
+.dark .kick { color: #9fd0ff }
+h1 { font-size: 92px; line-height: 1.02; letter-spacing: -.035em; font-weight: 800 }
+h2 { font-size: 70px; line-height: 1.04; letter-spacing: -.03em; font-weight: 800 }
+p.lead { font-size: 38px; line-height: 1.3; color: #3d4863; margin-top: 28px }
+.dark p.lead { color: #dbe8ff }
+.num { position: absolute; bottom: 52px; right: 70px; font-size: 26px; font-weight: 700; color: #8a93aa }
+.dark .num { color: #9fc4f5 }
+.foot { position: absolute; bottom: 52px; left: 88px; font-size: 24px; color: #6b7690 }
+.dark .foot { color: #b9d3f7 }
+.shot { position: absolute; left: 88px; right: 88px; border-radius: 22px; overflow: hidden; background: #fff; box-shadow: 0 2px 4px rgba(10,20,50,.08), 0 40px 90px -24px rgba(20,40,110,.45), 0 0 0 1.5px rgba(10,20,50,.08) }
+.shot img { display: block; width: 100% }
+.bar { height: 30px; background: linear-gradient(#f4f5f8, #e9ebf0); display: flex; gap: 9px; align-items: center; padding-left: 16px }
+.bar i { width: 12px; height: 12px; border-radius: 50%; display: block }
+.chips { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 40px }
+.chip { padding: 16px 26px; border-radius: 99px; background: #fff; font-size: 30px; font-weight: 600; box-shadow: 0 6px 18px -8px rgba(20,40,110,.35) }
+.step { display: flex; gap: 30px; align-items: flex-start; margin-top: 44px }
+.step b { flex: none; width: 82px; height: 82px; border-radius: 27%; display: grid; place-items: center; font-size: 42px; color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 6px 14px -4px rgba(0,0,0,.3) }
+.step h3 { font-size: 42px; letter-spacing: -.02em }
+.step p { font-size: 31px; line-height: 1.3; color: #3d4863; margin-top: 6px }
+.card { background: #fff; border-radius: 26px; padding: 34px 38px; box-shadow: 0 30px 70px -30px rgba(20,40,110,.4) }
+pre { font: 25px/1.45 Menlo, monospace; white-space: pre-wrap; color: #0e1630 }
+.ok { color: #18864b; font-weight: 700 }
+.pill { display: inline-block; padding: 10px 22px; border-radius: 99px; background: rgba(255,255,255,.16); border: 1.5px solid rgba(255,255,255,.35); font-size: 28px; font-weight: 600; margin: 0 12px 14px 0 }
+</style></head><body>
+
+<!-- 1 · Portada -->
+<section class="s dark">
+  <div class="blob" style="width:700px;height:700px;background:#5eead4;right:-260px;top:-200px;opacity:.35"></div>
+  <div class="blob" style="width:600px;height:600px;background:#ffb27a;left:-240px;bottom:-200px;opacity:.28"></div>
+  <img src="../../public/icon-512.png" style="width:150px;border-radius:34px;box-shadow:0 30px 60px -20px rgba(0,0,0,.5)">
+  <div class="kick" style="margin-top:70px">Libro gratuito · App · Skill</div>
+  <h1>Construye tu propia app de gestión con IA</h1>
+  <p class="lead">Para autónomos y pymes que quieren aprender a crear su herramienta, paso a paso y sin perder el control.</p>
+  <div class="foot">Ramon Guillamon · Manual del usuario de REM</div><div class="num">Desliza →</div>
+</section>
+
+<!-- 2 · El problema -->
+<section class="s">
+  <div class="kick">El punto de partida</div>
+  <h2>¿Te suena?</h2>
+  <div class="chips">
+    <span class="chip">📱 Clientes en el móvil</span><span class="chip">📝 Presupuestos en Word</span><span class="chip">📊 Facturas en un Excel</span>
+    <span class="chip">💬 Mensajes en WhatsApp</span><span class="chip">✉️ …y en el correo</span><span class="chip">🧾 Tickets en una carpeta</span>
+  </div>
+  <p class="lead" style="margin-top:70px">Cada pieza funciona. <b>El conjunto, no.</b> Se olvida reclamar una factura, se contesta tarde, y al llegar el trimestre toca reconstruirlo todo.</p>
+  <p class="lead">Yo lo resolví construyendo mi propia herramienta con IA. <b>Y lo he documentado para que tú también puedas.</b></p>
+  <div class="num">2 / 8</div>
+</section>
+
+<!-- 3 · La app -->
+<section class="s">
+  <div class="kick">La app: REM Negocio</div>
+  <h2>Todo tu negocio, en tu ordenador</h2>
+  <p class="lead">Clientes, presupuestos, facturas, cobros, gastos, tareas y mensajes. <b>Sin cloud.</b></p>
+  <div class="shot" style="top:540px;height:640px"><div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div><img src="img/app-hoy.png"></div>
+  <div class="foot">Datos ficticios</div><div class="num">3 / 8</div>
+</section>
+
+<!-- 4 · El libro -->
+<section class="s">
+  <div class="kick">El libro</div>
+  <h2>148 páginas para aprender haciendo</h2>
+  <div style="display:flex;gap:34px;margin-top:56px;align-items:flex-start">
+    <img src="img/portada-001.png" style="width:410px;border-radius:12px;box-shadow:0 40px 80px -30px rgba(20,40,110,.6)">
+    <div style="flex:1">
+      <div class="step" style="margin-top:0"><b style="background:linear-gradient(#5ac8fa,#0a84ff)">1</b><div><h3>Entender</h3><p>Qué resuelve y cómo se instala.</p></div></div>
+      <div class="step"><b style="background:linear-gradient(#5be584,#27a94a)">2</b><div><h3>Usar</h3><p>Cada pantalla y cada botón, con 64 capturas.</p></div></div>
+      <div class="step"><b style="background:linear-gradient(#d68bff,#a54be0)">3</b><div><h3>Construir</h3><p>Cómo se hizo con IA: base de datos, IVA, copias, seguridad… y los errores reales.</p></div></div>
+    </div>
+  </div>
+  <div class="num">4 / 8</div>
+</section>
+
+<!-- 5 · Cada botón explicado -->
+<section class="s">
+  <div class="kick">Manual paso a paso</div>
+  <h2>Cada botón, numerado y explicado</h2>
+  <div class="shot" style="top:400px;left:170px;right:170px;height:820px;border-radius:10px"><img src="img/interior-046.png"></div>
+  <div class="num">5 / 8</div>
+</section>
+
+<!-- 6 · La IA propone -->
+<section class="s">
+  <div class="kick">La regla de oro</div>
+  <h2>La IA propone.<br>Tú decides.</h2>
+  <p class="lead">Escribe «factura a Gato Cuántico por 6 horas a 45 €» y REM te enseña lo que va a hacer. <b>Nada ocurre hasta que pulsas «Hacerlo».</b></p>
+  <div class="shot" style="top:700px;height:500px"><div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div><img src="img/app-orden.png"></div>
+  <div class="foot">Datos ficticios</div><div class="num">6 / 8</div>
+</section>
+
+<!-- 7 · El skill -->
+<section class="s">
+  <div class="kick">Skill para Claude Code</div>
+  <h2>Hazla tuya, sin romper nada</h2>
+  <p class="lead">Abres el proyecto con tu asistente de IA y le pides una ampliación para tu negocio:</p>
+  <div class="card" style="margin-top:36px"><pre>«Quiero guardar la matrícula y la
+próxima ITV de cada cliente»
+
+{ "id": "taller-itv",
+  "custom_fields": [
+    { "key": "matricula",   "type": "text" },
+    { "key": "proxima_itv", "type": "date" } ] }
+
+<span class="ok">✔ Módulo válido</span> · 2 campos en clientes
+  No usa internet, no envía mensajes
+  y no borra datos</pre></div>
+  <p class="lead" style="font-size:32px">Las ampliaciones son <b>datos validados, no código</b>: lo peor que puede pasar es un campo mal configurado.</p>
+  <div class="num">7 / 8</div>
+</section>
+
+<!-- 8 · Camino y CTA -->
+<section class="s dark">
+  <div class="blob" style="width:700px;height:700px;background:#5eead4;right:-280px;bottom:-260px;opacity:.3"></div>
+  <div class="kick">Tu camino</div>
+  <h2>Úsala. Entiéndela.<br>Hazla tuya.</h2>
+  <p class="lead">Y tres hábitos para programar con IA:</p>
+  <p class="lead" style="margin-top:18px">💡 La IA propone y tú decides<br>💡 Pide pruebas, no promesas<br>💡 Pasos pequeños, siempre probados</p>
+  <div style="margin-top:56px"><span class="pill">📘 Libro CC BY-SA 4.0</span><span class="pill">💻 Código MIT</span><span class="pill">🧩 Skill incluido</span></div>
+  <p class="lead" style="font-size:34px;margin-top:30px"><b>github.com/aulafy/REM-L</b><br>👉 ¿Qué te gustaría que hiciera tu app?</p>
+  <div class="foot">Prototipo educativo · datos ficticios · no es software de facturación certificado</div><div class="num">8 / 8</div>
+</section>
+</body></html>

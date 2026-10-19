@@ -6,12 +6,14 @@
 #   NOTARY_APPLE_ID     Apple ID para notarizar
 #   NOTARY_TEAM_ID      ID de equipo
 #   NOTARY_PASSWORD     contraseña específica de app de ese Apple ID
+# Y la variable de repositorio MAC_RELEASE_READY=true (así una etiqueta sin certificados no lanza un trabajo que fallaría).
 # SIN PROBAR hasta que existan esos secretos: se ha escrito siguiendo la documentación de notarytool y codesign.
 name: Publicar para Mac
 on:
   push: { tags: ['v*'] }
 jobs:
   release:
+    if: ${{ vars.MAC_RELEASE_READY == 'true' }}
     runs-on: macos-14
     permissions: { contents: write }
     env: { NODE_VERSION: 22.12.0 }
@@ -45,4 +47,6 @@ jobs:
           xcrun stapler staple "$DMG"
       - name: Publicar la versión
         env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
-        run: gh release create "$GITHUB_REF_NAME" "dist/REM-Negocio-${GITHUB_REF_NAME}.dmg" --title "REM Negocio ${GITHUB_REF_NAME}" --generate-notes
+        run: |
+          DMG="dist/REM-Negocio-${GITHUB_REF_NAME}.dmg"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then gh release upload "$GITHUB_REF_NAME" "$DMG" --clobber; else gh release create "$GITHUB_REF_NAME" "$DMG" --title "REM Negocio ${GITHUB_REF_NAME}" --generate-notes; fi
