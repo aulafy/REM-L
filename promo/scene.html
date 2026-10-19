@@ -34,12 +34,34 @@
 <div id="mid" class="abs fade" style="inset:0;display:grid;place-items:center;text-align:center"><div style="font-size:96px;font-weight:700;letter-spacing:-.035em;color:#0e1630;line-height:1.05">Y tu cliente,<br><span style="background:linear-gradient(90deg,#0a84ff,#30d158);-webkit-background-clip:text;color:transparent">sin instalar nada.</span></div></div>
 
 <!-- Cliente -->
-<div id="chipC" class="chip fade" style="background:#0a7aff">PARA TU CLIENTE</div>
-<div id="capC" class="cap fade" style="top:170px;font-size:80px;width:560px"></div>
-<div id="subC" class="abs fade" style="left:96px;top:620px;width:540px;font-size:32px;color:#4b556e;line-height:1.3"></div>
-<div id="ph" class="phone fade" style="left:690px;top:84px;width:402px;height:912px"><div class="scr"><img id="p1" src="shots/c1-inicio.png"><img id="p2" src="shots/c2-escribe.png"><img id="p3" src="shots/c3-enviado.png"><img id="p4" src="shots/c4-presupuesto.png"><img id="p5" src="shots/c5-aceptado.png"><img id="p6" src="shots/c6-pago.png"><img id="p7" src="shots/c7-estado.png"></div></div>
+<div id="chipC" class="chip fade" style="background:#0a7aff">PARA TU CLIENTE · CÓMO FUNCIONA</div>
+<div id="capC" class="cap fade" style="top:170px;font-size:80px;width:600px"></div>
+<div id="subC" class="abs fade" style="left:96px;top:520px;width:560px;font-size:32px;color:#3d4863;line-height:1.35"></div>
+<!-- paso 1: compartir el enlace -->
+<div id="share" class="abs fade" style="left:760px;top:170px;width:1080px">
+  <div style="background:#fff;border-radius:30px;padding:34px 40px;box-shadow:0 2px 4px rgba(10,20,50,.08),0 40px 90px -20px rgba(20,40,110,.35)">
+    <div style="font-size:24px;color:#6b7690;letter-spacing:.06em;font-weight:600">TU ENLACE DE CLIENTE</div>
+    <div style="display:flex;align-items:center;gap:20px;margin-top:14px"><div class="tile" style="width:84px;height:84px;font-size:40px;background:linear-gradient(160deg,#5eead4,#2563eb 70%)">E</div><div style="font-size:46px;font-weight:700;color:#0e1630;letter-spacing:-.02em">mareaalta.invalid/<span style="color:#0a7aff">hola</span></div><div style="margin-left:auto;padding:14px 26px;border-radius:14px;background:#0a7aff;color:#fff;font-size:26px;font-weight:600">Copiar</div></div></div>
+  <div style="font-size:30px;color:#3d4863;margin:34px 6px 18px;font-weight:600">Lo pones donde ya te escriben tus clientes</div>
+  <div style="display:flex;gap:22px">
+   <div class="pill" id="sh1" style="position:relative;width:250px;padding:22px"><div class="tile" style="background:linear-gradient(#5ac8fa,#0a84ff)">🌐</div><b style="font-size:26px">Tu web</b></div>
+   <div class="pill" id="sh2" style="position:relative;width:250px;padding:22px"><div class="tile" style="background:linear-gradient(#5be584,#27a94a)">✉</div><b style="font-size:26px">Firma de email</b></div>
+   <div class="pill" id="sh3" style="position:relative;width:250px;padding:22px"><div class="tile" style="background:linear-gradient(#ffc04d,#ff9500)">▦</div><b style="font-size:26px">Tarjeta o QR</b></div>
+   <div class="pill" id="sh4" style="position:relative;width:250px;padding:22px"><div class="tile" style="background:linear-gradient(#d68bff,#a54be0)">@</div><b style="font-size:26px">Redes y chat</b></div></div></div>
+<div id="ph" class="phone fade" style="left:700px;top:60px;width:402px;height:880px"><div class="scr"><img id="p1" src="shots/c1-inicio.png"><img id="p2" src="shots/c2-escribe.png"><img id="p3" src="shots/c3-enviado.png"><img id="p4" src="shots/c4-presupuesto.png"><img id="p5" src="shots/c5-aceptado.png"><img id="p6" src="shots/c6-pago.png"><img id="p7" src="shots/c7-estado.png"></div></div>
+<div id="co1" class="abs fade" style="left:1130px;top:300px;padding:16px 24px;border-radius:18px;background:#0e1630;color:#fff;font-size:30px;font-weight:600;line-height:1.2">Sin descargar<br>ninguna app</div>
+<div id="co2" class="abs fade" style="left:1130px;top:560px;padding:16px 24px;border-radius:18px;background:#0a7aff;color:#fff;font-size:30px;font-weight:600;line-height:1.2">Sin cuenta:<br>solo su nombre</div>
 <div id="lap2" class="dev fade" style="left:1150px;top:300px;width:700px"><div class="bar" style="height:26px"><i style="background:#ff5f57;width:10px;height:10px"></i><i style="background:#febc2e;width:10px;height:10px"></i><i style="background:#28c840;width:10px;height:10px"></i></div><div style="position:relative;height:437px"><img id="q1" src="shots/e7-mensaje-cliente.png"><img id="q2" src="shots/e8-presupuesto-aceptado.png"></div></div>
 <div id="tagC" class="abs fade" style="left:1150px;top:222px;font-size:34px;font-weight:700;color:#0e1630;letter-spacing:-.02em"></div>
+<div id="stepper" class="abs fade" style="left:0;right:0;bottom:34px;display:flex;justify-content:center;gap:14px"></div>
+<!-- privacidad: cómo viaja -->
+<div id="diag" class="abs fade" style="inset:0"><div class="cap" style="left:0;right:0;top:100px;text-align:center;font-size:76px">¿Y la privacidad?</div>
+ <div class="abs" style="left:0;right:0;top:230px;text-align:center;font-size:32px;color:#3d4863">El mensaje se cifra en el móvil de tu cliente y solo tu Mac puede abrirlo.</div>
+ <div id="dn1" class="pill" style="left:150px;top:380px;width:430px;text-align:center"><div class="tile" style="margin:0 auto;background:linear-gradient(#5ac8fa,#0a84ff)">📱</div><b>Tu cliente</b><span>Cifra el mensaje en su navegador</span></div>
+ <div id="dn2" class="pill" style="left:745px;top:380px;width:430px;text-align:center;background:rgba(255,255,255,.62)"><div class="tile" style="margin:0 auto;background:linear-gradient(#aab2c5,#707a93)">☁</div><b>Servidor intermedio</b><span>Solo reenvía datos ilegibles. No puede leerlos.</span></div>
+ <div id="dn3" class="pill" style="left:1340px;top:380px;width:430px;text-align:center"><div class="tile" style="margin:0 auto;background:linear-gradient(#5be584,#27a94a)">💻</div><b>Tu Mac, con REM</b><span>Lo abre con una clave que solo tú tienes</span></div>
+ <div id="dl1" class="abs" style="left:590px;top:470px;font-size:56px;color:#0a7aff">➜</div><div id="dl2" class="abs" style="left:1185px;top:470px;font-size:56px;color:#0a7aff">➜</div>
+ <div id="dk1" class="abs" style="left:575px;top:395px;font-size:34px">🔒</div><div id="dk2" class="abs" style="left:1170px;top:395px;font-size:34px">🔒</div></div>
 
 <!-- Pilares -->
 <div id="pil" class="abs fade" style="inset:0"><div class="cap" style="left:0;right:0;top:120px;text-align:center;font-size:84px">Pensado para trabajar tranquilo</div>
@@ -83,22 +105,32 @@ function render(t){
   caps($('capE'),t,[[5.6,9.2,'Todo tu negocio,<br>en una pantalla.'],[9.2,12.5,'Facturas, cobros y<br>vencimientos al día.'],[12.5,15,'Documentos claros,<br>listos para enviar.'],[15,20.4,'Díselo como<br>se lo dirías.'],[20.4,23.8,'Tú confirmas.<br>Nada se hace solo.'],[23.8,27,'Borrador listo<br>en segundos.']]);
   // TRANSICIÓN 27–29.5
   $('mid').style.opacity=win(t,27,29.8,.5); $('mid').firstElementChild.style.transform=`translateY(${(1-eo(seg(t,27,27.7)))*40}px)`;
-  // CLIENTE 29.5–47
-  const cOn=t>29.4&&t<47.4; $('chipC').style.opacity=cOn?win(t,29.6,47,.5):0;
-  const pv=win(t,29.6,47.2,.6), pe=eo(seg(t,29.6,31)); $('ph').style.opacity=cOn?pv:0; $('ph').style.transform=`translateY(${(1-pe)*120}px) scale(${.96+.04*pe})`;
-  const P=[[29.6,32],[32,34.2],[34.2,36.4],[36.4,40.2],[40.2,42.6],[42.6,45],[45,47.4]];
-  P.forEach(([a,b],i)=>{const e=$('p'+(i+1)); e.style.opacity= t>=a-.1&&t<b+.4? (i===0?1:seg(t,a,a+.45)):0; e.style.zIndex=i;});
-  $('p1').style.opacity= t>=29.6&&t<47.4?1:0;
-  const lv2=win(t,33.6,47.2,.6), le=eo(seg(t,33.6,35)); $('lap2').style.opacity=lv2; $('lap2').style.transform=`translateX(${(1-le)*140}px) scale(${.98+.02*le})`;
-  $('q1').style.opacity= t>=33.6&&t<40.8?1:0; $('q2').style.opacity= t>=40.2?seg(t,40.2,40.9):0;
-  $('tagC').style.opacity=win(t,33.8,47,.5);$('tagC').dataset.t||0; $('tagC').innerHTML= t<40.4?'Tú lo recibes al instante':'Aceptado. Sin llamadas.';
-  caps($('capC'),t,[[29.8,34,'Un enlace.<br>Nada más.'],[34,40.2,'Pide, recibe<br>y decide.'],[40.2,45,'Acepta con<br>un toque.'],[45,47.2,'Paga y sigue<br>su pedido.']]);
-  caps($('subC'),t,[[29.9,34,'Sin cuenta, sin app, sin teléfono.'],[34,40.2,'Presupuesto con líneas, IVA y validez.'],[40.2,45,'Y tú lo ves reflejado en tu panel.'],[45,47.2,'Datos de pago y estado del pedido.']],.4);
-  // PILARES 47.4–54.6
-  $('pil').style.opacity=win(t,47.4,55,.6); ['k1','k2','k3','k4'].forEach((id,i)=>{const e=seg(t,48+i*.35,48.9+i*.35); $(id).style.opacity=e*(t>54?1-seg(t,54,55):1); $(id).style.transform=`translateY(${(1-eo(e))*50}px)`;});
-  // OUTRO 55–60
-  const ov=seg(t,55,56)*(1-seg(t,59.4,60)); if(t>=55){ $('intro').style.opacity=ov; $('t2').textContent='Hecho para autónomos y pymes.'; $('ico').style.transform=`scale(${.9+.1*spring(seg(t,55,56.2))})`; show($('t1'),1,0); show($('t2'),1,0);} 
-  $('foot').style.opacity= t>=55?ov:(t<5?0:.0);
+  // CLIENTE 29.5–62 (6 pasos) · PRIVACIDAD 62–68 · PILARES 68–75 · OUTRO 75–80
+  const ST=[['Enlace',29.5,36],['Abre',36,41],['Escribe',41,46],['Presupuesto',46,52],['Acepta',52,57],['Paga',57,62]];
+  if(!$('stepper').children.length) $('stepper').innerHTML=ST.map(([n],i)=>`<div class="stp" style="display:flex;align-items:center;gap:10px;padding:10px 20px 10px 10px;border-radius:99px;background:rgba(255,255,255,.7);font-size:24px;font-weight:600;color:#6b7690"><span style="width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#d7def0;color:#fff;font-size:22px">${i+1}</span>${n}</div>`).join('');
+  [...$('stepper').children].forEach((e,i)=>{const on=t>=ST[i][1]&&t<ST[i][2], done=t>=ST[i][2]; e.style.color=on?'#0e1630':(done?'#3d4863':'#8a93aa'); e.style.background=on?'#fff':'rgba(255,255,255,.55)'; e.style.boxShadow=on?'0 6px 20px -6px rgba(20,40,110,.4)':'none'; e.firstChild.style.background=on?'#0a7aff':(done?'#30b94f':'#c9d2e8'); e.firstChild.textContent=done?'✓':(i+1); e.style.transform=on?'scale(1.06)':'scale(1)';});
+  const cOn=t>29.4&&t<62.4; $('stepper').style.opacity=cOn?win(t,29.8,62,.5):0; $('chipC').style.opacity=cOn?win(t,29.6,62,.5):0;
+  caps($('capC'),t,[[29.8,36,'1 · Compartes<br>tu enlace.'],[36,41,'2 · Lo abre<br>en el móvil.'],[41,46,'3 · Escribe lo<br>que necesita.'],[46,52,'4 · Tú le envías<br>un presupuesto.'],[52,57,'5 · Lo acepta<br>con un toque.'],[57,62,'6 · Paga y sigue<br>su pedido.']]);
+  caps($('subC'),t,[[29.9,36,'Un enlace propio, como el de tu web. Lo pones donde ya te escriben tus clientes.'],[36.1,41,'Se abre en el navegador del móvil. Nada que instalar, ninguna cuenta que crear.'],[41.1,46,'Te llega a REM, en tu Mac, al instante. Tú contestas desde allí.'],[46.1,52,'Respondes desde REM con un presupuesto: líneas, IVA y validez.'],[52.1,57,'Y tú lo ves reflejado en tu panel. Sin llamadas ni correos de ida y vuelta.'],[57.1,62,'Le pides el pago (IBAN o tu enlace de pago) y le avisas del estado del pedido.']],.4);
+  // paso 1: tarjeta del enlace
+  const sv=win(t,29.8,36,.5); $('share').style.opacity=sv; $('share').style.transform=`translateY(${(1-eo(seg(t,29.8,30.6)))*40}px)`; ['sh1','sh2','sh3','sh4'].forEach((id,i)=>{const e=eo(seg(t,31.4+i*.35,32+i*.35)); $(id).style.opacity=e; $(id).style.transform=`translateY(${(1-e)*30}px)`;});
+  // móvil
+  const pv=win(t,35.4,62.2,.6), pe=eo(seg(t,35.4,36.7)); $('ph').style.opacity=pv; $('ph').style.transform=`translateY(${(1-pe)*140}px) scale(${.96+.04*pe})`;
+  const P=[[35.4,39.8],[39.8,43.2],[43.2,46],[46,52],[52,57],[57,59.6],[59.6,62.4]];
+  P.forEach(([a,b],i)=>{const e=$('p'+(i+1)); e.style.opacity= i===0? (t>=35.4&&t<62.4?1:0) : (t>=a-.1? seg(t,a,a+.45):0); e.style.zIndex=i;});
+  // anotaciones sobre el móvil
+  $('co1').style.opacity=win(t,37,40.6,.4); $('co1').style.transform=`translateX(${(1-eo(seg(t,37,37.5)))*-30}px)`; $('co2').style.opacity=win(t,38.4,41,.4); $('co2').style.transform=`translateX(${(1-eo(seg(t,38.4,38.9)))*-30}px)`;
+  // portátil: lo que ve la empresa
+  const lv2=win(t,41.2,62.2,.6), le=eo(seg(t,41.2,42.6)); $('lap2').style.opacity=lv2; $('lap2').style.transform=`translateX(${(1-le)*140}px) scale(${.98+.02*le})`;
+  $('q1').style.opacity= t<52.4?1:(t>=57.2?seg(t,57.2,57.8):0); $('q2').style.opacity= t>=52.2&&t<57.4?seg(t,52.2,52.9):0;
+  $('tagC').style.opacity=win(t,41.4,62,.5); $('tagC').innerHTML= t<46?'En tu Mac: llega al instante':t<52.2?'En tu Mac: respondes y presupuestas':t<57.4?'En tu Mac: aceptado, sin llamadas':'En tu Mac: pedir pago y estado';
+  // privacidad 62–68
+  $('diag').style.opacity=win(t,62.2,68.4,.6); [['dn1',63],['dn2',63.8],['dn3',64.6]].forEach(([id,a])=>{const e=eo(seg(t,a,a+.7)); $(id).style.opacity=e; $(id).style.transform=`translateY(${(1-e)*40}px)`;}); ['dl1','dk1'].forEach(id=>{$(id).style.opacity=seg(t,63.6,64.2)}); ['dl2','dk2'].forEach(id=>{$(id).style.opacity=seg(t,64.4,65)});
+  // PILARES 68.4–75
+  $('pil').style.opacity=win(t,68.4,75.4,.6); ['k1','k2','k3','k4'].forEach((id,i)=>{const e=seg(t,69+i*.35,69.9+i*.35); $(id).style.opacity=e*(t>74.4?1-seg(t,74.4,75.4):1); $(id).style.transform=`translateY(${(1-eo(e))*50}px)`;});
+  // OUTRO 75.4–80
+  const ov=seg(t,75.4,76.4)*(1-seg(t,79.4,80)); if(t>=75.4){ $('intro').style.opacity=ov; $('t2').textContent='Hecho para autónomos y pymes.'; $('ico').style.transform=`scale(${.9+.1*spring(seg(t,75.4,76.6))})`; show($('t1'),1,0); show($('t2'),1,0);}
+  $('foot').style.opacity= t>=75.4?ov:0;
 }
 window.render=render; render(0);
 </script></body></html>

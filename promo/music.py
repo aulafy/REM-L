@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Música original del vídeo (sintetizada aquí, sin muestras ni derechos de terceros): 100 BPM, Do mayor, 60 s.
-Uso: python3 promo/music.py salida.wav"""
+"""Música original del vídeo (sintetizada aquí, sin muestras ni derechos de terceros): 100 BPM, Do mayor.
+Uso: python3 promo/music.py salida.wav [duración_s=80]"""
 import sys, wave
 import numpy as np
-SR = 44100; DUR = 60.0; BPM = 100; BEAT = 60 / BPM; N = int(SR * DUR)
+SR = 44100; DUR = float(sys.argv[2]) if len(sys.argv) > 2 else 80.0; BPM = 100; BEAT = 60 / BPM; N = int(SR * DUR)
 rng = np.random.default_rng(7)
 def midi(n): return 440.0 * 2 ** ((n - 69) / 12)
 t_all = np.arange(N) / SR
@@ -20,7 +20,7 @@ BAR = 4 * BEAT
 CH = [[48, 55, 59, 64, 67], [45, 52, 55, 60, 64], [41, 48, 52, 57, 60], [43, 50, 55, 59, 64]]
 ARP = [[0, 2, 3, 4, 3, 2, 3, 1], [0, 2, 3, 4, 3, 2, 4, 3], [0, 2, 3, 4, 2, 3, 4, 3], [0, 1, 2, 3, 4, 3, 2, 1]]
 def section_level(t):  # energía por tramos del vídeo
-    return 0.0 if t < 5 else (0.7 if t < 27 else (0.35 if t < 29.5 else (1.0 if t < 47 else (1.1 if t < 55 else 0.2))))
+    return 0.0 if t < 5 else (0.7 if t < 27 else (0.35 if t < 29.5 else (1.0 if t < 62 else (0.6 if t < 68.4 else (1.1 if t < DUR - 4.6 else 0.2)))))
 nbars = int(DUR / BAR) + 1
 for b in range(nbars):
     t0 = b * BAR; ch = CH[b % 4]; lvl = section_level(t0 + 0.1)
@@ -47,7 +47,7 @@ for b in range(nbars):
             g = 0.10 * min(1, lvl) * (0.8 if i % 2 else 1.0); pan = -0.4 if i % 2 else 0.4
             add(L, ts, s, g * (1 - max(0, pan))); add(R, ts + 0.012, s, g * (1 + min(0, pan))); add(FX_L, ts, s, g * .7); add(FX_R, ts, s, g * .7)
     # campanilla en la intro/outro
-    if t0 < 5 or t0 >= 55:
+    if t0 < 5 or t0 >= DUR - 5:
         for i, m in enumerate([ch[3] + 24, ch[4] + 12]):
             ts = t0 + i * BEAT * 2 + .3; nn = int(SR * 2.4); tt4 = np.arange(nn) / SR; f = midi(m)
             s = (np.sin(2 * np.pi * f * tt4) + 0.5 * np.sin(2 * np.pi * f * 2.76 * tt4) * np.exp(-tt4 / .4)) * np.exp(-tt4 / 0.9) * 0.08
@@ -55,7 +55,7 @@ for b in range(nbars):
 # percusión
 kicks = []
 t = 5.0
-while t < 55.0:
+while t < DUR - 5.0:
     kicks.append(t); t += BEAT
 for k, tk in enumerate(kicks):
     if 27 <= tk < 29.5 and k % 2: continue
@@ -64,11 +64,11 @@ for k, tk in enumerate(kicks):
 # hi-hat a contratiempo desde 10 s; palmada en 2 y 4 desde 29.5 s
 def hp(x): return np.concatenate([[0], np.diff(x)])
 t = 10.0
-while t < 55.0:
+while t < DUR - 5.0:
     nn = int(SR * 0.05); tt = np.arange(nn) / SR; s = hp(rng.standard_normal(nn)) * np.exp(-tt / 0.010) * 0.04
     add(L, t + BEAT / 2, s, .9); add(R, t + BEAT / 2, s, 1.1); t += BEAT
 bar_i = 0; t = 29.5
-while t < 55.0:
+while t < DUR - 5.0:
     for beat in (1, 3):
         tc = t + beat * BEAT; nn = int(SR * 0.18); tt = np.arange(nn) / SR; s = hp(rng.standard_normal(nn)) * np.exp(-tt / 0.03) * 0.045
         add(L, tc, s); add(R, tc, s); add(FX_L, tc, s, .8); add(FX_R, tc, s, .8)
