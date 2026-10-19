@@ -1,5 +1,7 @@
 # Guion de prueba con 3–5 autónomos o pymes (20 min cada uno)
 
+**Español** · [English](docs/en/user-testing.md)
+
 Preparación: `Iniciar REM Negocio.command`, datos vacíos. No expliques nada; observa y anota dónde dudan.
 
 | # | Tarea | Éxito si… | Anota |

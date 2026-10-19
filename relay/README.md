@@ -1,5 +1,7 @@
 # REM Clientes · relé (prototipo)
 
+**Español** · [English](README.en.md)
+
 Pequeño servidor sin dependencias (Node ≥ 22) que hace de **buzón ciego** entre el navegador de un cliente y el REM de una empresa. Guarda y reenvía **sobres cifrados**; no puede leer los mensajes. La empresa se conecta siempre hacia fuera (no abre puertos) y el cliente solo necesita un enlace.
 
 ```sh

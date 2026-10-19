@@ -1,5 +1,7 @@
 # REM Negocio para Mac (app nativa)
 
+**Español** · [English](README.en.md)
+
 App SwiftUI que lleva dentro el servidor Node de REM Negocio y un asistente de puesta en marcha. Diseño completo en [`docs/asistente-macos.md`](../docs/asistente-macos.md).
 
 ## Qué hace

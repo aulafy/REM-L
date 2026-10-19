@@ -1,5 +1,7 @@
 # Cómo se construyó REM Negocio
 
+**Español** · [English](../en/tutorial.md)
+
 Tutorial para un curso de informática: una aplicación de gestión para autónomos y pymes, escrita sin dependencias externas, paso a paso, con las decisiones que la explican.
 
 > **Cómo leerlo.** Cada capítulo cuenta *qué* se hizo, *por qué* y *dónde* está en el código (`ruta/archivo.mjs`). Las rutas son reales en el repositorio. Donde una decisión fue un compromiso, se dice. Los fragmentos son ilustrativos; el código fuente manda.

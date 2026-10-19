@@ -1,5 +1,7 @@
 # REM Clientes: la app para hablar con tus empresas
 
+**Español** · [English](en/client-app.md)
+
 Estado (19/10/2026): **documento de producto con un prototipo implementado**. Existen el enlace de chat web cifrado, el relé ciego (`relay/`), el canal en REM (`lib/clientchannel.mjs`) con tarjetas de presupuesto, pago y estado, y el correo estructurado de nivel 0 (§14.1). El resto (app instalable para el cliente, expediente compartido completo, directorio, notificaciones push, pagos y envíos integrados) sigue siendo visión. Lo que no se ha podido verificar va marcado con «(verificar)». Guía del piloto: [rem-clientes-prototipo.md](rem-clientes-prototipo.md).
 
 ## 1. La idea en una frase
@@ -173,7 +175,7 @@ Idea aportada por el usuario (18/10/2026): en vez de un relé propio, que la com
 - Enlaces de pago solo https y mostrando el dominio; avisos de cambio de datos.
 
 ### Decisión
-Para **validar el producto** el camino más rápido y barato es el **Nivel 0** (cero infraestructura, funciona con cualquier cliente) y mantener el relé como prototipo del Nivel 3. La app con aspecto de WhatsApp (Nivel 2) se decide cuando se vea qué usan de verdad los clientes. Pendiente: confirmar si implementamos el Nivel 0 ahora.
+Para **validar el producto** el camino más rápido y barato es el **Nivel 0** (cero infraestructura, funciona con cualquier cliente) y mantener el relé como prototipo del Nivel 3. La app con aspecto de WhatsApp (Nivel 2) se decide cuando se vea qué usan de verdad los clientes. El Nivel 0 ya está implementado (§14.1).
 
 ### 14.1 Nivel 0 implementado (18/10/2026): correo estructurado
 

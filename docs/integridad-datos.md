@@ -1,5 +1,7 @@
 # Integridad de datos
 
+**Español** · [English](en/data-integrity.md)
+
 REM Negocio usa SQLite con `PRAGMA foreign_keys=ON`. Las escrituras pasan por las validaciones del servidor y las operaciones que asignan número de factura se ejecutan dentro de una transacción.
 
 El esquema se versiona mediante `PRAGMA user_version`. Las migraciones pendientes se aplican en una sola transacción y el arranque se detiene si la base pertenece a una versión futura.

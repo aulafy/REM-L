@@ -1,5 +1,7 @@
 # REM Negocio
 
+**Español** · [English](README.en.md)
+
 Clientes, presupuestos, facturas, cobros, gastos, tareas y mensajes para pymes y autónomos. Una web app que corre **en tu propio equipo**: sin cuentas, sin cloud, sin dependencias (solo Node ≥ 22.13). Licencia **MIT**. Es un **prototipo**: úsalo con datos de prueba antes de confiarle datos reales.
 
 Nace de la filosofía de [REM](https://github.com/aulafy/REM): local primero, revisión humana y **aprobar no es enviar**. REM Negocio redacta mensajes (recordatorios de pago, seguimiento de presupuestos) pero nunca envía nada por ti.

@@ -1,5 +1,7 @@
 # Hoja de ruta de REM Negocio
 
+**Español** · [English](docs/en/roadmap.md)
+
 Estado a 19/10/2026. Orden = valor / esfuerzo. Una función cada vez, con pruebas y commit local.
 
 ## Hecho

@@ -1,5 +1,7 @@
 # Manual del usuario de REM (ebook)
 
+**Español** · [English](README.en.md)
+
 **Gestión local para autónomos y pymes, sin cloud. La IA propone, tú decides. Y un curso para construirla con IA.**
 
 - 📘 [Manual-del-usuario-de-REM.pdf](Manual-del-usuario-de-REM.pdf) · 148 páginas · edición 1.0 (octubre de 2026)

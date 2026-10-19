@@ -1,5 +1,7 @@
 # REM Clientes · prototipo de validación (guía del piloto)
 
+**Español** · [English](en/rem-clientes-pilot.md)
+
 Objetivo: comprobar con **5-10 negocios reales** si sus clientes usan un enlace de chat estructurado **en vez de WhatsApp**. Producto y estrategia completos en [app-clientes.md](app-clientes.md).
 
 ## Qué incluye el prototipo

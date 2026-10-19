@@ -1,5 +1,7 @@
 # REM Negocio para Mac: asistente de puesta en marcha, copias e importación
 
+**Español** · [English](en/macos-assistant.md)
+
 Estado (19/10/2026): **implementado en `mac/`**: fase 1 (app SwiftUI, asistente, copias cifradas con verificación y restauración de prueba, salud, empaquetado), fase 2 (importación de clientes desde CSV, vCard, Contactos de macOS, Google y Outlook; lotes con deshacer; asistente con IA con plan declarativo validado, muestra enmascarada y consentimiento) y fase 3 (recorrido guiado, lector DBF, importador Facturae XML, continuidad de numeración, `.dmg`, comprobación manual de actualizaciones). **Pendiente de probar:** la firma y notarización con una cuenta de Apple Developer (el flujo de publicación existe, pero no se ha ejecutado con credenciales reales), los presets por programa concreto (hacen falta exportaciones reales anonimizadas) y la fase 4 (opcional). Ver `mac/README.md`.
 
 Cambios respecto al diseño original: el asistente es nativo para todos los pasos (también «Tu negocio» y «Cómo facturas», que llaman a la API local); «Traer tus datos» ofrece contactos de macOS, el importador de archivos y la ayuda de IA opcional; la lista de comprobación vive en `GET /api/setup`.
@@ -168,4 +170,4 @@ Corpus de pruebas con exportaciones **sintéticas** de cada programa y de Excel 
 2. **Clave de la API de Claude:** ¿la pone cada usuario (recomendado: privacidad y coste a su cargo) o se ofrece un servicio gestionado por vosotros (implica un servidor, coste y tratamiento de datos de terceros)?
 3. Versión mínima de macOS que se debe soportar (propongo macOS 13).
 4. ¿Qué programas antiguos hay que cubrir primero? Una lista de 3-5 (con exportaciones de ejemplo anonimizadas) vale más que cualquier suposición.
-5. ¿La licencia permite repartir el `.app` a usuarios finales? Hoy prohíbe redistribuir: habría que decidir las condiciones de distribución del instalador.
+5. ~~¿La licencia permite repartir el `.app` a usuarios finales?~~ Resuelto: el código es MIT, así que se puede redistribuir conservando el aviso de copyright.
