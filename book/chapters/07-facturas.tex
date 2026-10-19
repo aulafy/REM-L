@@ -1,0 +1,71 @@
+\chapter{Facturas}\label{cap:facturas}
+
+\begin{objbox}
+Crearás una factura desde cero, la emitirás, registrarás un cobro, reclamarás un pago atrasado y sabrás rectificar una factura ya emitida.
+\end{objbox}
+
+\section{La lista de facturas}
+\figura[0.6]{e11-facturas}{Lista de facturas con sus estados.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Nueva factura}.
+\item[\mk{2}] \textbf{Buscar} por número, cliente o importe.
+\item[\mk{3}] \textbf{Filtros}: \emph{Todas}, \emph{Borradores}, \emph{Pendientes}, \emph{Vencidas} y \emph{Cobradas}.
+\item[\mk{4}] \textbf{Orden}. Pulsa la cabecera de una columna (\emph{Número}, \emph{Cliente}, \emph{Fecha}, \emph{Vencimiento}, \emph{Total}).
+\item[\mk{5}] \textbf{Estado}: \emph{Borrador}, \emph{Emitida}, \emph{Cobro parcial}, \emph{Cobrada}, \emph{Vencida} o \emph{Rectificada}.
+\end{leyenda}
+
+\begin{plainbox}{Estados que se calculan}
+«Vencida» no se guarda en ningún sitio: se calcula comparando la fecha de vencimiento con la de hoy y con lo cobrado. Así un estado nunca queda anticuado.
+\end{plainbox}
+
+\section{El editor de facturas}
+\figura[0.82]{e12-factura-editor}{Editor de una factura nueva.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Cliente}. Un selector con búsqueda.
+\item[\mk{2}] \textbf{Nuevo}. Crea un cliente sin salir del editor.
+\item[\mk{3}] \textbf{Fechas}: emisión y vencimiento. El vencimiento se propone según los días de pago de \ui{Ajustes → Facturación}.
+\item[\mk{4}] \textbf{Añadir línea}. Cada línea tiene descripción, cantidad, precio unitario, IVA (21, 10, 4 o 0\,\%) y descuento. También puedes elegir un concepto del \emph{catálogo}.
+\item[\mk{5}] \textbf{Quitar línea}.
+\item[\mk{6}] \textbf{Guardar borrador}. Un borrador no consume número de factura y se puede cambiar o eliminar.
+\item[\mk{7}] \textbf{Emitir factura}. Asigna el número correlativo y la deja cerrada.
+\end{leyenda}
+Debajo de las líneas, el editor permite añadir una nota para el cliente (forma de pago, referencias) y elegir la \textbf{retención de IRPF} (7, 15 o 19\,\%, para profesionales). A la derecha se ve el desglose: base imponible, IVA, retención y total.
+
+\begin{warnbox}
+Una factura emitida \textbf{no se edita}. Si te equivocas, se \emph{rectifica}: se crea una factura de importe contrario y se emite una correcta. Es la forma de mantener una numeración sin huecos y un rastro claro, que es lo que esperan tu asesor y Hacienda.
+\end{warnbox}
+
+\section{Numeración}
+Las facturas llevan un número del tipo \texttt{F2026-0001}. Reglas que aplica REM:
+\begin{enumerate}
+\item El número se asigna \textbf{al emitir}, no al crear el borrador.
+\item Es \textbf{correlativo} dentro de su serie y año.
+\item La fecha de emisión \textbf{no puede ser anterior} a la de la última factura emitida de la serie, para que los números sigan el orden de las fechas.
+\item Puedes tener varias series (por ejemplo, una para cada actividad) en \ui{Ajustes → Facturación}.
+\end{enumerate}
+
+\section{El detalle de una factura emitida}
+\figura[0.82]{e13-factura-detalle}{Factura emitida y todavía sin cobrar.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Registrar cobro}. Total o parcial, con fecha y método.
+\item[\mk{2}] \textbf{Enviar al cliente}. Prepara el mensaje con el PDF adjunto.
+\item[\mk{3}] \textbf{Reclamar el pago}. Prepara un recordatorio amable (o firme, si ya venció).
+\item[\mk{4}] \textbf{Descargar PDF}.
+\item[\mk{5}] \textbf{Imprimir}.
+\item[\mk{6}] \textbf{Duplicar}. Crea un borrador nuevo con las mismas líneas.
+\item[\mk{7}] \textbf{Repetir…}. Convierte la factura en una \emph{factura recurrente} (capítulo~\ref{cap:informes}).
+\item[\mk{8}] \textbf{Rectificar factura}. Crea la factura rectificativa.
+\end{leyenda}
+
+\subsection{Registrar un cobro}
+\figura[0.45]{e14-cobro}{Ventana de cobro.}
+Se indica el importe (por defecto, lo pendiente), la fecha y el método. Con cobros parciales el estado pasa a \emph{Cobro parcial} hasta completar el total.
+
+\subsection{Enviar y reclamar}
+\figura[0.55]{e13b-enviar-factura}{Enviar la factura al cliente: texto preparado y PDF.}
+\figura[0.55]{e13c-reclamar-pago}{Recordatorio de pago preparado.}
+En ambas ventanas, REM prepara el texto y el PDF; tú eliges cómo enviarlo: copiar, abrir el correo o, si el cliente escribió por REM Clientes, responder por ahí. \textbf{Nada se envía solo.}
+
+\begin{checkbox}
+Crea una factura de prueba con dos líneas y distinto IVA (21\,\% y 10\,\%). Comprueba que el total coincide con la suma de líneas con su IVA. Emítela, regístrale un cobro parcial y observa cómo cambia el estado.
+\end{checkbox}

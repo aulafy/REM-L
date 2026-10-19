@@ -38,7 +38,7 @@ REM Negocio es una aplicación web que se ejecuta **en el ordenador del usuario*
 
 No es un SaaS. No hay cuentas, ni base de datos en la nube, ni servidor del fabricante que vea los datos. Esa elección lo condiciona casi todo lo demás: el diseño, la seguridad, la distribución y el modelo de negocio.
 
-Es **software de uso propio**: la licencia del repositorio (`LICENSE`) permite usar, estudiar y modificar el código para la propia actividad, pero no revenderlo ni ofrecerlo a terceros como servicio. *Nota para el curso:* si queréis redistribuirlo con una licencia MIT, es una decisión que toma el titular del repositorio; cambiar la licencia implica revisar también las dependencias y los textos de ayuda. Este tutorial no la cambia.
+Desde su publicación como material de curso, el código se distribuye con licencia **MIT** y este libro con **Creative Commons Atribución-CompartirIgual 4.0**. Autor: Ramon Guillamon.
 
 ## 1. Principios de partida
 

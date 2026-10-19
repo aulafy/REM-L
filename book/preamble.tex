@@ -1,0 +1,89 @@
+% ---------------------------------------------------------------
+%  Manual del usuario de REM · Ramon Guillamon · CC BY-SA 4.0
+% ---------------------------------------------------------------
+\usepackage[a4paper,inner=2.8cm,outer=2.2cm,top=2.6cm,bottom=2.6cm]{geometry}
+\usepackage{fontspec}
+\usepackage[spanish,es-noshorthands]{babel}
+\setmainfont{Palatino}
+\setsansfont{Helvetica Neue}
+\setmonofont[Scale=0.86]{Menlo}
+\newfontfamily\symfont{Apple Symbols}
+\newcommand{\cmd}{{\symfont ⌘}}
+\usepackage{xcolor}
+\definecolor{accent}{HTML}{0A6CD9}
+\definecolor{accent2}{HTML}{0E7490}
+\definecolor{mk}{HTML}{C2410C}
+\definecolor{codebg}{HTML}{F4F6FA}
+\definecolor{ideabg}{HTML}{EEF5FF}
+\definecolor{warnbg}{HTML}{FEF2F2}
+\definecolor{warnframe}{HTML}{DC2626}
+\definecolor{plainbg}{HTML}{ECFEFF}
+\definecolor{checkbg}{HTML}{ECFDF5}
+\definecolor{checkframe}{HTML}{059669}
+\definecolor{objbg}{HTML}{F5F3FF}
+\definecolor{objframe}{HTML}{7C3AED}
+\usepackage{microtype}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{calc}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage[most]{tcolorbox}
+\usepackage{fvextra}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{bookmark}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,citecolor=accent,pdftitle={Manual del usuario de REM: la aplicación local de gestión para autónomos y pymes, hecha con IA},pdfauthor={Ramon Guillamon},pdfsubject={Manual de usuario y curso de construcción de aplicaciones con IA},pdfkeywords={REM, autónomos, pymes, IA local, aplicación web, curso}}
+\captionsetup{font={small,sf},labelfont={bf,color=accent},labelsep=period,justification=raggedright,singlelinecheck=false}
+\setlength{\parindent}{0pt}\setlength{\parskip}{0.55em}
+\linespread{1.08}
+\titleformat{\part}[display]{\sffamily\bfseries\color{accent}\Huge}{Parte \thepart}{10pt}{\Huge}
+\titleformat{\chapter}[display]{\sffamily\bfseries\color{accent}\huge}{\chaptertitlename\ \thechapter}{8pt}{\Huge}[\vspace{2pt}{\color{accent!40}\titlerule[1.2pt]}]
+\titleformat{\section}{\sffamily\Large\bfseries\color{accent}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\sffamily\large\bfseries\color{accent}}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\sffamily\normalsize\bfseries\color{accent2}}{\thesubsubsection}{0.7em}{}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[LE]{\sffamily\small\nouppercase{\leftmark}}
+\fancyhead[RO]{\sffamily\small Manual del usuario de REM}
+\fancyfoot[LE,RO]{\sffamily\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}\setlength{\headheight}{14pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\sffamily\small\thepage}\renewcommand{\headrulewidth}{0pt}}
+\setlist{itemsep=0.2em,topsep=0.35em}
+\setcounter{tocdepth}{2}
+% --- Recuadros ---
+\newtcolorbox{ideabox}{colback=ideabg,colframe=accent,title=\textbf{Idea clave},arc=1mm,boxrule=0.6pt,left=2mm,right=2mm,top=1mm,bottom=1mm,fonttitle=\sffamily}
+\newtcolorbox{warnbox}{colback=warnbg,colframe=warnframe,title=\textbf{Cuidado},arc=1mm,boxrule=0.6pt,left=2mm,right=2mm,top=1mm,bottom=1mm,fonttitle=\sffamily}
+\newtcolorbox{plainbox}[1]{colback=plainbg,colframe=accent2,title=\textbf{En cristiano: #1},arc=1mm,boxrule=0.6pt,left=2mm,right=2mm,top=1mm,bottom=1mm,fonttitle=\sffamily}
+\newtcolorbox{checkbox}{colback=checkbg,colframe=checkframe,title=\textbf{Pruébalo},arc=1mm,boxrule=0.6pt,left=2mm,right=2mm,top=1mm,bottom=1mm,fonttitle=\sffamily}
+\newtcolorbox{objbox}{colback=objbg,colframe=objframe,title=\textbf{Objetivos de aprendizaje},arc=1mm,boxrule=0.6pt,left=2mm,right=2mm,top=1mm,bottom=1mm,fonttitle=\sffamily}
+\newtcolorbox{aibox}{colback=ideabg,colframe=accent2,title=\textbf{Con la IA},arc=1mm,boxrule=0.6pt,left=2mm,right=2mm,top=1mm,bottom=1mm,fonttitle=\sffamily}
+\DefineVerbatimEnvironment{codebox}{Verbatim}{frame=single,framerule=0.5pt,rulecolor=\color{accent!40},framesep=6pt,breaklines=true,breakanywhere=true,fontsize=\small,xleftmargin=1mm,xrightmargin=1mm,commandchars=\\\{\}}
+% --- Marcas numeradas y capturas ---
+\newcommand{\mk}[1]{\tikz[baseline=(c.base)]\node[circle,fill=mk,text=white,inner sep=0.8pt,minimum size=4.3mm,font=\sffamily\bfseries\scriptsize] (c) {#1};}
+\newenvironment{leyenda}{\begin{description}[font=\normalfont,leftmargin=1.2cm,labelwidth=1cm,labelsep=0.1cm,align=left,itemsep=0.18em,topsep=0.3em]}{\end{description}}
+\setlength{\fboxsep}{0pt}\setlength{\fboxrule}{0.5pt}
+\newcommand{\figura}[3][0.60]{\begin{figure}[!htbp]\centering\fcolorbox{black!18}{white}{\includegraphics[width=\linewidth,height=#1\textheight,keepaspectratio]{figures/#2}}\caption{#3}\label{fig:#2}\end{figure}}
+\newcommand{\movil}[4][0.52]{\begin{figure}[!htbp]\centering\foreach \f in {#2}{\fcolorbox{black!18}{white}{\includegraphics[height=#1\textheight]{figures/\f}}\hspace{0.012\linewidth}}\caption{#3}\label{fig:#4}\end{figure}}
+\newcommand{\ruta}[1]{\texttt{\small #1}}
+\newcommand{\ui}[1]{\textsf{\textbf{#1}}}
+% --- compatibilidad con la salida de pandoc ---
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\providecommand{\real}[1]{#1}
+\providecommand{\pandocbounded}[1]{#1}
+\providecommand{\LTcaptype}{none}
+\newcounter{none}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{frame=single,framerule=0.4pt,rulecolor=\color{accent!35},framesep=5pt,breaklines=true,breakanywhere=true,fontsize=\footnotesize,xleftmargin=1mm,xrightmargin=1mm}
+\usepackage{newunicodechar}
+\newunicodechar{→}{{\symfont →}}
+\newunicodechar{←}{{\symfont ←}}
+\newunicodechar{≈}{{\symfont ≈}}
+\newunicodechar{✓}{{\symfont ✓}}
+\newunicodechar{✔}{{\symfont ✔}}
+\newunicodechar{⌘}{{\symfont ⌘}}
+\newunicodechar{▸}{{\symfont ▸}}
+\renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.9}\renewcommand{\textfraction}{0.08}\renewcommand{\floatpagefraction}{0.7}\setcounter{topnumber}{3}\setcounter{totalnumber}{4}

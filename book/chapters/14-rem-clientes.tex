@@ -1,0 +1,45 @@
+\chapter{REM Clientes: el canal con tus clientes}\label{cap:remclientes}
+
+\begin{objbox}
+Entenderás qué es REM Clientes, qué ve tu cliente, cómo recibes y respondes, y qué garantías de privacidad ofrece (y cuáles no).
+\end{objbox}
+
+\section{Qué es y para qué sirve}
+REM Clientes es un \textbf{enlace} que compartes con tus clientes. Al abrirlo en el móvil, ven la ficha de tu empresa y un chat. No instalan nada, no crean cuenta y no te dan su teléfono. Tú recibes sus mensajes en la bandeja de REM, respondes desde allí, y puedes enviarles tarjetas con \textbf{presupuestos}, \textbf{datos de pago} y el \textbf{estado de su pedido}.
+
+El objetivo es que la comunicación de un asunto (pedir, presupuestar, aceptar, pagar, seguir) viva en un solo sitio y con estados claros, en lugar de dispersarse en llamadas, correos y mensajes sueltos.
+
+\section{Cómo se activa}
+En \ui{Ajustes → Canales}, activas el canal indicando la dirección del \emph{relé} (el servidor intermedio) y el código de invitación. REM genera tu enlace y lo muestra con un botón \ui{Copiar}. Lo puedes poner en tu web, en la firma del correo, en una tarjeta o en un código QR.
+
+\begin{plainbox}{Relé ciego}
+Es un servidor que solo guarda y reenvía \emph{sobres cifrados}. No tiene las claves, así que no puede leer los mensajes. Tu Mac se conecta \emph{hacia fuera} al relé; no hace falta abrir puertos ni exponer tu equipo.
+\end{plainbox}
+
+\section{Lo que ve el cliente}
+\movil[0.50]{c01-inicio.png,c02-chat-vacio.png,c03-escribe.png}{El cliente abre el enlace, escribe su nombre y su consulta.}{cliente1}
+\begin{enumerate}
+\item \textbf{Ficha de la empresa.} Nombre, eslogan, horario y un saludo. Solo pide un nombre «para que sepan quién eres».
+\item \textbf{Chat.} Sencillo, como una aplicación de mensajería, con atajos como «Pedir presupuesto» o «Consultar un pedido».
+\end{enumerate}
+
+\movil[0.50]{c04-presupuesto.png,c05-aceptado.png}{El presupuesto llega como una tarjeta que se acepta con un toque.}{cliente2}
+Cuando le envías un presupuesto, el cliente lo recibe como una \textbf{tarjeta} con las líneas, el IVA, el total y la validez. Con \ui{Aceptar presupuesto} o \ui{Rechazar}, su decisión llega a REM y el presupuesto cambia de estado. Una vez decidido, no se puede cambiar.
+
+\movil[0.50]{c06-pago.png,c07-estado.png}{Datos de pago y estado del pedido.}{cliente3}
+La \textbf{tarjeta de pago} muestra el importe, el concepto, el titular y el IBAN de tu empresa, y un botón de pago si has indicado un enlace \texttt{https}. El cliente puede copiar el IBAN y pulsar \ui{Ya he pagado}: a ti te llega un aviso para que lo compruebes en tu banco. Las \textbf{actualizaciones de estado} («En preparación», «Enviado»…) aparecen en el chat.
+
+\section{Lo que ves tú}
+Los mensajes del cliente llegan a \ui{Mensajes} marcados con el canal \emph{REM Clientes}. Desde la conversación usas los botones \ui{Presupuesto}, \ui{Pago} y \ui{Estado} (capítulo~\ref{cap:mensajes}). Cuando el cliente acepta, ves un aviso en la conversación y el presupuesto aparece como \emph{aceptado}.
+
+\section{Privacidad y seguridad}
+\begin{itemize}
+\item Los mensajes se \textbf{cifran en el navegador del cliente} y solo tu Mac puede descifrarlos. El relé guarda únicamente datos ilegibles.
+\item El cliente \textbf{no tiene cuenta}: su identidad es una clave generada en su dispositivo.
+\item Puedes \textbf{bloquear} a un cliente y \textbf{desactivar} el canal cuando quieras.
+\item REM \textbf{nunca toca el dinero}: solo comunica cómo pagarte.
+\end{itemize}
+\begin{warnbox}
+REM Clientes es un \textbf{prototipo}. No ha pasado una auditoría criptográfica independiente. Úsalo para validar la idea con clientes reales de confianza, no para información especialmente sensible. Si el cliente pierde su navegador o borra sus datos, pierde el historial.
+\end{warnbox}
+El diseño del protocolo y la decisión de cada pieza se explican en el capítulo~\ref{cap:remtec}.

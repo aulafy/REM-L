@@ -1,49 +1,21 @@
-REM Negocio · Licencia de uso propio
-Copyright (c) 2026 Aulafy
+MIT License
 
-Este software se ofrece SOLO PARA USO PROPIO (sin reventa, servicio a terceros ni
-redistribución). Léela antes de usarlo.
+Copyright (c) 2026 Ramon Guillamon <learntouseai@gmail.com>
 
-1. Lo que puedes hacer
-   Puedes descargar, instalar, ejecutar, estudiar y modificar este software
-   para tu propio uso, incluida tu propia actividad profesional o empresarial
-   (como autónomo, pyme o entidad), en tus propios equipos, y hacer copias de
-   seguridad de tus propios datos. El uso es por persona o entidad usuaria y
-   para gestionar su propio negocio.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-2. Lo que NO puedes hacer sin permiso escrito del titular
-   a) Venderlo, alquilarlo, sublicenciarlo ni ofrecerlo a terceros como
-      servicio (SaaS, alojamiento, gestión de las cuentas de otros,
-      consultoría de implantación o soporte de pago), ni cobrar por él.
-   b) Distribuirlo o publicarlo, tal cual o modificado (incluidos derivados o
-      versiones renombradas), con o sin ánimo de lucro.
-   c) Incorporarlo a otro producto o servicio que se ofrezca a terceros.
-   d) Quitar este aviso ni los avisos de autoría.
-   Los asesores y gestorías pueden usarlo para su propia administración, pero
-   no para llevar la contabilidad o la facturación de sus clientes con él sin
-   permiso.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-3. Datos y responsabilidad
-   Los datos que introduzcas son tuyos y se guardan en tu equipo. Esta
-   aplicación es una herramienta de gestión interna: NO es software de
-   facturación certificado ni sustituye el asesoramiento fiscal o legal.
-   Las plantillas de cartas y contratos son modelos orientativos.
-
-4. Sin garantía
-   EL SOFTWARE SE ENTREGA «TAL CUAL», SIN GARANTÍA DE NINGUNA CLASE, EXPRESA O
-   IMPLÍCITA, INCLUIDAS LAS DE COMERCIABILIDAD, IDONEIDAD PARA UN FIN
-   DETERMINADO Y NO INFRACCIÓN. EN NINGÚN CASO EL TITULAR SERÁ RESPONSABLE DE
-   RECLAMACIONES, DAÑOS U OTRAS RESPONSABILIDADES DERIVADOS DEL USO DEL
-   SOFTWARE, INCLUIDA LA PÉRDIDA DE DATOS.
-
-5. Terminación
-   Esta licencia termina automáticamente si incumples cualquiera de sus
-   condiciones. Los derechos no concedidos expresamente quedan reservados.
-
-Para otros usos (empresa, comercial, redistribución) escribe al titular.
-
----
-English summary (the Spanish text above prevails): free for your own use,
-including your own business. No resale, hosting for third parties, bundling or
-redistribution without prior written permission. Provided "as is", without
-warranty.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

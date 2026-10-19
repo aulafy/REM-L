@@ -123,7 +123,7 @@ Métricas del MVP: porcentaje de clientes que usan el enlace frente a WhatsApp, 
 
 - Gratis para el cliente. Para la empresa: incluido con REM hasta un límite razonable; plan de pago si usa el relé alojado (volumen, adjuntos, soporte). Opción de **autoalojar** el relé (código abierto) para quien quiera control total.
 - Quién opera el relé: coste, abusos y retirada de contenido ilícito (obligaciones de servicios digitales: verificar si aplican y cómo) son decisiones de negocio, no solo técnicas.
-- Licencia: el canal obliga a repensar la licencia actual de REM (uso propio, sin redistribución): el cliente final **no** usa REM, usa el canal; hay que separar licencias del servidor, del protocolo y de las apps.
+- Licencia: el repositorio es ahora MIT; el servidor del canal y el protocolo se publican con la misma licencia (antes: uso propio): el cliente final **no** usa REM, usa el canal; hay que separar licencias del servidor, del protocolo y de las apps.
 
 ## 12. Lo que NO haría
 
@@ -140,7 +140,7 @@ Métricas del MVP: porcentaje de clientes que usan el enlace frente a WhatsApp, 
 3. Cifrado: ¿Matrix (más pesado, más maduro), relé propio con construcción estándar (recomendado para el prototipo) o MLS?
 4. ¿Quién opera el relé al principio (tú/Aulafy) y con qué compromiso de disponibilidad y de privacidad?
 5. ¿Reutilizamos el protocolo de `wh`/`AgentLink` para la capa de agentes?
-6. ¿Qué licencia queremos para el servidor y el protocolo (abierto) frente a REM (uso propio)?
+6. ¿Qué licencia queremos para el servidor y el protocolo (abierto) frente a REM (ahora también MIT)?
 
 ## 14. Variante: usar el correo electrónico como transporte («WhatsApp sobre email»)
 

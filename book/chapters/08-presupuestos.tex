@@ -1,0 +1,47 @@
+\chapter{Presupuestos y albaranes}\label{cap:presupuestos}
+
+\begin{objbox}
+Prepararás un presupuesto, lo enviarás, seguirás su estado y lo convertirás en factura cuando se acepte. También sabrás para qué sirve un albarán.
+\end{objbox}
+
+\section{Presupuestos}
+\figura[0.55]{e15-presupuestos}{Lista de presupuestos.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Nuevo presupuesto}.
+\item[\mk{2}] \textbf{Filtros}: \emph{Todos}, \emph{Borrador}, \emph{Enviados}, \emph{Aceptados}, \emph{Rechazados} y \emph{Facturados}.
+\item[\mk{3}] \textbf{Orden} por número, cliente, fecha, validez o total.
+\end{leyenda}
+El editor es el mismo que el de facturas, con una diferencia importante: un presupuesto tiene \textbf{fecha de validez} (por defecto, 30 días) y \textbf{no} lleva número de factura ni afecta a la contabilidad hasta que se factura. Sus estados son \emph{borrador}, \emph{enviado}, \emph{aceptado}, \emph{rechazado}, \emph{caducado} y \emph{facturado}.
+
+\section{El detalle de un presupuesto}
+\figura[0.82]{e16-presupuesto-detalle}{Presupuesto enviado a un cliente, pendiente de respuesta.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Marcar como aceptado / rechazado}. Para cuando el cliente responde fuera de REM (por teléfono, por ejemplo).
+\item[\mk{2}] \textbf{Convertir en factura}. Crea un borrador de factura con las mismas líneas. El presupuesto pasa a \emph{facturado}.
+\item[\mk{3}] \textbf{Reenviar}. Abre el mensaje con el presupuesto y su PDF.
+\item[\mk{4}] \textbf{Enviar por REM Clientes}. Envía una tarjeta interactiva al cliente (capítulo~\ref{cap:remclientes}): con un toque, el cliente acepta o rechaza.
+\item[\mk{5}] \textbf{Editar}.
+\item[\mk{6}] \textbf{Descargar PDF}.
+\item[\mk{7}] \textbf{Descargar propuesta (PowerPoint)}. Genera una presentación a partir del presupuesto, útil cuando hay que presentarlo en una reunión.
+\item[\mk{8}] \textbf{Duplicar}.
+\item[\mk{9}] \textbf{Eliminar}. Solo mientras no esté facturado.
+\end{leyenda}
+
+\figura[0.5]{e16b-presupuesto-borrador}{Un presupuesto en borrador, listo para enviarse.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Enviar por REM Clientes}.
+\item[\mk{2}] \textbf{Convertir en factura}.
+\item[\mk{3}] \textbf{Editar}.
+\end{leyenda}
+
+\section{Aceptación por correo}
+Si el cliente no usa REM Clientes, también puedes enviarle el presupuesto por correo como una \textbf{tarjeta} con botones «Aceptar» y «Rechazar». La respuesta solo cambia el estado si el remitente es quien debe ser y el servidor de correo lo certifica (explicado en el capítulo~\ref{cap:correoverificado}).
+
+\section{Albaranes}
+Un \textbf{albarán} (nota de entrega) acredita que has entregado un trabajo o unos materiales, y se factura después, normalmente agrupando varios.
+\figura[0.5]{e17-albaranes}{Lista de albaranes.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Nuevo albarán}.
+\item[\mk{2}] \textbf{Filtros}: \emph{Todos}, \emph{Pendientes de facturar} y \emph{Facturados}.
+\end{leyenda}
+Un albarán pendiente se convierte en un borrador de factura con un botón, y desde la ficha del cliente se pueden facturar a la vez todos sus albaranes pendientes en una sola factura.

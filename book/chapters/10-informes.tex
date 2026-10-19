@@ -1,0 +1,45 @@
+\chapter{Informes, modelos, tesorería y recurrentes}\label{cap:informes}
+
+\begin{objbox}
+Verás cómo va el negocio por trimestre, sacarás las cifras de los modelos fiscales, estimarás la tesorería de los próximos meses y automatizarás facturas y gastos que se repiten.
+\end{objbox}
+
+\section{Informes}
+\figura[0.6]{e21-informes}{Informes por año y trimestre.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{PDF}. Descarga el informe del periodo.
+\item[\mk{2}] \textbf{Año}.
+\item[\mk{3}] \textbf{Periodo}: año completo o un trimestre (1T a 4T).
+\item[\mk{4}] \textbf{Exportar}: \emph{Todo en Excel} (facturas, gastos y clientes en hojas separadas) o cada tabla en CSV. Es lo que normalmente pide una gestoría.
+\end{leyenda}
+
+\section{Modelos fiscales}
+\figura[0.6]{e22-modelos}{Cifras orientativas de los modelos 130, 303, 115 y 347.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Año}.
+\item[\mk{2}] \textbf{Trimestre}.
+\item[\mk{3}] \textbf{CSV}. Descarga las cifras de cada modelo.
+\end{leyenda}
+REM calcula, con lo registrado, los datos de partida de los modelos \textbf{130} (pago fraccionado de IRPF, acumulado), \textbf{303} (IVA), \textbf{115} (retenciones por alquileres) y \textbf{347} (operaciones con terceros por encima de 3\,005,06~€).
+
+\begin{warnbox}
+Son cifras \textbf{orientativas}. REM no presenta nada ante Hacienda: pueden faltar deducciones, regularizaciones o pagos hechos fuera de la aplicación. Revísalas con tu asesor antes de presentar.
+\end{warnbox}
+
+\section{Tesorería}
+\figura[0.6]{e23-tesoreria}{Previsión de tesorería a 30, 60 o 90 días.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Horizonte}: 30, 60 o 90 días.
+\item[\mk{2}] \textbf{Opciones}: incluir facturas ya vencidas y estimaciones de gastos.
+\end{leyenda}
+La previsión usa tus vencimientos reales, el \textbf{retraso típico con que paga cada cliente} (calculado con tus facturas ya cobradas), tus recurrentes y tu histórico de gastos. Si introduces el saldo actual del banco, muestra también el saldo previsto y el \emph{punto más bajo}, para anticipar si te quedarás corto. Es una \textbf{estimación}, no una promesa.
+
+\section{Recurrentes}
+\figura[0.55]{e24-recurrentes}{Facturas y gastos recurrentes.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Preparar un borrador ahora}, sin cambiar la fecha de la siguiente.
+\item[\mk{2}] \textbf{Editar}.
+\item[\mk{3}] \textbf{Eliminar}.
+\item[\mk{4}] \textbf{Nuevo gasto recurrente}.
+\end{leyenda}
+Una factura recurrente se crea desde una factura existente (\ui{Repetir…}) con una frecuencia (mensual, trimestral o anual). REM prepara el \textbf{borrador} en la fecha prevista; no lo emite ni lo envía. Un gasto recurrente, en cambio, se registra solo en cada periodo (uno por cada periodo que faltó si la aplicación estuvo cerrada).

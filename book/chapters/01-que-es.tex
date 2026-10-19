@@ -1,0 +1,43 @@
+\chapter{Qué es REM y para qué sirve}\label{cap:que-es}
+
+\begin{objbox}
+Al terminar este capítulo sabrás: qué problema resuelve REM, a quién va dirigido, qué principios lo guían y qué cosas \emph{no} hace.
+\end{objbox}
+
+\section{El problema}
+Quien trabaja por su cuenta suele tener sus datos repartidos: los clientes en la agenda del móvil, los presupuestos en documentos de texto, las facturas en un programa (o en una hoja de cálculo), los mensajes entre WhatsApp, el correo y las llamadas, y los gastos en una carpeta de tickets. Cada pieza funciona; el conjunto no. Los síntomas son conocidos: se olvida reclamar una factura, se contesta tarde a un cliente, se repite la misma pregunta de tarifas diez veces y, al llegar el trimestre, hay que reconstruirlo todo.
+
+\section{La idea}
+REM es una aplicación que reúne en un solo sitio:
+\begin{itemize}
+\item la \textbf{agenda de clientes} con su historial,
+\item los \textbf{presupuestos, albaranes y facturas}, con cobros y vencimientos,
+\item los \textbf{gastos} y los \textbf{informes} para el trimestre,
+\item una \textbf{bandeja unificada de mensajes} (Telegram, correo y mensajes pegados de WhatsApp o iMessage),
+\item un \textbf{asistente} que redacta borradores y responde preguntas con los datos del propio negocio,
+\item y un \textbf{canal para clientes} por el que ellos piden, aceptan presupuestos y pagan con un simple enlace.
+\end{itemize}
+
+\section{Objetivo}
+El objetivo de REM es doble:
+
+\begin{ideabox}
+\textbf{Ahorrar el tiempo de gestión} de un negocio pequeño sin obligarlo a entregar sus datos a una nube ajena, y \textbf{enseñar, con un caso real y completo}, cómo se construye una aplicación moderna con ayuda de la inteligencia artificial.
+\end{ideabox}
+
+\section{Principios}
+\begin{description}[leftmargin=0.6cm,style=nextline]
+\item[Local primero.] Los datos viven en tu equipo, en un único fichero. No hay cuentas ni servidor del fabricante que vea tu información.
+\item[Sin dependencias.] Solo hace falta Node.js. Menos piezas ajenas significa menos cosas que se rompen y menos superficie de ataque.
+\item[La IA propone, tú decides.] El asistente redacta; nunca envía ni emite por sí solo. «Aprobar no es enviar».
+\item[Migrar sin dolor.] Se pueden traer clientes, facturas y gastos desde Excel, contactos o programas anteriores, con vista previa y posibilidad de deshacer.
+\item[Explicable.] El dinero va en céntimos enteros, las facturas se numeran de forma correlativa y todo queda registrado.
+\end{description}
+
+\section{Qué no es}
+\begin{warnbox}
+REM \textbf{no es} un software de facturación certificado (VeriFactu) ni sustituye a tu asesor. Tampoco es un servicio en la nube: si tu equipo se estropea y no tienes copias, los datos se pierden; por eso las copias de seguridad cifradas forman parte del producto (capítulo~\ref{cap:datos}).
+\end{warnbox}
+
+\section{A quién va dirigido}
+A autónomos y pymes españolas que quieren orden sin complicaciones; a quien valora la privacidad de sus datos; y a docentes y estudiantes de informática que buscan un proyecto completo y legible para aprender. El libro usa a lo largo de todas las capturas una empresa inventada, \emph{Estudio Marea Alta} (interiorismo y reformas), con clientes y datos igualmente inventados.

@@ -1,0 +1,54 @@
+\chapter{Mensajes: una bandeja para todos los canales}\label{cap:mensajes}
+
+\begin{objbox}
+Sabrás conectar tus canales, leer y responder mensajes desde un único sitio, crear presupuestos y tareas desde una conversación y pedir un pago a un cliente.
+\end{objbox}
+
+\section{Qué canales hay}
+\begin{description}[leftmargin=0.6cm,style=nextline]
+\item[Telegram.] Con un bot propio. REM consulta periódicamente los mensajes nuevos (no necesita una dirección pública).
+\item[Correo.] Por IMAP (leer) y SMTP (enviar), con contraseña de aplicación y conexión cifrada obligatoria.
+\item[Mensajes pegados.] WhatsApp o iMessage: no existe una vía oficial práctica para leerlos desde un programa local, así que se copian y se pegan con \ui{Pegar mensaje}.
+\item[REM Clientes.] El enlace cifrado para que tus clientes te escriban desde el móvil (capítulo~\ref{cap:remclientes}).
+\end{description}
+
+\section{La bandeja}
+\figura[0.66]{e06-mensajes}{Bandeja de mensajes con una conversación de REM Clientes abierta.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Pegar mensaje}. Añade a mano un mensaje (WhatsApp, iMessage, llamada…).
+\item[\mk{2}] \textbf{Filtros}: \emph{Por responder}, \emph{Respondidos} y \emph{Archivo}.
+\item[\mk{3}] \textbf{Lista}. Cada fila muestra quién escribe, un extracto, el canal y la antigüedad. El punto azul indica que no está atendido.
+\item[\mk{4}] \textbf{Presupuesto}. Abre un presupuesto nuevo para este cliente.
+\item[\mk{5}] \textbf{Tarea}. Crea una tarea vinculada a la conversación.
+\item[\mk{6}] \textbf{Pago}. Prepara una solicitud de pago (importe, concepto, IBAN y enlace opcional). Disponible en REM Clientes y en correo.
+\item[\mk{7}] \textbf{Estado}. Avisa al cliente del estado de su pedido: «En preparación», «Enviado», «Entregado»… con un enlace de seguimiento opcional.
+\item[\mk{8}] \textbf{Archivar}. Aparta la conversación a \emph{Archivo}. \textbf{E} es el atajo.
+\item[\mk{9}] \textbf{Borrador}. Si hay un modelo local, el asistente deja aquí una respuesta preparada con los datos de tu negocio. Es un texto editable; puedes dictarlo o escucharlo.
+\item[\mk{10}] \textbf{Enviar}. Envía la respuesta por el mismo canal por el que llegó. Es la única acción que saca el texto de tu equipo, y es tuya.
+\end{leyenda}
+
+\section{Mensajes de WhatsApp y similares}
+Para los canales que no se pueden leer ni enviar desde REM, la pantalla ofrece alternativas honestas:
+\figura[0.55]{e06b-mensaje-whatsapp}{Mensaje pegado de WhatsApp: se responde fuera de REM con ayuda del borrador.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Copiar}. Copia el borrador para pegarlo donde quieras.
+\item[\mk{2}] \textbf{WhatsApp}. Abre WhatsApp con el texto ya escrito.
+\item[\mk{3}] \textbf{Marcar respondido}. Cuando hayas contestado fuera, cierra el mensaje aquí.
+\item[\mk{4}] \textbf{Presupuesto}. Igual que en cualquier conversación.
+\item[\mk{5}] \textbf{Guardar como cliente}. Si el contacto es nuevo, lo convierte en una ficha de cliente o lo vincula a una existente.
+\item[\mk{6}] \textbf{Escuchar}. Lee el mensaje en voz alta con la voz del sistema.
+\end{leyenda}
+
+\section{Pegar un mensaje}
+\figura[0.45]{e07-pegar-mensaje}{Ventana para pegar un mensaje.}
+Eliges el canal, el nombre de quien escribe y pegas el texto. REM lo guarda en la bandeja y, si hay asistente, prepara un borrador.
+
+\section{Pedir un pago y avisar del estado}
+Dos ventanas permiten responder con tarjetas estructuradas en lugar de texto libre:
+\figura[0.5]{e06c-pedir-pago}{Solicitud de pago: importe, concepto y enlace.}
+\figura[0.5]{e06d-estado-pedido}{Aviso de estado del pedido.}
+En la solicitud de pago, el enlace debe empezar por \texttt{https://} y se adjuntan tus datos de cobro (titular e IBAN) desde \ui{Ajustes → Empresa}. REM \textbf{nunca toca el dinero}: solo comunica cómo pagarte. Si el cliente pulsa «Ya he pagado», te llega un aviso para que lo compruebes en tu banco; no se marca como cobrado solo.
+
+\begin{warnbox}
+Antes de pagar a una cuenta que un cliente no esperaba, conviene confirmar los datos por otro canal. REM lo recuerda en la propia tarjeta de pago que ve el cliente.
+\end{warnbox}

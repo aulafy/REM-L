@@ -1,0 +1,48 @@
+\chapter{Datos, copias y migración}\label{cap:datos}
+
+\begin{objbox}
+Harás copias de seguridad, restaurarás una, traerás tus datos desde otros programas con vista previa y deshacer, y exportarás todo cuando lo necesites.
+\end{objbox}
+
+\figura[0.72]{e40-ajustes-datos}{Ajustes, pestaña «Datos y copias».}
+
+\section{Copias de seguridad}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Crear copia ahora}.
+\item[\mk{2}] \textbf{Restaurar}. Devuelve la aplicación al estado de una copia. Antes de restaurar, REM crea automáticamente una \emph{copia de seguridad de seguridad}, por si te arrepientes.
+\end{leyenda}
+REM guarda una \textbf{copia automática cada día} y conserva las últimas 20 (separadas de las manuales y de las de seguridad). Estas copias viven en tu equipo. Si usas la aplicación de Mac, además se guardan \textbf{fuera del equipo, cifradas}, en la carpeta que elijas en el asistente.
+
+\begin{plainbox}{Copia cifrada (.rembak)}
+Es un archivo que contiene tu base de datos y tus adjuntos, comprimidos y protegidos con una frase de paso. Sin esa frase (o el código de recuperación que se imprime en la hoja de recuperación) nadie puede leerlo, ni siquiera tú. Guarda la hoja de recuperación en un lugar seguro.
+\end{plainbox}
+
+\begin{warnbox}
+Una copia que nunca se ha probado no es una copia. La aplicación de Mac \textbf{prueba una restauración} al configurar las copias, y es buena idea repetirla de vez en cuando.
+\end{warnbox}
+
+\section{Importar datos antiguos}
+\begin{leyenda}
+\item[\mk{3}] \textbf{Importar clientes / contactos…}, \textbf{facturas…} o \textbf{gastos…}. Admite CSV, Excel, vCard (contactos de Mac, Google, Outlook) y, para facturas, también el estándar público \textbf{Facturae XML}.
+\item[\mk{4}] \textbf{¿Cómo exporto mis datos?}. Guías cortas para sacar los datos de programas habituales.
+\end{leyenda}
+\figura[0.55]{e41-guias-exportar}{Guías de exportación desde otros programas.}
+
+El proceso de importación siempre es el mismo:
+\begin{enumerate}
+\item \textbf{Eliges el archivo}. REM detecta el separador, la codificación y las columnas.
+\item \textbf{Vista previa.} Ves cómo quedarían las filas y los avisos (NIF dudosos, duplicados, fechas raras). No se guarda nada todavía.
+\item \textbf{Confirmas.} Antes se crea una copia de seguridad automática.
+\item \textbf{Puedes deshacer.} Cada importación es un \emph{lote} y se puede deshacer entero.
+\end{enumerate}
+Los \textbf{duplicados} se detectan por NIF, correo y nombre; REM te los enseña y no los fusiona en silencio. Si traes facturas con otra numeración, al terminar REM propone continuar la serie desde el siguiente número.
+
+\begin{aibox}
+Si el archivo es raro (columnas sin cabecera, formatos de programas antiguos), puedes pedir ayuda a la IA de Claude con tu propia clave. Antes de enviar nada, REM te enseña \textbf{exactamente} qué se enviaría: por defecto, una muestra \emph{enmascarada} (con letras y cifras sustituidas) y no tus datos reales. La IA devuelve un \emph{plan} de conversión que REM valida; nunca ejecuta código.
+\end{aibox}
+
+\section{Exportar}
+\begin{leyenda}
+\item[\mk{5}] \textbf{Excel (todo)}, \textbf{Todo (JSON)} y cada tabla en \textbf{CSV}. Tus datos son tuyos y salen en formatos abiertos.
+\item[\mk{6}] \textbf{Borrar todos los datos…}. Pide confirmación explícita; no se puede deshacer, así que conviene hacer una copia antes.
+\end{leyenda}

@@ -1,0 +1,38 @@
+\chapter{Gastos y horas}\label{cap:gastos}
+
+\begin{objbox}
+Registrarás gastos (con o sin ticket), controlarás cuáles están pendientes de pago y apuntarás horas de trabajo para facturarlas después.
+\end{objbox}
+
+\section{Gastos}
+\figura[0.55]{e18-gastos}{Lista de gastos.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Nuevo gasto}.
+\item[\mk{2}] \textbf{Buscar} por concepto o proveedor.
+\item[\mk{3}] \textbf{Filtros} por categoría y por estado de pago.
+\item[\mk{4}] \textbf{Repetir}. Convierte el gasto en un \emph{gasto recurrente} (alquiler, seguros…).
+\item[\mk{5}] \textbf{Editar}.
+\item[\mk{6}] \textbf{Eliminar}.
+\end{leyenda}
+
+\figura[0.5]{e19-gasto-nuevo}{Ventana de nuevo gasto.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Concepto}.
+\item[\mk{2}] \textbf{Importe}: lo que figura en la factura, \emph{con IVA incluido}. REM calcula la base.
+\item[\mk{3}] \textbf{IVA incluido}: 21, 10, 4 o sin IVA.
+\item[\mk{4}] \textbf{Pago}: \emph{ya pagado} o \emph{pendiente de pago}. Si queda pendiente, aparece el campo de vencimiento.
+\end{leyenda}
+
+\begin{aibox}
+Si recibes un ticket por Telegram, por correo o lo subes como imagen o PDF, REM lo lee con un \textbf{OCR local} (en tu equipo) y propone un gasto con el importe y la fecha. El ticket aparece en una tarjeta de \ui{Gastos} con el estado \emph{Por revisar}; pulsa \ui{Revisar}, corrige lo que haga falta y confirma para crear el gasto.
+\end{aibox}
+
+\section{Horas}
+Si cobras por horas, \ui{Horas} registra el tiempo dedicado a cada cliente y lo convierte en factura.
+\figura[0.55]{e20-horas}{Registro de horas.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Apuntar horas}. Cliente, fecha, duración y descripción.
+\item[\mk{2}] \textbf{Empezar}. Un cronómetro que cuenta mientras trabajas.
+\item[\mk{3}] \textbf{Facturar horas}. Crea un borrador de factura con las horas pendientes de un cliente, usando la tarifa por hora definida en \ui{Ajustes → Facturación}.
+\item[\mk{4}] \textbf{Editar entrada}.
+\end{leyenda}

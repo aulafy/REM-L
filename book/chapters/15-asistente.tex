@@ -1,0 +1,67 @@
+\chapter{El asistente: órdenes, agentes y aprobación}\label{cap:asistente}
+
+\begin{objbox}
+Aprenderás a dar órdenes en lenguaje natural, entenderás qué hacen los tres agentes y cómo la política de acciones garantiza que la IA nunca actúe sin tu permiso.
+\end{objbox}
+
+\section{Órdenes en lenguaje natural}
+Desde la barra de \ui{Hoy} o desde la paleta (\cmd\,K) puedes escribir lo que quieres hacer. Ejemplos que REM entiende:
+\begin{center}
+\begin{tabular}{@{}p{0.52\linewidth}p{0.4\linewidth}@{}}
+\toprule
+\textbf{Escribes} & \textbf{REM propone} \\
+\midrule
+\texttt{factura a Marta por 3 horas a 40 €} & Un borrador de factura con esa línea \\
+\texttt{recuérdame llamar a Pedro mañana} & Una tarea con fecha de mañana \\
+\texttt{gasto gasolina 45,50 €} & Un gasto de 45,50~€ \\
+\texttt{nuevo cliente Ana López 612345678} & Una ficha de cliente \\
+\texttt{abre clientes} & Ir a la pantalla de Clientes \\
+\bottomrule
+\end{tabular}
+\end{center}
+Siempre aparece una ventana de confirmación que dice \textbf{«Esto es lo que voy a hacer»}, con el detalle. Si hay dos clientes parecidos, eliges cuál. Las facturas se crean como \emph{borrador}.
+
+\figura[0.5]{e03-orden-confirmar}{Confirmación de una orden: nada ocurre hasta pulsar «Hacerlo».}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Hacerlo}. Ejecuta la acción propuesta.
+\item[\mk{2}] \textbf{Cancelar}. No se crea nada.
+\end{leyenda}
+
+Primero se aplican \textbf{reglas} sencillas (sin IA) que reconocen estas frases y fechas como «mañana», «el viernes» o «el 5/11». Si tienes un \textbf{modelo local} configurado, y la frase no encaja con las reglas, el modelo intenta interpretarla; su respuesta se valida contra un catálogo cerrado de acciones antes de mostrártela.
+
+\section{Los tres agentes}
+\begin{description}[leftmargin=0.6cm,style=nextline]
+\item[Mañana.] Al empezar el día deja un resumen de lo que hay que hacer.
+\item[Cobros.] Revisa las facturas vencidas y sugiere hasta tres reclamaciones al día.
+\item[Noche.] Cierra el día y propone las tareas de mañana (máximo 15).
+\end{description}
+Se ejecutan a su hora mientras REM está abierto, y se ponen al día al arrancar si estuvo cerrado. Los agentes \textbf{solo leen}: lo que quieren hacer pasa por la cola de aprobación.
+
+\section{La política de acciones}
+Cada cosa que un agente puede \emph{proponer} tiene un modo:
+\begin{center}
+\begin{tabular}{@{}lp{0.62\linewidth}@{}}
+\toprule
+\textbf{Modo} & \textbf{Significa} \\
+\midrule
+Hacerlo solo & La acción se ejecuta sin preguntar (solo para acciones inocuas, como guardar un borrador). \\
+Preguntar & Se propone y espera tu \ui{Aprobar} o \ui{Descartar}. \\
+Dejármelo a mí & El agente no hace nada; solo te avisa. \\
+\bottomrule
+\end{tabular}
+\end{center}
+Hay un \textbf{suelo} que ninguna regla puede bajar: enviar mensajes sin preguntar, emitir facturas, borrar o exportar datos. Está fijado en el código, no en un ajuste editable.
+
+\begin{ideabox}
+Una regla de seguridad que se puede desactivar desde un menú no es una regla de seguridad. Por eso las acciones más sensibles dependen de tu aprobación \emph{siempre}.
+\end{ideabox}
+
+\section{Pregunta y respuesta con tu información}
+Si escribes una pregunta en la barra de \ui{Hoy}, el asistente busca en tus documentos de \ui{Conocimiento} y en \texttt{negocio.md}, y contesta citando de dónde sale cada dato. Si la información no está, lo dice. El funcionamiento interno (RAG) se explica en el capítulo~\ref{cap:rag}.
+
+\section{Cuando algo sale mal}
+\begin{itemize}
+\item \textbf{Parar todo} (en \ui{Ajustes → Agentes}) detiene los agentes y vacía la cola.
+\item El \textbf{registro de actividad} muestra qué hizo cada agente y por qué.
+\item El \textbf{registro de llamadas al modelo} guarda duración, tokens y errores, \emph{nunca el texto}.
+\end{itemize}

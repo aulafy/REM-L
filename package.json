@@ -12,5 +12,6 @@
     "test": "REM_PDF_WARM=0 REM_BIN_DIR=\"${TMPDIR:-/tmp}/rem-test-bin\" node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\"",
     "stress": "node --disable-warning=ExperimentalWarning scripts/stress.mjs"
   },
-  "license": "SEE LICENSE IN LICENSE"
+  "license": "MIT",
+  "author": "Ramon Guillamon <learntouseai@gmail.com>"
 }

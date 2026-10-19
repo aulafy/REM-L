@@ -23,7 +23,7 @@ enum Snapshot {
         NSApp.windows.first?.setContentSize(NSSize(width: 1040, height: 720))
         for step in Step.allCases {
             model.step = step
-            if step == .business { model.business = BusinessForm(name: "Reformas Gil", nif: "B12345674", address: "Calle del Puerto 14", zip: "46001", city: "Valencia", email: "hola@reformasgil.es", phone: "960 000 000") }
+            if step == .business { model.business = BusinessForm(name: "Estudio Marea Alta", nif: "B00000000", address: "Calle del Ejemplo 0", zip: "00000", city: "Ciudad Imaginaria", email: "hola@mareaalta.invalid", phone: "000 000 000") }
             if step == .done { model.completed = [.business, .billing] }
             try? await Task.sleep(nanoseconds: 1_800_000_000)
             capture("paso-\(step.rawValue)-\(step)")

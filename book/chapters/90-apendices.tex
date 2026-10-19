@@ -1,0 +1,34 @@
+\chapter{Mapa del repositorio}\label{ap:mapa}
+\begin{center}
+\small
+\begin{tabular}{@{}p{0.3\linewidth}p{0.62\linewidth}@{}}
+\toprule
+\textbf{Ruta} & \textbf{Qué contiene} \\
+\midrule
+\ruta{server.mjs} & Servidor HTTP, rutas de la API y arranque. \\
+\ruta{lib/} & Un módulo por responsabilidad: importador, política de agentes, copias cifradas, correo, PDF, OCR, RAG, lector de webs… \\
+\ruta{public/} & Interfaz: \ruta{app.js}, \ruta{core.js}, \ruta{calc.js} (cálculo fiscal), \ruta{commands.js} (órdenes) y \ruta{views/} (una pantalla por archivo). \\
+\ruta{test/} & Pruebas con \texttt{node:test}. \\
+\ruta{mac/} & Aplicación nativa de macOS en SwiftUI. \\
+\ruta{relay/} & Relé ciego y página web del cliente. \\
+\ruta{docs/} & Documentación técnica por temas y el tutorial. \\
+\ruta{scripts/} & Empaquetado y prueba de carga (\texttt{npm run stress}). \\
+\ruta{promo/} & Vídeo de presentación con datos ficticios. \\
+\ruta{book/} & Este libro: fuentes en \LaTeX{} y herramientas para fotografiar la aplicación. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\chapter{Cómo regenerar el libro}\label{ap:regenerar}
+Las capturas se generan contra un entorno con datos ficticios, de forma reproducible:
+\begin{codebox}
+book/tools/env.sh                       # levanta REM y un relé con datos inventados
+node book/tools/shoot-client.mjs        # flujo del cliente (móvil)
+node book/tools/shoot.mjs               # pantallas de empresa con marcas numeradas
+node book/tools/shoot-mobile.mjs        # pantallas móviles
+python3 book/tools/tutorial2tex.py      # Parte III desde docs/tutorial/TUTORIAL.md
+book/build.sh                           # compila main.pdf (XeLaTeX)
+\end{codebox}
+Para añadir una captura nueva, basta con describirla en \ruta{book/tools/shoot.mjs} (ruta, pasos y marcas) y referenciarla desde el capítulo con \verb|\figura|.
+
+\input{chapters/91-glosario}

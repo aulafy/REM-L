@@ -125,4 +125,6 @@ En `mac/` hay una **app nativa para macOS** (SwiftUI) que lleva dentro el servid
 
 ## Licencia
 
-Uso **propio** gratuito, también en tu propio negocio (ver [LICENSE](LICENSE)). Prohibido revenderlo, ofrecerlo como servicio a terceros, redistribuirlo o incorporarlo a otros productos sin permiso por escrito. No es software de facturación certificado.
+El código es **MIT** (ver `LICENSE`). El libro «Manual del usuario de REM» (`book/`) se distribuye con **Creative Commons Atribución-CompartirIgual 4.0** (CC BY-SA 4.0). Autor: Ramon Guillamon (learntouseai@gmail.com).
+
+REM no es software de facturación certificado (VeriFactu) ni ofrece asesoramiento fiscal o legal.

@@ -1,0 +1,53 @@
+\chapter{Recorrido por la interfaz}\label{cap:recorrido}
+
+\begin{objbox}
+Conocerás la estructura general de REM (barra lateral, búsqueda, creación rápida, atajos, tema claro y oscuro, móvil) para moverte con soltura antes de entrar en cada pantalla.
+\end{objbox}
+
+\section{La barra lateral}
+A la izquierda siempre ves la \textbf{barra lateral}, con el nombre de tu negocio arriba y cuatro secciones de color:
+\begin{description}[leftmargin=0.6cm,style=nextline]
+\item[Hoy] el resumen de lo que requiere tu atención (capítulo~\ref{cap:hoy}).
+\item[Mensajes] la bandeja unificada (capítulo~\ref{cap:mensajes}).
+\item[Clientes] la agenda con el historial de cada uno (capítulo~\ref{cap:clientes}).
+\item[Dinero] facturas, presupuestos, albaranes, gastos, horas, informes, modelos, tesorería y recurrentes (capítulos~\ref{cap:facturas} a~\ref{cap:informes}).
+\end{description}
+Abajo están \ui{Atajos} (la lista de teclas rápidas) y \ui{Ajustes}. Los números pequeños en naranja indican cuántas cosas esperan tu atención en esa sección.
+
+\section{Buscar y crear: la paleta}
+Pulsa \cmd\,\texttt{K} (o \texttt{/}) en cualquier momento. Se abre la \textbf{paleta}: un cuadro de texto donde puedes buscar un cliente, una factura o un mensaje, saltar a una sección, o \textbf{ordenar algo en lenguaje natural}.
+
+\figura[0.5]{e02-paleta}{La paleta abierta con una orden escrita. La primera sugerencia, «Hacer: …», interpreta la orden.}
+\begin{leyenda}
+\item[\mk{1}] Cuadro de búsqueda y órdenes. Escribe un nombre, un número de factura o una frase como «factura a Gato Cuántico por 6 horas a 45 €».
+\item[\mk{2}] Resultado seleccionado. Con las flechas eliges; con \texttt{Intro} lo ejecutas. Las órdenes nunca se ejecutan directamente: primero muestran lo que van a hacer (capítulo~\ref{cap:asistente}).
+\end{leyenda}
+
+\section{El botón «Nuevo»}
+Arriba a la derecha, \ui{Nuevo} abre un menú de creación rápida: pegar un mensaje, crear una factura, un presupuesto, un cliente, un gasto o una tarea.
+\figura[0.45]{e04-crear}{Menú de creación rápida.}
+
+\section{Atajos de teclado}
+REM se puede usar casi sin ratón. Pulsa \texttt{?} para ver la lista completa.
+\figura[0.45]{e05-atajos}{Lista de atajos de teclado.}
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Tecla} & \textbf{Acción} \\
+\midrule
+\cmd\,K \ / \ \texttt{/} & Buscar, crear u ordenar \\
+\texttt{G} luego \texttt{H} / \texttt{M} / \texttt{C} / \texttt{D} / \texttt{A} & Ir a Hoy / Mensajes / Clientes / Dinero / Ajustes \\
+\texttt{N} luego \texttt{F} / \texttt{P} / \texttt{C} / \texttt{G} / \texttt{T} & Nueva factura / presupuesto / cliente / gasto / tarea \\
+\texttt{J} / \texttt{K} & Mensaje siguiente / anterior \\
+\texttt{R} & Responder (en Mensajes) \\
+\texttt{E} & Archivar el mensaje abierto \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Tema claro y oscuro}
+El icono de la luna (arriba, a la derecha) alterna entre tema claro y oscuro. Por defecto sigue la preferencia de tu sistema.
+
+\section{En el móvil}
+La interfaz se adapta a pantallas pequeñas: la barra lateral pasa a ser una barra inferior de cinco pestañas y los botones crecen hasta un mínimo de 44 píxeles para que se puedan pulsar con el dedo.
+\movil[0.5]{e42-movil-hoy.png,e43-movil-facturas.png}{REM en un móvil: Hoy y Facturas.}{movil}

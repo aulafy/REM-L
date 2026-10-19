@@ -1,0 +1,41 @@
+\chapter{Clientes}\label{cap:clientes}
+
+\begin{objbox}
+Gestionarás la agenda de clientes: crear, buscar, filtrar y consultar la ficha completa con su historial, documentos, tareas y memoria.
+\end{objbox}
+
+\section{La lista}
+\figura[0.6]{e08-clientes}{Lista de clientes.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Nuevo cliente}.
+\item[\mk{2}] \textbf{Buscar}. Por nombre, NIF, correo o población.
+\item[\mk{3}] \textbf{Filtros}: \emph{Todos}, \emph{Con deuda} y \emph{Con vencidas}.
+\item[\mk{4}] \textbf{Orden}. Pulsa la cabecera \emph{Cliente}, \emph{Facturado} o \emph{Pendiente} para ordenar.
+\item[\mk{5}] \textbf{Avatar}. Un círculo con las iniciales; pulsar la fila abre la ficha.
+\end{leyenda}
+
+\section{Crear un cliente}
+\figura[0.55]{e09-cliente-nuevo}{Ventana de nuevo cliente.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Nombre o razón social}. Es el único campo obligatorio.
+\item[\mk{2}] \textbf{NIF / CIF}. Se valida al guardar (formato y letra de control en NIF y NIE). Hace falta para emitir facturas.
+\item[\mk{3}] \textbf{Crear cliente}.
+\end{leyenda}
+Además hay correo, teléfono, dirección, población, código postal y notas internas. Si dejas el NIF vacío puedes crear presupuestos, pero no emitir facturas.
+
+\section{La ficha del cliente}
+\figura[0.82]{e10-ficha-cliente}{Ficha de un cliente con su historial.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Editar} los datos del cliente.
+\item[\mk{2}] \textbf{Extracto PDF}. Un resumen de lo facturado y cobrado, para enviárselo.
+\item[\mk{3}] \textbf{Documento…}. Genera una carta o un contrato a partir de una plantilla (capítulo~\ref{cap:ajustes}).
+\item[\mk{4}] \textbf{Presupuesto} y \mk{5} \textbf{Factura}: crean un documento ya asignado a este cliente.
+\item[\mk{6}] \textbf{Memoria}. Datos que el asistente debe recordar de este cliente («prefiere los planos por correo»). Se pueden añadir, editar y borrar.
+\item[\mk{7}] \textbf{Pestañas del historial}: \emph{Todo}, \emph{Mensajes}, \emph{Facturación} y \emph{Tareas y notas}.
+\item[\mk{8}] \textbf{Buscar en el historial}.
+\item[\mk{9}] \textbf{Eliminar cliente}. Si tiene documentos, no se borra: se \emph{archiva}, para no romper facturas ya emitidas.
+\end{leyenda}
+
+\begin{ideabox}
+Un cliente con facturas no se puede borrar de verdad. Es una regla de integridad de la base de datos (capítulo~\ref{cap:bbdd}): una factura emitida debe poder seguir mostrando a quién se emitió.
+\end{ideabox}

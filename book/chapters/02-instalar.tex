@@ -1,0 +1,59 @@
+\chapter{Instalación y primer arranque}\label{cap:instalar}
+
+\begin{objbox}
+Instalarás REM de dos maneras (desde el código o con la aplicación de Mac), recorrerás el asistente de primera vez y conocerás dónde se guardan tus datos.
+\end{objbox}
+
+\section{Requisitos}
+\begin{itemize}
+\item Un Mac (la aplicación nativa requiere macOS 13 o posterior). El servidor funciona también en otros sistemas, pero algunas funciones (llavero, voz del sistema, icono de la barra de menús) son de macOS.
+\item Node.js 22.13 o posterior (solo si arrancas desde el código).
+\item Opcional: Ollama (modelo de IA local), whisper.cpp (dictado de notas de voz).
+\end{itemize}
+
+\section{Desde el código fuente}
+Con el repositorio descargado:
+\begin{codebox}
+cd rem-negocio
+npm start
+\end{codebox}
+La aplicación queda en \url{http://127.0.0.1:4400}. Si quieres otra carpeta de datos u otro puerto:
+\begin{codebox}
+REM_DATA_DIR=/ruta/a/mis-datos REM_PORT=4500 npm start
+\end{codebox}
+Por defecto, los datos se guardan en \ruta{~/Library/Application Support/REM Negocio}, en un fichero SQLite, con una copia automática diaria.
+
+\begin{plainbox}{127.0.0.1}
+Es la dirección que significa «este mismo ordenador». REM solo escucha ahí, de modo que ningún otro equipo de la red puede entrar.
+\end{plainbox}
+
+\section{Con la aplicación de Mac}
+En la carpeta \ruta{mac/} hay una aplicación nativa (SwiftUI) que lleva el servidor dentro, lo arranca y lo vigila, y te guía paso a paso la primera vez. Se compila con \ruta{scripts/build-mac-app.sh}. La primera vez muestra un asistente de siete pasos.
+
+\figura[0.36]{m-paso-0-welcome}{Asistente de la aplicación de Mac: bienvenida.}
+La bienvenida resume tres ideas (todo se queda en el Mac, la IA propone y tú decides, puedes parar y retomar) y hace una \textbf{comprobación del equipo}: que el servidor local funciona, que hay espacio libre en disco y si el disco está cifrado con FileVault. Cada paso es breve y se puede dejar para más tarde: lo que has hecho se conserva.
+
+\movil[0.30]{m-paso-1-business.png,m-paso-2-billing.png}{Pasos 1 y 2: datos del negocio (con datos de ejemplo) y cómo facturas.}{asist12}
+\begin{description}[leftmargin=0.6cm,style=nextline]
+\item[Tu negocio.] Nombre o razón social, NIF/CIF, dirección, correo y teléfono, y un logotipo opcional. Esos datos aparecen en tus facturas y presupuestos.
+\item[Cómo facturas.] Eliges el tipo de actividad (servicios profesionales, oficios y reformas, comercio, hostelería u otro) y REM propone los valores habituales: IVA, retención de IRPF, plazo de pago, validez de los presupuestos, prefijo de las facturas, tarifa por hora e IBAN para los cobros. Todo se puede cambiar después.
+\end{description}
+
+\movil[0.30]{m-paso-3-backup.png,m-paso-4-data.png}{Pasos 3 y 4: copias de seguridad y traer tus datos.}{asist34}
+\begin{description}[leftmargin=0.6cm,style=nextline]
+\item[Copias de seguridad.] Eliges una carpeta (un disco externo, un NAS o iCloud Drive). Las copias se guardan \textbf{cifradas}, una cada día y otra al cerrar. Al final, el asistente \textbf{prueba una restauración}: una copia sin probar no es una garantía.
+\item[Traer tus datos.] Tres vías: leer los \emph{Contactos de este Mac} (con vista previa de lo nuevo y lo repetido), abrir el \emph{importador} de archivos de otros programas (Google, Outlook, vCard, Excel, facturas emitidas y gastos) y, opcionalmente, usar tu propia clave de la API de Claude para que una IA proponga cómo traducir un archivo raro; antes de enviar nada se te muestra exactamente qué se enviaría, enmascarado.
+\end{description}
+
+\movil[0.30]{m-paso-5-access.png,m-paso-6-done.png}{Pasos 5 y 6: acceso y arranque, y fin del asistente.}{asist56}
+\begin{description}[leftmargin=0.6cm,style=nextline]
+\item[Acceso y arranque.] PIN opcional, arranque automático con el Mac e icono en la barra de menús.
+\item[Todo listo.] Una lista de lo que queda pendiente, con un botón \ui{Completar} en cada punto, y un resumen de cómo se usa REM en cuatro líneas. El botón \ui{Abrir REM Negocio} termina el asistente.
+\end{description}
+
+\section{Primer arranque en el navegador}
+Si arrancas sin datos, REM muestra una pantalla de bienvenida con tres pasos (nombre del negocio, valores habituales y cómo empezar). Puedes elegir \ui{Explorar con datos de ejemplo}, que carga un negocio ficticio para probar sin riesgo, y borrarlo después desde \ui{Ajustes → Datos y copias}.
+
+\begin{checkbox}
+Abre REM, elige \ui{Explorar con datos de ejemplo} y localiza en la barra lateral las secciones \ui{Hoy}, \ui{Mensajes}, \ui{Clientes} y \ui{Dinero}. Las verás con detalle en los capítulos siguientes.
+\end{checkbox}

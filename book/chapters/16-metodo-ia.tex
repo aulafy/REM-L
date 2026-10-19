@@ -1,0 +1,109 @@
+\chapter{Programar con IA: el método detrás de REM}\label{cap:metodo}
+
+\begin{objbox}
+Aprenderás cómo se reparte el trabajo entre una persona y un asistente de programación, qué prácticas hicieron que REM saliera adelante y qué errores reales cometió la IA (y cómo se detectaron).
+\end{objbox}
+
+\section{Quién hace qué}
+REM se construyó en conversación con un asistente de programación con IA (en este caso, Claude Code, que lee y escribe archivos, ejecuta comandos y pruebas en el repositorio). El reparto fue este:
+
+\begin{center}
+\begin{tabular}{@{}p{0.2\linewidth}p{0.36\linewidth}p{0.36\linewidth}@{}}
+\toprule
+ & \textbf{La persona} & \textbf{La IA} \\
+\midrule
+Producto & Decide qué se construye, para quién y por qué. & Propone alternativas y señala riesgos. \\
+Diseño & Aprueba la dirección. & Redacta el plan y lo compara con opciones. \\
+Código & Revisa y prueba. & Escribe, ejecuta pruebas, corrige. \\
+Riesgo & Decide qué es aceptable. & Avisa de lo que no se ha podido verificar. \\
+Publicación & Da el visto bueno. & Prepara el cambio; no sube sin permiso. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{ideabox}
+Programar con IA no es «pedir una aplicación». Es dirigir un trabajo en pasos pequeños, con criterios de «hecho» comprobables y una persona que mantiene el juicio sobre lo que importa.
+\end{ideabox}
+
+\section{Las prácticas que funcionaron}
+
+\subsection{Producto antes que código}
+Antes de escribir la parte de clientes (REM Clientes) se redactó un \textbf{documento de producto}, \emph{sin código}, para discutir: la idea en una frase, por qué puede ganar y por qué puede fracasar, principios, seguridad, qué no se haría. Todo lo no comprobado quedó marcado con «(verificar)». Esa disciplina evitó construir un prototipo sobre suposiciones sin examinar.
+
+\subsection{Una hoja de ruta ordenada por valor y esfuerzo}
+El archivo \ruta{ROADMAP.md} lista lo hecho y lo siguiente, en orden. La regla escrita en su cabecera: \emph{«Una función cada vez, con pruebas y commit local»}. Cada función se cerraba antes de empezar la siguiente.
+
+\subsection{Plan primero en lo grande}
+Para cambios amplios (la aplicación de Mac, el canal con clientes) se pidió primero un \textbf{plan y un diseño}, y solo tras aprobarlo se empezó a implementar. Una pregunta de elección a tiempo ahorra horas: ¿aplicación nativa o web envuelta? ¿importar con IA o con reglas? ¿copias en disco externo o en la nube?
+
+\subsection{Pruebas como red de seguridad}
+La suite (\texttt{npm test}) tiene unas 270 pruebas sin dependencias, incluidas pruebas con servidores simulados de correo y de IA. Cada función nueva llegó con sus pruebas. Cuando la IA cambia algo, las pruebas dicen en segundos si rompió otra cosa.
+
+\subsection{Verificar en el navegador, no solo en el código}
+Un test verde no demuestra que la pantalla se vea bien. Se comprobó cada cambio de interfaz en un navegador real, con capturas, en escritorio y móvil, y en tema claro y oscuro. Una auditoría automática de botones táctiles pasó de unos 30 por debajo del tamaño recomendado a 3.
+
+\subsection{Confirmar antes de publicar}
+La IA hacía commits \emph{locales}; subir al repositorio público requería una confirmación explícita de la persona cada vez. Es una barrera sencilla y muy eficaz.
+
+\subsection{Datos ficticios siempre}
+Todo lo que se enseña (capturas, vídeos, ejemplos, este libro) usa datos inventados y marcados como tales: NIF de ceros, correos en \texttt{.invalid}, empresas imaginarias.
+
+\section{Los errores reales de la IA (y cómo se encontraron)}
+Una lección honesta: el asistente se equivoca. Lo importante es tener mecanismos que lo detecten.
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{0.34\linewidth}p{0.3\linewidth}p{0.28\linewidth}@{}}
+\toprule
+\textbf{Error} & \textbf{Cómo apareció} & \textbf{Qué lo detectó} \\
+\midrule
+El relé nunca borraba los mensajes entregados: tras unos miles, bloqueaba a la empresa. & Con la cola llena respondía «503». & Una \textbf{prueba de carga} con 1\,000 clientes. \\
+Al vaciarse la cola, los identificadores se reutilizaban y la empresa ignoraba mensajes nuevos. & Mensajes que nunca llegaban. & Un test de regresión escrito tras el fallo. \\
+En la lectura de la web con el modelo local se usaba mal el resultado de la función. & La IA local «no respondía». & Un test con un servidor simulado de IA. \\
+Los botones «Pago» y «Estado» quedaban fuera de la cabecera de la conversación. & Se veían como barras a todo ancho. & Al \textbf{hacer capturas} para el vídeo. \\
+La validación de NIF aceptaba un CIF con dígito de control incorrecto y un valor vacío. & Un NIF inventado pasaba. & Un test escrito para el nuevo extractor. \\
+Valores de ejemplo con un dominio de correo que podría ser real. & Al revisar las capturas. & La \textbf{revisión de privacidad} antes de publicar. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{warnbox}
+La IA tiende a explicar con seguridad lo que no ha comprobado. La defensa no es desconfiar de todo, sino pedir siempre la \emph{evidencia}: una prueba que pasa, una captura, un archivo que se abre, un número que se puede contar.
+\end{warnbox}
+
+\section{Cómo pedir las cosas}
+Un buen encargo tiene cuatro partes: \textbf{contexto}, \textbf{objetivo}, \textbf{restricciones} y \textbf{criterio de hecho}.
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{0.45\linewidth}p{0.45\linewidth}@{}}
+\toprule
+\textbf{Encargo flojo} & \textbf{Encargo claro} \\
+\midrule
+«Haz las copias de seguridad.» & «Copias cifradas con AES-256-GCM en una carpeta que elija la persona; una al día y otra al salir; que el asistente pruebe una restauración antes de darlas por buenas. Con pruebas.» \\
+«Mejora la seguridad.» & «Enumera qué puede hacer un correo malicioso en esta bandeja y qué barrera lo impide; añade pruebas para cada caso.» \\
+«Que la IA no haga cosas peligrosas.» & «Las acciones de enviar, emitir y borrar tienen un suelo en código que ninguna configuración puede bajar; muéstrame la prueba.» \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Lo que no se delega}
+\begin{itemize}
+\item \textbf{Qué riesgos son aceptables.} La IA los describe; la persona decide.
+\item \textbf{Lo que se afirma en público.} Cualquier mensaje o vídeo que vaya a terceros se revisa para no prometer lo que no está verificado (por ejemplo, llamar «seguro» al prototipo del canal con clientes).
+\item \textbf{La licencia y la autoría.} Son decisiones del titular.
+\end{itemize}
+
+\section{Lista de revisión para código generado por IA}
+\begin{enumerate}
+\item ¿Hay una prueba que falle sin el cambio y pase con él?
+\item ¿Qué ocurre con entradas raras (vacías, enormes, con caracteres especiales, de otro usuario)?
+\item ¿Hay un camino en el que la IA pueda actuar sin aprobación humana?
+\item ¿Se han añadido dependencias? ¿Hacían falta?
+\item ¿Se ve bien en pantalla pequeña y con tema oscuro?
+\item ¿Queda constancia de lo que no se ha podido verificar?
+\end{enumerate}
+
+\begin{checkbox}
+Elige una función pequeña de REM (por ejemplo, «archivar un cliente»). Escribe un encargo con contexto, objetivo, restricciones y criterio de hecho; pídeselo a un asistente de programación; y evalúa el resultado con la lista de revisión anterior.
+\end{checkbox}

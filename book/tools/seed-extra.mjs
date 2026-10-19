@@ -1,0 +1,20 @@
+// Datos FICTICIOS adicionales para ilustrar todas las pantallas del manual (se ejecuta tras promo/seed.mjs).
+const base = process.argv[2] || 'http://127.0.0.1:4801';
+const call = async (m, p, b) => { const r = await fetch(base + p, { method: m, headers: { 'Content-Type': 'application/json', 'X-REM': '1' }, body: b === undefined ? undefined : JSON.stringify(b) }); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(`${m} ${p}: ${j.error || r.status}`); return j; };
+const d = (n) => { const x = new Date('2026-10-19T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
+const S = await call('GET', '/api/state'); const C = Object.fromEntries(S.clients.map((c) => [c.name.split(' ')[0].toLowerCase(), c.id]));
+await call('PUT', '/api/negocio', { text: '# Estudio Marea Alta\n\nTono: cercano y claro, siempre de usted a empresas y de tú a particulares.\nNunca prometemos plazos sin confirmarlos con el taller.\nPresupuestos válidos 30 días. Señal del 30 % para empezar.' });
+await call('POST', '/api/knowledge', { title: 'Tarifas y condiciones', body: 'Tarifa de diseño de interiores: 60 € por hora (sin IVA).\n\nDesplazamiento: 25 € dentro de Ciudad Imaginaria; 0,45 € por kilómetro fuera.\n\nForma de pago: 30 % de señal al aceptar y el resto al terminar. Transferencia o enlace de pago.\n\nGarantía: 2 años en mobiliario a medida y 1 año en instalación.' });
+await call('POST', '/api/knowledge', { title: 'Horario y zona de servicio', body: 'Atendemos de lunes a viernes de 9:00 a 18:00. Trabajamos en Ciudad Imaginaria y alrededores (hasta 40 km). Visitas de medición con cita previa.' });
+await call('POST', '/api/memory', { text: 'Prefiere recibir los planos por correo, no impresos', client_id: C.ada });
+await call('POST', '/api/memory', { text: 'Paga siempre a 15 días; no hace falta recordárselo antes', client_id: C.gato });
+await call('POST', '/api/memory', { text: 'Contacto de obra: turno de mañana' });
+for (const [name, price, unit, description] of [['Diseño de interiores', 6000, 'h', 'Propuesta, planos y revisiones'], ['Dirección de obra', 4500, 'h', 'Coordinación de gremios'], ['Mobiliario a medida', 185000, 'ud', 'Diseño, fabricación y montaje'], ['Desplazamiento', 2500, 'ud', 'Dentro de la ciudad']]) await call('POST', '/api/items', { name, price, iva: 21, unit, description });
+for (const [client, date, minutes, description] of [['gato', d(-3), 150, 'Reunión de seguimiento y ajustes de planos'], ['nube', d(-2), 90, 'Medición del local'], ['ada', d(-1), 60, 'Revisión de materiales']]) await call('POST', '/api/time', { client_id: C[client], date, minutes, description, rate: 6000 });
+const inv = S.documents.find((x) => x.type === 'factura' && x.status !== 'borrador' && x.client_id === C.nube);
+await call('POST', '/api/recurring', { from_document_id: inv.id, name: 'Mantenimiento mensual · Nube Pequeña Café', every: 'month', next_date: d(9) });
+await call('POST', '/api/recurring-expenses', { name: 'Alquiler del taller', supplier: 'Inmuebles Ficticios', concept: 'Alquiler del taller', category: 'alquiler', total: 60500, iva: 21, every: 'month', next_date: d(12) });
+await call('POST', '/api/documents', { type: 'albaran', client_id: C.zorzal, lines: [{ desc: 'Entrega de mobiliario · fase 1', qty: 1, price: 0, iva: 21 }, { desc: 'Herrajes y tornillería', qty: 1, price: 0, iva: 21 }] }).catch(() => {});
+await call('POST', '/api/tasks', { title: 'Pedir muestras de tejido a proveedor', due: d(5), priority: 1 }); await call('POST', '/api/tasks', { title: 'Preparar visita de obra del jueves', due: d(2), priority: 2, client_id: C.faro });
+await call('POST', '/api/messages/manual', { channel: 'telegram', peer_name: 'Bruno Muestra', peer_addr: '000000', body: 'Buenas tardes, ¿podríamos mover la cita del jueves a la tarde?' });
+console.log('extra ok');

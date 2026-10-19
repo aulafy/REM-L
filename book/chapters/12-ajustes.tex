@@ -1,0 +1,122 @@
+\chapter{Ajustes}\label{cap:ajustes}
+
+\begin{objbox}
+Recorrerás las catorce pestañas de \ui{Ajustes}: canales, avisos, conocimiento y memoria del asistente, agentes, módulos, plantillas, IA, datos de empresa, facturación, catálogo, acceso y copias.
+\end{objbox}
+
+\ui{Ajustes} agrupa todo lo que se configura una vez y se olvida. Se accede desde el último elemento de la barra lateral; arriba hay catorce pestañas.
+
+\section{Canales}
+\figura[0.6]{e27-ajustes-canales}{Canales de entrada y salida.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Token del bot de Telegram}. Se obtiene hablando con \texttt{@BotFather}; se guarda en el llavero de macOS.
+\item[\mk{2}] \textbf{Correo}: tu dirección y una \emph{contraseña de aplicación} (no la de tu cuenta). Se guarda en el llavero.
+\item[\mk{3}] \textbf{Servidores IMAP y SMTP}. La conexión debe ser cifrada.
+\item[\mk{4}] \textbf{Copiar} el enlace que compartes con tus clientes (REM Clientes).
+\item[\mk{5}] \textbf{Desactivar} el canal con clientes. El relé deja de aceptar mensajes y REM deja de leer.
+\end{leyenda}
+Debajo está el perfil público que ven tus clientes al abrir el enlace: eslogan, horario, dirección y mensaje de bienvenida.
+
+\section{Avisos}
+\figura[0.5]{e28-ajustes-avisos}{Avisos del sistema.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Qué avisar}: mensajes nuevos, resumen diario, aprobaciones pendientes y si los avisos muestran detalles.
+\item[\mk{2}] \textbf{Horas}: del resumen diario y del periodo de silencio.
+\item[\mk{3}] \textbf{Enviar un aviso de prueba}.
+\end{leyenda}
+
+\section{Mi negocio}
+\figura[0.5]{e29-ajustes-negocio}{El archivo \texttt{negocio.md}.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Contenido de \texttt{negocio.md}}. Un texto libre con tus reglas y tu tono («de usted a empresas», «presupuestos válidos 30 días»). El asistente lo lee siempre antes de redactar.
+\end{leyenda}
+
+\section{Conocimiento}
+\figura[0.55]{e30-ajustes-conocimiento}{Documentos que el asistente puede consultar.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Añadir}. Un documento con título y contenido: tarifas, condiciones, garantías, horarios.
+\item[\mk{2}] \textbf{Desde un archivo…}. Importa el texto de un PDF o un documento.
+\end{leyenda}
+Estos documentos se trocean y se indexan; el asistente los usa para responder con datos reales y citar la fuente (capítulo~\ref{cap:rag}).
+
+\section{Memoria}
+\figura[0.55]{e31-ajustes-memoria}{Datos que el asistente recuerda.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Hindsight}. Conexión opcional con una memoria a largo plazo local. Apagada por defecto.
+\item[\mk{2}] \textbf{Añadir dato}. Un hecho breve, general o de un cliente.
+\item[\mk{3}] \textbf{Editar} un dato.
+\item[\mk{4}] \textbf{Borrar toda la memoria}.
+\end{leyenda}
+La memoria es \textbf{visible y editable}: nada se recuerda sin que puedas verlo. El asistente propone datos nuevos, pero solo se guardan si los apruebas.
+
+\section{Agentes}
+\figura[0.82]{e32-ajustes-agentes}{Agentes programados y política de acciones.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Activar} cada agente (\emph{Mañana}, \emph{Cobros}, \emph{Noche}) y fijar su hora.
+\item[\mk{2}] \textbf{Ejecutar ahora}. Lanza el agente sin esperar a su hora.
+\item[\mk{3}] \textbf{Modo por acción}. Para cada cosa que un agente puede proponer (preparar borrador, crear tarea, enviar mensaje…), eliges: \emph{hacerlo solo}, \emph{preguntar} o \emph{dejármelo a mí}. Las acciones sensibles tienen un suelo que ninguna regla puede bajar.
+\item[\mk{4}] \textbf{Parar todo}. Detiene los agentes y vacía la cola de propuestas.
+\end{leyenda}
+Los agentes se explican en el capítulo~\ref{cap:asistente}.
+
+\section{Módulos}
+\figura[0.5]{e33-ajustes-modulos}{Ampliaciones declarativas.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Clave de la API de Claude}. Opcional: permite describir en lenguaje natural una ampliación y que Claude proponga el módulo. Se guarda en el llavero.
+\item[\mk{2}] \textbf{Ver e instalar}. Una galería de módulos ya preparados.
+\end{leyenda}
+Un módulo añade campos extra, plantillas, reglas o informes, siempre como \emph{datos} validados, nunca como código (capítulo~\ref{cap:modulos}).
+
+\section{Documentos}
+\figura[0.5]{e34-ajustes-documentos}{Plantillas de cartas y contratos.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Nueva} plantilla.
+\item[\mk{2}] \textbf{Usar como base}. Duplica una plantilla integrada para personalizarla.
+\end{leyenda}
+Las plantillas usan variables (por ejemplo, el nombre del cliente) y se generan desde la ficha de cada cliente en PDF o Word.
+
+\section{IA y voz}
+\figura[0.55]{e35-ajustes-ia}{Conexión con los modelos locales.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Dirección de Ollama}. Solo se admiten direcciones locales.
+\item[\mk{2}] \textbf{Modelo de texto}, por ejemplo \texttt{qwen3:8b}.
+\item[\mk{3}] \textbf{Modelo de embeddings}, para la búsqueda semántica (opcional).
+\item[\mk{4}] \textbf{Comprobar modelos}.
+\end{leyenda}
+Además se puede elegir la voz del sistema para «Escuchar» y la ruta de un modelo de \texttt{whisper.cpp} para transcribir notas de voz.
+
+\section{Empresa}
+\figura[0.6]{e36-ajustes-empresa}{Datos de tu empresa.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Rellenar desde mi web}. Opcional: lees tu web, REM propone nombre, teléfono, dirección y horario, y \emph{tú marcas qué guardar}. Solo lee unas pocas páginas, respeta el \texttt{robots.txt} y bloquea direcciones de redes privadas.
+\item[\mk{2}] \textbf{Nombre o razón social}, NIF, dirección, población, código postal, correo y teléfono. Salen en tus documentos.
+\item[\mk{3}] \textbf{IBAN para cobros}. Aparece en tus facturas y en las solicitudes de pago.
+\end{leyenda}
+
+\section{Facturación}
+\figura[0.6]{e37-ajustes-facturacion}{Valores por defecto y series.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{IVA habitual} y \textbf{retención de IRPF} por defecto.
+\item[\mk{2}] \textbf{Plazos}: días de pago de las facturas y de validez de los presupuestos.
+\item[\mk{3}] \textbf{Nueva serie}. Permite varias series de numeración. También se puede fijar el siguiente número para continuar la numeración de otro programa.
+\end{leyenda}
+Aquí se fijan también la tarifa por hora y los pies de página de facturas y presupuestos.
+
+\section{Catálogo}
+\figura[0.5]{e38-ajustes-catalogo}{Conceptos habituales.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Nuevo} concepto: nombre, descripción, precio, IVA y unidad.
+\item[\mk{2}] \textbf{Editar} y \mk{3} \textbf{Eliminar}.
+\end{leyenda}
+Los conceptos del catálogo se pueden insertar con un clic en cualquier línea de una factura o un presupuesto.
+
+\section{Acceso y arranque}
+\figura[0.5]{e39-ajustes-acceso}{Seguridad de acceso y arranque.}
+\begin{leyenda}
+\item[\mk{1}] \textbf{Activar PIN}. Pide un PIN al abrir y tras un periodo de inactividad.
+\item[\mk{2}] \textbf{Arranque automático}. REM se inicia con el Mac.
+\item[\mk{3}] \textbf{Icono en la barra de menús}, con los contadores de lo pendiente.
+\end{leyenda}
+
+\section{Datos y copias}
+Se explica con detalle en el capítulo~\ref{cap:datos}.
