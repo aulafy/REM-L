@@ -28,6 +28,8 @@ Tutorial para un curso de informática: una aplicación de gestión para autóno
 19. [Ejercicios para el alumnado](#19-ejercicios-para-el-alumnado)
 20. [Glosario](#20-glosario)
 
+**Parte II · Ampliaciones** (después del capítulo 17): A. [REM Clientes](#a-rem-clientes-para-qué-existe) · B. [RAG](#b-rag-el-asistente-que-busca-antes-de-responder) · C. [Modelo de IA local](#c-conexión-con-el-modelo-de-ia-local) · D. [Claude construye ampliaciones](#d-claude-construye-ampliaciones-a-medida)
+
 ---
 
 ## 0. Qué es y qué no es
@@ -433,6 +435,137 @@ Las dos correcciones fueron: un **acuse de recibo** (la empresa confirma hasta q
 **Lección sobre pruebas intermitentes.** Alguna prueba que depende de temporización (por ejemplo, la barra de menús) falla de vez en cuando. La respuesta correcta no es subir el tiempo de espera a ciegas, sino esperar al evento concreto. Es un buen debate para clase: ¿qué significa «la prueba es intermitente»?
 
 **Ejercicio.** Romper una regla de negocio a propósito (por ejemplo, permitir emitir con fecha anterior) y ver qué prueba lo detecta.
+
+## Parte II · Ampliaciones: REM Clientes, RAG, modelo local y módulos con Claude
+
+Los capítulos A a D amplían cuatro piezas que el resto del tutorial solo menciona. Cada una se explica con su objetivo, cómo funciona y qué se gana y qué se pierde.
+
+## A. REM Clientes: para qué existe
+
+### A.1 El objetivo
+
+Un autónomo o una pyme recibe peticiones por WhatsApp, llamadas, correos y redes. Los clientes tienen que repetir datos, nadie sabe en qué estado está cada asunto y el dinero se reclama a mano. REM Clientes propone **un solo enlace** por el que una persona pide, sigue y paga lo que necesita de una empresa concreta, sin darle su teléfono y sin instalar una aplicación.
+
+La idea de fondo es el **expediente**: cada asunto (un presupuesto, un pedido, una incidencia) es un objeto con estado compartido entre cliente y empresa. El chat es solo la puerta de entrada; lo valioso es que los estados sean claros para los dos lados.
+
+### A.2 Cómo se ve desde cada lado
+
+- **Cliente:** abre un enlace o escanea un QR. Escribe, recibe un presupuesto con líneas e IVA, lo acepta con un toque, ve los datos de pago y sigue el estado de su pedido. No crea cuenta: su identidad es una clave que vive en su navegador.
+- **Empresa:** todo llega a REM en su Mac, en la bandeja de Mensajes. Responde, presupuesta y pide pagos desde la misma pantalla que usa para facturar.
+
+### A.3 Principios de diseño
+
+1. **Sin cuenta ni instalación para empezar.** Un enlace basta. Una app instalable es una mejora, no un requisito.
+2. **Sin teléfono obligatorio.** La identidad es una clave del dispositivo.
+3. **Cifrado de extremo a extremo.** El servidor intermedio solo reenvía sobres cifrados (capítulo 15).
+4. **La empresa manda en su casa.** Puede cerrar el canal o exigir invitación. REM funciona igual sin él.
+5. **Estructura antes que texto libre.** Presupuesto, pago y estado son objetos tipados, no frases. Eso los hace útiles para un agente y difíciles de manipular con un texto convincente.
+6. **REM nunca toca el dinero.** El cobro lo gestiona la propia empresa, con su enlace de pago o su transferencia.
+7. **Las IA proponen y las personas deciden**, en los dos lados.
+
+### A.4 Ventajas y desventajas
+
+| Ventajas | Desventajas |
+|---|---|
+| El cliente no necesita nada instalado: menos fricción. | Sin cuenta, recuperar el acceso en otro dispositivo es difícil. |
+| La empresa no expone su teléfono ni su correo. | Si el cliente pierde su clave, pierde el historial. |
+| Los estados son claros y auditables. | Depende de que la empresa tenga REM encendido para recibir. |
+| El cifrado protege el contenido frente al servidor intermedio. | El cifrado no protege frente a un móvil comprometido ni frente a quien tenga acceso al navegador del cliente. |
+
+**Estado real.** Es un prototipo funcional. El documento de producto (`docs/app-clientes.md`) lista lo no verificado (la adopción, el modelo de negocio, la seguridad) como preguntas abiertas, no como hechos. Esa distinción es la lección: un producto puede tener una idea buena y todavía no haber demostrado nada.
+
+## B. RAG: el asistente que busca antes de responder
+
+### B.1 Qué problema resuelve
+
+Un modelo de lenguaje no conoce las tarifas, los horarios ni el tono de *tu* negocio. RAG (generación aumentada por recuperación) lo resuelve en dos pasos: primero **busca** en los documentos del negocio los fragmentos relevantes para la pregunta; después **genera** la respuesta usando solo esos fragmentos como contexto.
+
+### B.2 Cómo funciona en REM
+
+`lib/rag.mjs` implementa una versión mínima:
+
+1. **Troceado.** Cada documento de conocimiento (tarifas, condiciones, `negocio.md`) se divide en trozos de unos 700 caracteres, respetando párrafos.
+2. **Búsqueda léxica (siempre activa): BM25.** Cada trozo se tokeniza: se normaliza (sin tildes, en minúsculas), se quitan palabras vacías y se aplica una reducción muy simple de plurales. BM25 puntúa qué trozos comparten términos con la pregunta, dando más peso a los términos raros.
+3. **Búsqueda semántica (opcional): embeddings.** Si hay un modelo de embeddings local, cada trozo tiene un vector y se mide la similitud coseno con el vector de la pregunta. Los dos rankings se **fusionan** y se devuelven los `k` mejores (por defecto, 4).
+4. **Generación.** Los trozos encontrados se incluyen en el prompt junto con la pregunta, y se pide al modelo que responda solo con ellos y que cite la fuente.
+
+Ejemplo sencillo para la clase: con la pregunta «¿cuánto cuesta el desplazamiento?», BM25 encuentra el trozo que contiene «desplazamiento» y «tarifa», aunque la palabra «coste» no aparezca. Si el documento no dice nada, la respuesta correcta es decir que no lo sabe.
+
+### B.3 Ventajas y desventajas
+
+| Ventajas | Desventajas |
+|---|---|
+| Las respuestas se basan en datos del propio negocio, no en lo que el modelo «recuerda». | La calidad depende de cómo se trocea y de lo que esté escrito en los documentos. |
+| Se pueden citar las fuentes: el usuario comprueba. | BM25 no entiende sinónimos; los embeddings ayudan pero añaden un modelo más que mantener. |
+| Cambiar una tarifa es editar un documento, no reentrenar nada. | Cada pregunta consume contexto; con muchos documentos hay que elegir bien qué entra. |
+| Sin embeddings, funciona sin ningún modelo extra. | Un documento contradictorio produce respuestas contradictorias. |
+
+## C. Conexión con el modelo de IA local
+
+### C.1 Por qué local
+
+El asistente usa **Ollama**, un programa que ejecuta modelos de lenguaje en el propio equipo. La conexión se hace a la dirección local que configure el usuario (por defecto, el puerto de Ollama en el propio equipo), y el código **rechaza cualquier dirección que no sea local** (`lib/ai.mjs`, función `localUrl`). Eso garantiza que el contenido de los mensajes y de la base de datos no sale del equipo por esta vía.
+
+### C.2 Cómo se conecta
+
+- **Generación de texto:** una petición `POST /api/generate` con el modelo, el prompt y la opción de formato JSON cuando se necesita una respuesta estructurada.
+- **Embeddings:** una petición `POST /api/embed` al mismo servidor local, solo si el usuario ha configurado un modelo de embeddings.
+- **Tiempos y límites:** cada llamada tiene un tiempo máximo y el registro de llamadas guarda duración y tokens (no el texto). Hay un tope por hora.
+- **Respuesta no fiable:** la salida del modelo se valida antes de usarse. Si se pide JSON y no llega JSON válido, se descarta; nunca se ejecuta.
+
+### C.3 Ventajas y desventajas de usar un modelo local
+
+| Ventajas | Desventajas |
+|---|---|
+| Privacidad: los datos del negocio no salen del equipo. | Calidad inferior a los modelos grandes alojados, sobre todo en razonamiento y redacción fina. |
+| Coste marginal cero por consulta y sin límites de terceros. | Requiere un equipo con memoria suficiente y tiempos de respuesta más largos. |
+| Funciona sin Internet. | El usuario tiene que instalar y mantener Ollama y un modelo. |
+| Control total de la versión del modelo (no cambia sin avisar). | Un modelo local puede equivocarse igual; hay que mantener la revisión humana. |
+
+**Decisión para discutir.** REM ofrece la IA como **opcional**. Sin modelo, la app funciona entera; el asistente simplemente no aparece. Así, la privacidad no depende de que el usuario configure algo bien.
+
+## D. Claude construye ampliaciones a medida
+
+### D.1 La idea
+
+Cada negocio es distinto. Un taller necesita un campo «matrícula» y una plantilla de presupuesto de revisión; una clínica necesita otros datos. En lugar de que el fabricante programe cada caso, la persona **describe** lo que necesita y **Claude**, mediante la API, propone una ampliación. La ampliación se instala solo si pasa validación y la persona la aprueba.
+
+### D.2 Por qué como datos, no como código
+
+Esta es la decisión central, y la más importante para un curso. Claude no escribe código que se ejecute en la app. Escribe un **módulo declarativo**: un documento de datos que describe campos extra, plantillas, reglas e informes usando un catálogo cerrado de tipos y operaciones (`public/modspec.js`).
+
+¿Por qué?
+
+- **Seguridad.** Un modelo puede equivocarse, o ser manipulado por el texto que la persona pega. Si lo que genera es código, un error es una ejecución no deseada dentro de la app que contiene todos los datos. Si lo que genera es un documento validado contra un catálogo, lo peor que puede pasar es un campo mal configurado.
+- **Revisión.** Un módulo declarativo se puede mostrar en claro y revisar antes de instalarlo.
+- **Reversibilidad.** Desinstalar un módulo no deja código residual.
+
+El validador (`lib/modules.mjs`, función `validateManifest`) rechaza cualquier clave o tipo fuera del catálogo, limita longitudes y comprueba que las plantillas solo usan variables conocidas.
+
+### D.3 El flujo
+
+1. La persona escribe lo que necesita en lenguaje natural («quiero registrar la matrícula y la fecha de la próxima ITV de cada vehículo»).
+2. REM envía esa descripción (hasta 1.500 caracteres) a la API de Claude, con una herramienta (`crear_modulo`) que obliga a responder con la estructura de datos. No se envían los datos del negocio.
+3. El validador comprueba el resultado. Si no cumple el catálogo, se rechaza con el motivo.
+4. La persona ve un resumen de permisos (qué campos añade, qué datos lee, qué plantillas usa) y decide instalarlo o no.
+5. Si lo instala, el módulo aparece en la app. Si no, no pasa nada.
+
+### D.4 Ventajas y desventajas
+
+| Ventajas | Desventajas |
+|---|---|
+| Adaptación real a cada negocio sin esperar al fabricante. | La calidad del módulo depende de lo bien que se describa la necesidad. |
+| Los cambios son pequeños, revisables y reversibles. | Enviar una descripción a una API externa es una salida de datos, aunque sea mínima; debe ser opcional y visible. |
+| El catálogo cerrado limita el daño de un error. | El catálogo limita lo que se puede hacer: no hay lógica arbitraria. |
+| Sirve para aprender: el alumnado puede leer el módulo generado. | Costes por uso de la API y dependencia de un proveedor externo. |
+
+**Por qué Claude y no un modelo local aquí.** Es una elección de calidad y de coste de tiempo, no de principio: la generación de módulos es una tarea puntual y de razonamiento, y un modelo local pequeño la hace peor. La arquitectura permite cambiar el proveedor porque el resultado es un documento validado, no código acoplado al modelo.
+
+### D.5 Lo que se queda fuera
+
+El generador no puede: escribir código, acceder a Internet, enviar mensajes, borrar datos ni emitir facturas. Esos límites están en la propia instrucción al modelo y, sobre todo, en el validador, que no admite esas capacidades aunque el modelo las pida. Es el mismo principio del capítulo 11: el suelo está en código.
+
+---
 
 ## 18. Lo que no hicimos, y por qué
 
