@@ -8,7 +8,7 @@ Nace de la filosofía de [REM](https://github.com/aulafy/REM): local primero, re
 
 | Qué | Dónde |
 |---|---|
-| **Libro «Manual del usuario de REM»** (manual pantalla a pantalla + curso de construcción con IA, CC BY-SA 4.0) | `book/` (compilar con `book/build.sh`) |
+| **Libro «Manual del usuario de REM»** (manual pantalla a pantalla + curso de construcción con IA, CC BY-SA 4.0) | [ebook/Manual-del-usuario-de-REM.pdf](ebook/Manual-del-usuario-de-REM.pdf) · fuentes en `book/` |
 | Tutorial de construcción (arquitectura, base de datos, agentes, seguridad, RAG, módulos con Claude) | [docs/tutorial/TUTORIAL.md](docs/tutorial/TUTORIAL.md) |
 | Integridad de datos y modo reparación | [docs/integridad-datos.md](docs/integridad-datos.md) |
 | App de Mac y asistente de primera vez | [mac/README.md](mac/README.md) · [docs/asistente-macos.md](docs/asistente-macos.md) |
