@@ -1,6 +1,6 @@
 # Migrar a REM Negocio desde las apps que usan los autónomos en España
 
-Estado: **estrategia para aprobar** (18/10/2026). Lo que ya existe se marca con ✅.
+Estado (19/10/2026): **estrategia con parte ya implementada**. Lo que existe se marca con ✅. Sigue pendiente todo lo que dependa de exportaciones reales de programas concretos (presets por programa) y de condiciones de las API de terceros.
 
 ## 1. Qué usa un autónomo hoy
 

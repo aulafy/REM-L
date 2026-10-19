@@ -6,7 +6,8 @@ Objetivo: comprobar con **5-10 negocios reales** si sus clientes usan un enlace 
 - **Enlace de chat web** para el cliente (sin app, sin cuenta, sin teléfono), instalable como app web, con cifrado de extremo a extremo en el navegador.
 - **Canal «REM Clientes»** en REM: los mensajes llegan a *Mensajes*; se responde desde ahí (con el asistente de siempre: la persona aprueba).
 - **Tarjetas tipadas**: presupuesto (el cliente lo acepta o rechaza y REM actualiza su estado), pago (IBAN de la empresa + enlace de pago https + «ya he pagado») y estado del pedido/envío (con enlace de seguimiento).
-- **Relé ciego** (`relay/`): buzón que guarda sobres cifrados mientras el Mac está apagado.
+- **Relé ciego** (`relay/`): buzón que guarda sobres cifrados mientras el Mac está apagado y borra lo ya entregado (acuse de recibo).
+- **Variante por correo** (nivel 0): presupuesto, pago y estado como tarjetas HTML por email normal, con respuesta verificada (ver `app-clientes.md` §14.1). Sirve para clientes que no abren el enlace.
 
 ## Cómo montarlo (30 minutos)
 1. Un servidor con Node ≥ 22 (un VPS pequeño basta) y un dominio con HTTPS delante (Caddy/nginx → `127.0.0.1:4800`).
@@ -23,6 +24,9 @@ Objetivo: comprobar con **5-10 negocios reales** si sus clientes usan un enlace 
 | ¿Qué tipos de caso aparecen? | Revisión manual de conversaciones (con permiso). |
 | ¿Se aceptan presupuestos y se avisan pagos desde la tarjeta? | Estados de presupuestos aceptados por el canal; «ya he pagado». |
 | ¿Qué falta o molesta? | Entrevista corta al final de cada semana. |
+
+## Prueba de carga
+`npm run stress -- --only b --customers 1000` simula mil clientes cifrando mensajes contra un relé y una empresa reales (sin pérdidas ni duplicados, cada cliente recibe solo lo suyo, el relé no contiene texto legible).
 
 ## Límites conocidos (decir la verdad a los pilotos)
 - **Prototipo sin auditoría criptográfica** y sin secreto adelantado: no usar para datos muy sensibles.

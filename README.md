@@ -1,8 +1,21 @@
 # REM Negocio
 
-Clientes, presupuestos, facturas, cobros, gastos y tareas para pymes y autónomos. Una web app que corre **en tu propio equipo**: sin cuentas, sin nube, sin dependencias (solo Node ≥ 22.13).
+Clientes, presupuestos, facturas, cobros, gastos, tareas y mensajes para pymes y autónomos. Una web app que corre **en tu propio equipo**: sin cuentas, sin cloud, sin dependencias (solo Node ≥ 22.13). Licencia **MIT**. Es un **prototipo**: úsalo con datos de prueba antes de confiarle datos reales.
 
 Nace de la filosofía de [REM](https://github.com/aulafy/REM): local primero, revisión humana y **aprobar no es enviar**. REM Negocio redacta mensajes (recordatorios de pago, seguimiento de presupuestos) pero nunca envía nada por ti.
+
+## Documentación
+
+| Qué | Dónde |
+|---|---|
+| **Libro «Manual del usuario de REM»** (manual pantalla a pantalla + curso de construcción con IA, CC BY-SA 4.0) | `book/` (compilar con `book/build.sh`) |
+| Tutorial de construcción (arquitectura, base de datos, agentes, seguridad, RAG, módulos con Claude) | [docs/tutorial/TUTORIAL.md](docs/tutorial/TUTORIAL.md) |
+| Integridad de datos y modo reparación | [docs/integridad-datos.md](docs/integridad-datos.md) |
+| App de Mac y asistente de primera vez | [mac/README.md](mac/README.md) · [docs/asistente-macos.md](docs/asistente-macos.md) |
+| Migrar desde otros programas | [docs/migraciones-espana.md](docs/migraciones-espana.md) |
+| REM Clientes: visión, guía del piloto y relé | [docs/app-clientes.md](docs/app-clientes.md) · [docs/rem-clientes-prototipo.md](docs/rem-clientes-prototipo.md) · [relay/README.md](relay/README.md) |
+| Hoja de ruta y guion de prueba con usuarios | [ROADMAP.md](ROADMAP.md) · [PRUEBA_CON_USUARIOS.md](PRUEBA_CON_USUARIOS.md) |
+| Skill de Claude Code para operar y ampliar REM | `.claude/skills/rem-negocio/` |
 
 ## Arrancar
 
@@ -14,7 +27,24 @@ REM_DATA_DIR=/ruta REM_PORT=4500 npm start   # datos y puerto propios
 Los datos van por defecto a `~/Library/Application Support/REM Negocio` (SQLite) con una copia automática diaria (se conservan las últimas 20 automáticas, separadas de las manuales y de seguridad).
 Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (todo ficticio).
 
-## Novedad: bandeja con asistente local
+## Qué incluye
+
+| Área | Qué resuelve |
+|---|---|
+| **Hoy** | Qué cobrar, qué está vencido, presupuestos aceptados sin facturar o sin respuesta, tareas y evolución mensual |
+| **Clientes** | Ficha con NIF validado, historial, deuda, tareas y notas |
+| **Presupuestos** | Numeración automática, estados (borrador → enviado → aceptado/rechazado), caducidad y **conversión a factura** |
+| **Facturas** | Borrador → emitida (número correlativo F2026-0001, ya no se edita) → cobros parciales/totales → vencida; **rectificativas** en vez de borrar; IVA múltiple, descuentos, IRPF; hoja imprimible/PDF |
+| **Cobros** | Registro por factura con control de importe pendiente; reclamación con borrador de mensaje (correo/WhatsApp/copiar) |
+| **Gastos** | Con IVA soportado y categorías |
+| **Informes** | Ingresos, gastos, resultado, resumen de IVA tipo 303 por trimestre, mejores clientes, export CSV para el asesor |
+| **Ajustes** | Datos fiscales y logo, valores por defecto, catálogo, copias, exportación JSON, IA local opcional (Ollama) |
+| **Mensajes** | Bandeja única (Telegram, correo, WhatsApp/iMessage pegados, REM Clientes) con borradores del asistente |
+| **Tareas y Horas** | Tareas con subtareas y repetición; horas por cliente que se facturan |
+| **Tesorería y Modelos** | Previsión 30/60/90 días; cifras orientativas de los modelos 130, 303, 115 y 347 |
+| **General** | Buscador ⌘K, tema claro/oscuro, móvil con barra inferior, accesible por teclado |
+
+## Mensajes y asistente local
 
 - **Mensajes:** Telegram (bot), correo (IMAP/SMTP con contraseña de aplicación y conexión cifrada obligatoria) y mensajes pegados de WhatsApp/iMessage, en una sola bandeja.
 - **Asistente (Ollama, opcional):** deja un borrador de respuesta con los datos de tu negocio (RAG: BM25 + embeddings opcionales). Trata el mensaje del cliente como texto, nunca como órdenes, y nada se envía hasta que pulsas Enviar.
@@ -28,6 +58,9 @@ Para probarlo: en la pantalla de bienvenida, «Explorar con datos de ejemplo» (
 - **Tres agentes, un trabajo cada uno:** Mañana (resumen del día), Cobros (máx. 3 sugerencias al día) y Noche (cierre y tareas a mañana, máx. 15). Solo leen; se ejecutan a su hora y se ponen al día al arrancar.
 - **Memoria:** `negocio.md` (reglas y tono), datos aprobados por ti (visibles y editables) y, **solo si quieres**, [Hindsight](https://github.com/vectorize-io/hindsight) en local para memoria a largo plazo (apagado por defecto; la app funciona igual sin él).
 - **Observabilidad:** registro de llamadas al modelo (duración, tokens, errores; nunca el texto) y tope por hora.
+
+## Órdenes en lenguaje natural y atajos
+Escribe en la barra de Hoy o en ⌘K cosas como «factura a Marta por 3 horas a 40 €», «recuérdame llamar a Pedro mañana», «gasto gasolina 45,50 €», «nuevo cliente Ana López 612345678» o «abre clientes». REM lo interpreta con reglas (sin IA) o, si tienes un modelo local, con él; **muestra lo que va a hacer y solo lo ejecuta si confirmas** (las facturas se crean como borrador; si hay dos clientes parecidos, eliges). Atajos: `/` busca u ordena, `N` luego `F`/`P`/`C`/`G`/`T` crea factura/presupuesto/cliente/gasto/tarea. En móvil los botones tienen al menos 44 px y respetan la zona segura. Código: `public/commands.js` (puro y probado), `public/assistant.js`.
 
 ## PDF y envío por correo
 
@@ -65,63 +98,48 @@ Sube una foto o un PDF en **Gastos → Subir ticket** (o arrástralo), o envíal
 
 En **Ajustes → Módulos** el autónomo amplía la app sin código: campos extra en clientes y facturas, plantillas de mensajes con variables, reglas que solo *proponen* tareas e informes propios. Se instalan desde una galería, pegando un JSON o **describiéndoselo a Claude** con su propia clave de API (opcional, guardada en el llavero; solo se envía el texto que escribe, nunca datos de clientes). Un módulo es **datos, no código**: se valida de forma estricta, se muestra qué podrá hacer antes de instalarlo, pasa por la política de aprobación y se puede quitar.
 
-## Qué incluye
+## Rellenar los datos desde tu web (opcional)
+En Ajustes → Datos de tu empresa (y en el asistente inicial) puedes pegar la dirección de tu web: REM lee unas pocas páginas (portada, contacto, aviso legal), extrae nombre, teléfono, dirección, horario y NIF (de los datos estructurados `schema.org`, los enlaces y el aviso legal) y te los muestra para que **marques lo que quieres guardar**. Opcionalmente, un modelo local o Claude resume la descripción y el horario si faltan. Seguridad: solo http/https, bloquea redes privadas (también tras redirecciones), respeta `robots.txt`, límites de tamaño/tiempo y el NIF solo se acepta con dígito de control válido. Código: `lib/webprofile.mjs`, `public/webprofile.js`.
 
-| Área | Qué resuelve |
-|---|---|
-| **Hoy** | Qué cobrar, qué está vencido, presupuestos aceptados sin facturar o sin respuesta, tareas y evolución mensual |
-| **Clientes** | Ficha con NIF validado, historial, deuda, tareas y notas |
-| **Presupuestos** | Numeración automática, estados (borrador → enviado → aceptado/rechazado), caducidad y **conversión a factura** |
-| **Facturas** | Borrador → emitida (número correlativo F2026-0001, ya no se edita) → cobros parciales/totales → vencida; **rectificativas** en vez de borrar; IVA múltiple, descuentos, IRPF; hoja imprimible/PDF |
-| **Cobros** | Registro por factura con control de importe pendiente; reclamación con borrador de mensaje (correo/WhatsApp/copiar) |
-| **Gastos** | Con IVA soportado y categorías |
-| **Informes** | Ingresos, gastos, resultado, resumen de IVA tipo 303 por trimestre, mejores clientes, export CSV para el asesor |
-| **Ajustes** | Datos fiscales y logo, valores por defecto, catálogo, copias, exportación JSON, IA local opcional (Ollama) |
-| **General** | Buscador ⌘K, tema claro/oscuro, móvil con barra inferior, accesible por teclado |
+## Importar desde otros programas
+
+En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook —inglés y español—, vCard, CSV o Excel), **facturas emitidas** y **gastos** (también **tablas DBF** de programas antiguos y **Facturae XML**, el formato de factura electrónica, con varias líneas por factura y continuidad de la numeración). Vista previa con duplicados y errores, copia automática antes de importar y **deshacer** por lote. Si el archivo es raro (títulos, otro programa, columnas con otros nombres), **«Ordenar con IA»** envía a Claude —con tu clave— solo una **muestra enmascarada** (la ves antes) y recibe un *plan declarativo* que REM valida y aplica en tu equipo: la IA propone, no ejecuta ni toca tus datos. Estrategia para los programas más usados en España: [docs/migraciones-espana.md](docs/migraciones-espana.md).
+
+## REM Clientes (prototipo)
+
+Un **enlace** para que tus clientes te escriban desde el móvil sin app, sin cuenta y sin darte su teléfono, con cifrado de extremo a extremo y tarjetas de presupuesto (aceptable), pago y estado del pedido. Los mensajes llegan a *Mensajes*. Necesita un relé ciego (`relay/`). Guía del piloto: [docs/rem-clientes-prototipo.md](docs/rem-clientes-prototipo.md); visión del producto: [docs/app-clientes.md](docs/app-clientes.md).
+
+## Tarjetas por correo (nivel 0)
+Presupuestos con botones Aceptar/Rechazar, solicitudes de pago y avisos de estado por **email normal**, con respuesta verificada (token de un solo uso + remitente + SPF/DKIM). Ver `docs/app-clientes.md` §14.1.
+
+## App de Mac y copias cifradas
+
+En `mac/` hay una **app nativa para macOS** (SwiftUI) que lleva dentro el servidor y guía paso a paso: tu negocio, cómo facturas, copias de seguridad, acceso y arranque. Las copias son archivos **`.rembak` cifrados** (AES-256-GCM, clave derivada de tu frase de paso con scrypt) en la carpeta que elijas (USB, NAS, iCloud Drive); se hace una al día y otra al salir, se verifican descifrándolas, y el asistente **prueba una restauración** antes de darlas por buenas. Incluye una hoja de recuperación con un código por si olvidas la frase. Detalles en [mac/README.md](mac/README.md) y [docs/asistente-macos.md](docs/asistente-macos.md). Compilar: `scripts/build-mac-app.sh`.
+
+## Diseño
+Sistema propio al estilo de los símbolos de Apple: trazo de 1,75 sobre rejilla de 24 con **capa secundaria translúcida** (relieve sin ruido), **mosaicos de color** con degradado y luz superior en la barra lateral, y un **icono de app** (`mac/tools/make-icon.swift`, Core Graphics: superelipse continua, luz cenital, borde de cristal y monograma con volumen) que genera el `.icns`, el `icon.svg` y los iconos PNG web (`public/apple-touch-icon.png`, `icon-192/512.png`).
 
 ## Límites que conviene saber
 
 - **Posicionamiento:** herramienta de gestión interna (control de clientes, cobros, gastos e informes). **No es software de facturación certificado**: no cumple Verifactu/SII ni envía registros a la AEAT. Las facturas que prepara sirven de control interno; para emitir facturas oficiales hay que usar un sistema conforme a la normativa. Consúltalo con tu asesor.
 - Los informes de IVA son orientativos.
 - El servidor solo escucha en `127.0.0.1`, exige la cabecera `X-REM` en las escrituras y rechaza otros `Host`.
-- La IA local es opcional; solo admite direcciones locales y únicamente reformula el texto del borrador.
+- La IA local es opcional y solo admite direcciones locales. Redacta borradores, responde preguntas con tus documentos (RAG) y puede interpretar órdenes, pero **siempre propone**: nada se envía, se emite ni se borra sin tu aprobación.
+- **Prototipo:** el canal con clientes (REM Clientes) no ha pasado una auditoría de seguridad independiente; la base de datos no está cifrada en reposo (solo las copias `.rembak`); la notarización de la app de Mac no se ha probado con credenciales reales.
 
 ## Pruebas
 
 ```sh
-npm test
+npm test                # pruebas automáticas (node:test, sin dependencias)
+npm run stress          # prueba de carga: miles de clientes, facturas y mensajes cifrados
 ```
 
 La estructura de relaciones, las reglas que evitan datos incoherentes, el **modo reparación** (si la base tiene relaciones rotas, la app arranca y deja restaurar una copia o repararla, con copia previa) y las consultas de diagnóstico están documentadas en [Integridad de datos](docs/integridad-datos.md).
 
 En Ajustes → Datos, **Borrar todos los datos** crea primero una copia de la base y elimina registros, ajustes, secretos del llavero y archivos adjuntos locales. La copia `.db` no contiene los adjuntos, por lo que la pantalla lo advierte como una operación irreversible para esos archivos.
 
-## Importar desde otros programas
-
-En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook —inglés y español—, vCard, CSV o Excel), **facturas emitidas** y **gastos** (también **tablas DBF** de programas antiguos y **Facturae XML**, el formato de factura electrónica, con varias líneas por factura y continuidad de la numeración). Vista previa con duplicados y errores, copia automática antes de importar y **deshacer** por lote. Si el archivo es raro (títulos, otro programa, columnas con otros nombres), **«Ordenar con IA»** envía a Claude —con tu clave— solo una **muestra enmascarada** (la ves antes) y recibe un *plan declarativo* que REM valida y aplica en tu equipo: la IA propone, no ejecuta ni toca tus datos. Estrategia para los programas más usados en España: [docs/migraciones-espana.md](docs/migraciones-espana.md).
-
-## Tarjetas por correo (nivel 0)
-Presupuestos con botones Aceptar/Rechazar, solicitudes de pago y avisos de estado por **email normal**, con respuesta verificada (token de un solo uso + remitente + SPF/DKIM). Ver `docs/app-clientes.md` §14.1.
-
-## Iconos
-Sistema propio al estilo de los símbolos de Apple: trazo de 1,75 sobre rejilla de 24 con **capa secundaria translúcida** (relieve sin ruido), **mosaicos de color** con degradado y luz superior en la barra lateral, y un **icono de app** (`mac/tools/make-icon.swift`, Core Graphics: superelipse continua, luz cenital, borde de cristal y monograma con volumen) que genera el `.icns`, el `icon.svg` y los iconos PNG web (`public/apple-touch-icon.png`, `icon-192/512.png`).
-
-## Órdenes en lenguaje natural y atajos
-Escribe en la barra de Hoy o en ⌘K cosas como «factura a Marta por 3 horas a 40 €», «recuérdame llamar a Pedro mañana», «gasto gasolina 45,50 €», «nuevo cliente Ana López 612345678» o «abre clientes». REM lo interpreta con reglas (sin IA) o, si tienes un modelo local, con él; **muestra lo que va a hacer y solo lo ejecuta si confirmas** (las facturas se crean como borrador; si hay dos clientes parecidos, eliges). Atajos: `/` busca u ordena, `N` luego `F`/`P`/`C`/`G`/`T` crea factura/presupuesto/cliente/gasto/tarea. En móvil los botones tienen al menos 44 px y respetan la zona segura. Código: `public/commands.js` (puro y probado), `public/assistant.js`.
-
-## Test masivo
+### Prueba de carga
 `npm run stress` (opciones: `--clients 5000 --invoices 10000 --customers 1000 --only a|b`) levanta una empresa y un relé reales y comprueba: **A)** miles de clientes y facturas con escrituras concurrentes (numeración sin duplicados ni huecos, totales, cobros, exportaciones, copia y `integrity_check`); **B)** miles de clientes de REM Clientes cifrando mensajes a la vez (sin pérdidas ni duplicados, cada cliente recibe solo lo suyo, presupuestos aceptados/rechazados en masa, relé ciego, abuso y suplantación). Referencia en un Mac: 10.000 facturas emitidas en ~26 s; 5.000 mensajes cifrados en ~2,6 s. Límite conocido: con 5.000 clientes y 10.000 facturas, `/api/state` pesa ~6 MB y tarda ~1,4 s (pendiente: paginar).
-
-## Rellenar los datos desde tu web (opcional)
-En Ajustes → Datos de tu empresa (y en el asistente inicial) puedes pegar la dirección de tu web: REM lee unas pocas páginas (portada, contacto, aviso legal), extrae nombre, teléfono, dirección, horario y NIF (de los datos estructurados `schema.org`, los enlaces y el aviso legal) y te los muestra para que **marques lo que quieres guardar**. Opcionalmente, un modelo local o Claude resume la descripción y el horario si faltan. Seguridad: solo http/https, bloquea redes privadas (también tras redirecciones), respeta `robots.txt`, límites de tamaño/tiempo y el NIF solo se acepta con dígito de control válido. Código: `lib/webprofile.mjs`, `public/webprofile.js`.
-
-## REM Clientes (prototipo)
-
-Un **enlace** para que tus clientes te escriban desde el móvil sin app, sin cuenta y sin darte su teléfono, con cifrado de extremo a extremo y tarjetas de presupuesto (aceptable), pago y estado del pedido. Los mensajes llegan a *Mensajes*. Necesita un relé ciego (`relay/`). Guía del piloto: [docs/rem-clientes-prototipo.md](docs/rem-clientes-prototipo.md); visión del producto: [docs/app-clientes.md](docs/app-clientes.md).
-
-## App de Mac y copias cifradas
-
-En `mac/` hay una **app nativa para macOS** (SwiftUI) que lleva dentro el servidor y guía paso a paso: tu negocio, cómo facturas, copias de seguridad, acceso y arranque. Las copias son archivos **`.rembak` cifrados** (AES-256-GCM, clave derivada de tu frase de paso con scrypt) en la carpeta que elijas (USB, NAS, iCloud Drive); se hace una al día y otra al salir, se verifican descifrándolas, y el asistente **prueba una restauración** antes de darlas por buenas. Incluye una hoja de recuperación con un código por si olvidas la frase. Detalles en [mac/README.md](mac/README.md) y [docs/asistente-macos.md](docs/asistente-macos.md). Compilar: `scripts/build-mac-app.sh`.
 
 ## Licencia
 

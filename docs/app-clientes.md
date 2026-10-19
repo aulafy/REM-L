@@ -1,6 +1,6 @@
 # REM Clientes: la app para hablar con tus empresas
 
-Estado: **documento de producto para discutir** (18/10/2026). No hay código. Las cosas que no he podido verificar van marcadas con «(verificar)».
+Estado (19/10/2026): **documento de producto con un prototipo implementado**. Existen el enlace de chat web cifrado, el relé ciego (`relay/`), el canal en REM (`lib/clientchannel.mjs`) con tarjetas de presupuesto, pago y estado, y el correo estructurado de nivel 0 (§14.1). El resto (app instalable para el cliente, expediente compartido completo, directorio, notificaciones push, pagos y envíos integrados) sigue siendo visión. Lo que no se ha podido verificar va marcado con «(verificar)». Guía del piloto: [rem-clientes-prototipo.md](rem-clientes-prototipo.md).
 
 ## 1. La idea en una frase
 
