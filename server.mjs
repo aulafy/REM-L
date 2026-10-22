@@ -5,6 +5,9 @@ import { readFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, statSync,
 import { join, extname, dirname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
+import { gzip } from 'node:zlib';
+import { promisify } from 'node:util';
+const gzipAsync = promisify(gzip);
 import { validNif, computeTotals, today, addDays, docStatus, advanceDate, isIsoDate } from './public/calc.js';
 import { toCsv } from './public/csv.js';
 import { createInbox } from './lib/inbox.mjs';
@@ -465,6 +468,8 @@ const TABLE_OF = { clients: 'clients', items: 'items', expenses: 'expenses', tas
 async function route(req_, url, body) {
   const m = req_.method, p = url.pathname;
   { const r = repairRoute(m, p, body); if (r !== undefined) return r; }
+  // Sondeo barato: la firma de lo que el cliente web vigila (mensajes y adjuntos), sin serializar todo el estado.
+  if (m === 'GET' && p === '/api/pulse') return { sig: all('SELECT id, status, draft FROM messages ORDER BY id DESC LIMIT 300').map((r) => r.id + r.status + (r.draft ? 1 : 0)).join(',') + '|' + attachments.state().attachments.map((a) => a.id + a.status).join(',') };
   if (m === 'GET' && p === '/api/state') return { ...state(), pdf: pdfAvailable(DATA), icsToken: icsToken() };
   if (m === 'POST' && p === '/api/hindsight') {
     if (body.disconnect) { hindsight.disconnect(); return hindsight.state().hindsight; }
@@ -701,7 +706,9 @@ const server = createServer(async (req, res) => {
       let body = {};
       if (req.method !== 'GET' && req.method !== 'DELETE') body = await readJson(req);
       const out = lock.route(req, req.method, url.pathname, body) ?? await route(req, url, body);
-      res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(req._cookie ? { 'Set-Cookie': req._cookie } : {}) }).end(JSON.stringify(out));
+      let payload = Buffer.from(JSON.stringify(out)); const jh = { ...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(req._cookie ? { 'Set-Cookie': req._cookie } : {}) };
+      if (payload.length > 65536 && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) { payload = await gzipAsync(payload); jh['Content-Encoding'] = 'gzip'; jh.Vary = 'Accept-Encoding'; }
+      res.writeHead(200, jh).end(payload);
       return;
     }
     let f = normalize(url.pathname === '/' ? '/index.html' : url.pathname).replace(/^(\.\.[/\\])+/, '');

@@ -142,8 +142,9 @@ const signature = (S) => S.messages.map((m) => m.id + m.status + (m.draft ? 1 : 
 setInterval(async () => {
   if (document.hidden || !store.S) return;
   try {
-    const before = store.S; await reload(); const next = signature(store.S);
+    const next = (await api('GET', '/api/pulse')).sig;
     if (next === sig) return; const first = !sig; sig = next; if (first) return;
+    const before = store.S; await reload();
     const typing = document.activeElement?.matches?.('input,textarea,select') || document.querySelector('.overlay');
     const added = store.S.messages.filter((m) => m.direction === 'in' && !before.messages.some((x) => x.id === m.id)).length;
     if (!typing) render(); else if (added) toast(`${added === 1 ? 'Llegó 1 mensaje nuevo' : `Llegaron ${added} mensajes nuevos`}`, '', { label: 'Ver', run: () => go('#/mensajes') });
