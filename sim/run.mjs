@@ -11,7 +11,8 @@ import net from 'node:net';
 import { DatabaseSync } from 'node:sqlite';
 import { generate, PROFILES } from './world.mjs';
 import { startTelegramMock } from './telegram-mock.mjs';
-import { startMailMock, buildEmail } from './mail-mock.mjs';
+import { startMailMock } from './mail-mock.mjs';
+import { startOllamaMock } from './ollama-mock.mjs';
 import { computeTotals } from '../public/calc.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,7 +29,7 @@ async function simulate(name) {
   console.log(`\n=== ${name}: ${world.clients.length} clientes · ${world.invoices.length} facturas · ${world.quotes.length} presupuestos · ${world.expenses.length} gastos · ${world.inbound.length} mensajes (semilla ${opts.seed}) ===`);
 
   const dir = mkdtempSync(join(tmpdir(), `rem-sim-${name}-`)), port = await freePort(), base = `http://127.0.0.1:${port}`;
-  const tg = await startTelegramMock(), MAIL_USER = `info@${name}-sim.invalid`, mail = await startMailMock({ users: { [MAIL_USER]: 'sim' } });
+  const llm = await startOllamaMock(), tg = await startTelegramMock(), MAIL_USER = `info@${name}-sim.invalid`, mail = await startMailMock({ users: { [MAIL_USER]: 'sim' } });
   let srv;
   const boot = async () => {
     srv = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server.mjs'], { cwd: ROOT, stdio: 'pipe', env: { ...process.env, REM_PORT: String(port), REM_DATA_DIR: join(dir, 'data'), REM_NO_KEYCHAIN: '1', REM_PDF_WARM: '0', REM_TELEGRAM_BASE: tg.url, REM_TG_POLL: '1', REM_MAIL_EVERY: '400' } });
@@ -42,7 +43,7 @@ async function simulate(name) {
   try {
     await boot();
     // ---------- 1 · datos de la empresa ----------
-    await call('PUT', '/api/settings', { company_name: world.company.name, company_nif: world.company.nif, company_address: 'Calle Simulada 1', company_city: world.company.city, company_zip: '30001' });
+    await call('PUT', '/api/settings', { company_name: world.company.name, company_nif: world.company.nif, company_address: 'Calle Simulada 1', company_city: world.company.city, company_zip: '30001', ollama_url: llm.url, ollama_model: 'mock:sim' });
     const cid = [];
     for (const c of world.clients) cid[c.idx] = (await call('POST', '/api/clients', { name: c.name, nif: c.nif, email: c.email, phone: c.phone, address: c.address, city: c.city, zip: c.zip })).id;
     let badTotals = 0, paid = 0, expectedPaid = 0;
@@ -101,6 +102,24 @@ async function simulate(name) {
     const long = rows.find((r) => r.expect === 'largo'); check((find(got, long)?.body.length || 0) > 5000, 'un mensaje de 7000 caracteres se guarda sin romper nada');
     const weird = rows.find((r) => r.expect === 'raro'); check(find(got, weird)?.body.includes('Ñandú') && find(got, weird).body.includes('日本語'), 'acentos, emojis y alfabetos distintos llegan intactos');
 
+    // ---------- 3b · asistente (Ollama simulado, nunca el real) ----------
+    const normales = rows.filter((r) => r.expect !== 'inyeccion' && r.expect !== 'largo' && r.expect !== 'raro');
+    check(await until(async () => { const g = await inMsgs(); return normales.every((r) => { const m = find(g, r); return m && m.status !== 'nuevo'; }); }, 30000), 'el asistente deja un borrador (o lo intenta) para cada mensaje normal');
+    got = await inMsgs(); const sinBorrador = normales.filter((r) => !find(got, r)?.draft);
+    check(sinBorrador.length === 0, `todos los mensajes normales tienen borrador (${normales.length - sinBorrador.length}/${normales.length})`);
+    check(llm.calls.every((c) => /Eres el asistente/.test(c.system)), 'cada llamada al modelo lleva las reglas del asistente');
+    const inj = rows.filter((r) => r.expect === 'inyeccion');
+    check(inj.every((r) => llm.calls.some((c) => c.prompt.includes(`(ref ${r.n})`) && !c.system.includes('IGNORA'))), 'el texto hostil viaja como dato en el prompt, nunca en las reglas');
+    S = await call('GET', '/api/state');
+    check(S.documents.length === world.invoices.length + world.quotes.length && S.clients.length === world.clients.length && !(S.tasks || []).some((t) => /Borrar todos/i.test(t.title)), 'un modelo OBEDIENTE a la inyección no consigue emitir, borrar ni crear tareas por su cuenta');
+    check(!(S.memory || []).some((x) => /lista de clientes/i.test(x.text)), 'ni guardar «memoria» envenenada sin aprobación');
+    check(tg.sent.length === 0 && mail.sent.length === 0, 'y sigue sin salir nada: el borrador espera a la persona');
+    llm.mode = 'basura'; const bad = { n: 9100, channel: 'email', email: 'basura@sim-externo.invalid', name: 'Con modelo roto', subject: 'Hola', text: 'Pregunta con el modelo roto (ref 9100)' }; emit(bad);
+    check(await until(async () => { const m = find(await inMsgs(), bad); return m && m.status !== 'nuevo'; }, 30000), 'con el modelo devolviendo basura el mensaje no se queda «nuevo» para siempre');
+    llm.mode = 'caido'; const bad2 = { n: 9101, channel: 'email', email: 'caido@sim-externo.invalid', name: 'Con modelo caído', subject: 'Hola', text: 'Pregunta con el modelo caído (ref 9101)' }; emit(bad2);
+    check(await until(async () => { const m = find(await inMsgs(), bad2); return m && m.status !== 'nuevo'; }, 30000), 'con el modelo caído el mensaje llega igualmente a la bandeja');
+    llm.mode = 'sensato';
+
     // ---------- 4 · responder ----------
     const known = rows.filter((r) => r.clientIdx !== null).slice(0, 12); let delivered = 0;
     for (const r of known) { const m = find(got, r); await call('POST', `/api/messages/${m.id}/send`, { text: `Respuesta simulada a ${r.name} ✔ (ref ${r.n})` }); }
@@ -132,7 +151,7 @@ async function simulate(name) {
     await stop(); const ro = new DatabaseSync(join(dir, 'data', 'negocio.db'), { readOnly: true }); const ic = Object.values(ro.prepare('PRAGMA integrity_check').get())[0]; ro.close();
     check(ic === 'ok', 'integridad de la base de datos tras todo el recorrido');
   } catch (e) { fails.push(`[${name}] EXCEPCIÓN: ${e.stack || e.message}`); console.error(e); }
-  finally { try { srv.kill(); } catch {} await tg.close(); await mail.close(); if (!opts.keep) rmSync(dir, { recursive: true, force: true }); else console.log('  datos en', dir); }
+  finally { try { srv.kill(); } catch {} await tg.close(); await mail.close(); await llm.close(); if (!opts.keep) rmSync(dir, { recursive: true, force: true }); else console.log('  datos en', dir); }
   for (const n of notes) console.log('  ·', n);
   return fails;
 }
