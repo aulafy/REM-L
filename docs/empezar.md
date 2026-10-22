@@ -9,7 +9,7 @@
 3. En macOS, haz doble clic en **`Iniciar REM Negocio.command`**. También puedes ejecutar `npm start` en la carpeta.
 4. Se abre `http://127.0.0.1:4400`. En la bienvenida elige **«Explorar con datos de ejemplo»**.
 
-Recorrido sugerido: **Hoy** (qué cobrar y qué está vencido) → una **factura** y su PDF → **Dinero → Tesorería** → **Informes** → **Mensajes**.
+Recorrido sugerido: **Hoy** (qué cobrar y qué está vencido) → una **factura** y su PDF → **Dinero → Cómo voy → Tesorería** → **Informes** → **Mensajes**.
 
 Para probar Telegram y correo sin cuentas reales: `npm run sim:serve` arranca servidores simulados e indica qué poner en Ajustes. Ver [simulador](../sim/README.md).
 
@@ -17,9 +17,9 @@ Para probar Telegram y correo sin cuentas reales: `npm run sim:serve` arranca se
 
 - [ ] Lee el [Marco legal](marco-legal.md): **la factura oficial se emite en un programa conforme**, no en REM.
 - [ ] Revisa el [Estado por función](estado.md) y usa solo lo que esté en ✅ o 🟡.
-- [ ] Activa **FileVault** (la base de datos no va cifrada) y el **PIN** en Ajustes → Acceso y arranque.
-- [ ] Configura copias fuera del equipo: `.rembak` cifradas con la app de Mac, o descarga copias desde Ajustes → Datos.
-- [ ] Importa tus clientes y tu histórico (Ajustes → Datos) y compara los totales con tu programa anterior.
+- [ ] Activa **FileVault** (la base de datos no va cifrada) y el **PIN** en Ajustes → Seguridad y copias → Acceso y arranque.
+- [ ] Configura copias fuera del equipo: `.rembak` cifradas con la app de Mac, o descarga copias desde Ajustes → Seguridad y copias.
+- [ ] Importa tus clientes y tu histórico (Ajustes → Seguridad y copias) y compara los totales con tu programa anterior.
 
 ## Requisitos
 
@@ -41,7 +41,7 @@ La **app de Mac** (`mac/`) lleva el servidor dentro y un asistente de puesta en 
 
 ## Desinstalar
 
-Cierra REM y borra la carpeta de datos (`~/Library/Application Support/REM Negocio`) y la del programa. Los secretos se borran desde Ajustes → Datos → «Borrar todos los datos», o en Acceso a Llaveros buscando «REM Negocio».
+Cierra REM y borra la carpeta de datos (`~/Library/Application Support/REM Negocio`) y la del programa. Los secretos se borran desde Ajustes → Seguridad y copias → «Borrar todos los datos», o en Acceso a Llaveros buscando «REM Negocio».
 
 ## Preguntas frecuentes
 

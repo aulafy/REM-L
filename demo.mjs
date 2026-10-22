@@ -4,10 +4,13 @@ import { chunkText } from './lib/rag.mjs';
 
 export function seedDemo({ run, one, createDocument, issueInvoice, convertQuote, today, log }) {
   if (one('SELECT COUNT(*) n FROM clients').n > 0) throw Object.assign(new Error('Ya hay datos. Usa una copia limpia para la demo.'), { status: 409 });
+  // Lo que la persona ya escribió de su empresa (nombre, NIF…) no se sobrescribe; solo se rellena lo que falta.
+  const own = new Set();
+  for (const k of ['company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban']) { const r = one('SELECT value FROM settings WHERE key=?', k); if (r && JSON.parse(r.value)) own.add(k); }
   const set = (k, v) => run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v));
   Object.entries({ company_name: 'Taller Mediterráneo S.L.', company_nif: 'B12345674', company_address: 'Calle del Puerto 14', company_city: 'Valencia', company_zip: '46001',
     company_email: 'hola@tallermediterraneo.example.test', company_phone: '960 000 000', company_iban: 'ES91 2100 0418 4502 0005 1332', default_iva: 21, default_irpf: 0, payment_days: 30, quote_days: 30,
-    invoice_footer: 'Gracias por confiar en nosotros.', onboarded: true }).forEach(([k, v]) => set(k, v));
+    invoice_footer: 'Gracias por confiar en nosotros.', onboarded: true }).forEach(([k, v]) => { if (!own.has(k)) set(k, v); });
   const cl = (name, nif, city, phone) => Number(run('INSERT INTO clients(name,nif,email,phone,address,city,zip,created_at) VALUES(?,?,?,?,?,?,?,?)', name, nif,
     name.toLowerCase().replace(/[^a-z]+/g, '.').replace(/\.$/, '') + '@example.test', phone, 'Calle Ficticia 1', city, '46000', new Date().toISOString()).lastInsertRowid);
   const c = [cl('Panadería La Espiga', 'B98765432', 'Valencia', '600 111 222'), cl('Clínica Dental Sonrisa', 'B11223344', 'Alicante', '611 222 333'), cl('Marta Olmedo Ruiz', '12345678Z', 'Castellón', '622 333 444'),

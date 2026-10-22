@@ -8,9 +8,9 @@ const part = (v) => (v instanceof Raw ? v.s : Array.isArray(v) ? v.map(part).joi
 export const html = (s, ...v) => new Raw(s.reduce((a, x, i) => a + x + (i < v.length ? part(v[i]) : ''), ''));
 
 // ---------- formato ----------
-const nf = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
+const nf = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', useGrouping: 'always' }); // «2.035,86 €» también con 4 cifras
 export const eur = (c) => nf.format((c || 0) / 100).replace(/ /g, ' ');
-export const eurPlain = (c) => ((c || 0) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const eurPlain = (c) => ((c || 0) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: 'always' });
 export const toCents = (v) => Math.round(parseFloat(String(v).replace(/\./g, (m, o, s) => (s.includes(',') ? '' : m)).replace(',', '.')) * 100) || 0;
 const df = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 const dfs = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' });
@@ -110,4 +110,13 @@ export async function api(method, path, body) {
 }
 export const debounce = (fn, ms = 200) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 export const plural = (n, s, p) => `${n} ${n === 1 ? s : p}`;
+// Funciones opcionales: si la persona no ha decidido, se muestran solo si ya tiene datos de esa función.
+export const FEATURES = [['albaranes', 'Albaranes', 'Documentos de entrega que luego pasas a factura'], ['horas', 'Horas por cliente', 'Apuntar tiempo y facturarlo'], ['recurrentes', 'Facturas y gastos que se repiten', 'Cuotas mensuales, alquileres, seguros…'], ['modelos', 'Modelos de Hacienda (orientativos)', 'Cifras del 130, 303, 115 y 347 para tu asesor']];
+export function feat(S, k) {
+  const v = S.settings.features?.[k]; if (typeof v === 'boolean') return v;
+  if (k === 'albaranes') return S.documents.some((d) => d.type === 'albaran');
+  if (k === 'horas') return (S.timeEntries || []).length > 0;
+  if (k === 'recurrentes') return (S.recurring || []).length + (S.recurringExpenses || []).length > 0;
+  return true;
+}
 export const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');

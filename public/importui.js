@@ -30,7 +30,7 @@ async function startFacturae() {
     try { await go(''); }
     catch (e) {
       if (!/emitidas.*recibidas/.test(e.message)) return toast(e.message, 'err');
-      openModal({ title: '¿Emitidas o recibidas?', body: '<p style="margin:0">No he podido saber por el NIF si estas facturas las has <b>emitido tú</b> (tus ventas) o las has <b>recibido</b> (tus compras). Completa el NIF de tu negocio en Ajustes → Mi negocio para que se detecte solo.</p>', footer: '<button class="btn" data-close>Cancelar</button><button class="btn" data-dir="recibidas">Son recibidas (gastos)</button><button class="btn primary" data-dir="emitidas">Son emitidas (ventas)</button>',
+      openModal({ title: '¿Emitidas o recibidas?', body: '<p style="margin:0">No he podido saber por el NIF si estas facturas las has <b>emitido tú</b> (tus ventas) o las has <b>recibido</b> (tus compras). Completa el NIF de tu negocio en Ajustes → Asistente → Cómo trabajas para que se detecte solo.</p>', footer: '<button class="btn" data-close>Cancelar</button><button class="btn" data-dir="recibidas">Son recibidas (gastos)</button><button class="btn primary" data-dir="emitidas">Son emitidas (ventas)</button>',
         onMount: (el, close) => el.querySelectorAll('[data-dir]').forEach((b) => b.addEventListener('click', async () => { close(); try { await go(b.dataset.dir); } catch (err) { toast(err.message, 'err'); } })) });
     }
   });
@@ -67,7 +67,7 @@ async function askAI(kind, src, fileName, feedback = '') {
     const draw = (el) => {
       el.querySelector('#ai-body').innerHTML = `<p style="margin:0">Claude (de Anthropic) leerá <b>una muestra pequeña</b> de tu archivo (nombres de columnas y unas filas) y propondrá cómo traducirlo a REM. <b>El archivo completo no sale de tu Mac</b>: el plan lo aplica tu equipo.</p>
         ${pay.masked ? `<div class="notice">${icon('shield').toString()}<span>La muestra va <b>enmascarada</b>: los nombres, NIF, emails, teléfonos e importes se sustituyen por su forma («Aaa Aaaa», «A99999999»). Las fechas y las columnas con pocos valores repetidos (categorías, estados) se ven tal cual.</span></div>` : `<div class="notice warn">${icon('alert').toString()}<span><b>Muestra SIN enmascarar:</b> se enviarán datos reales de tus clientes. Asegúrate de que puedes hacerlo.</span></div>`}
-        ${pay.key ? '' : `<div class="notice warn">${icon('alert').toString()}<span>Falta la clave de la API de Claude. Añádela en Ajustes → Módulos y vuelve a intentarlo.</span></div>`}
+        ${pay.key ? '' : `<div class="notice warn">${icon('alert').toString()}<span>Falta la clave de la API de Claude. Añádela en Ajustes → Avanzado → Módulos y vuelve a intentarlo.</span></div>`}
         <label class="row" style="gap:8px"><input type="checkbox" id="ai-raw" ${raw ? 'checked' : ''}> <span>Enviar la muestra sin enmascarar (menos privado, más preciso)</span></label>
         <details open><summary class="lbl" style="cursor:pointer">Esto es lo que se enviará (${(pay.bytes / 1024).toFixed(1)} KB)</summary><pre style="max-height:240px;overflow:auto;white-space:pre-wrap;font-size:12px;background:var(--surface-2);padding:10px;border-radius:8px;margin:8px 0 0">${esc(pay.user)}</pre></details>
         <p class="muted" style="margin:0;font-size:12.5px">Se usa tu propia clave y el coste corre de tu cuenta de Anthropic (unos céntimos). REM guarda en su registro que se hizo la consulta y su tamaño, nunca el contenido.</p>`;
@@ -88,7 +88,7 @@ function numberingModal(items) {
   const pad = (n) => String(n).padStart(4, '0');
   openModal({ title: 'Continuar tu numeración', body: `<div class="stack"><p style="margin:0">Las facturas que has importado usan otro formato de número, así que REM no sabría por dónde seguir. Elige cómo numerar la <b>siguiente factura</b> de cada año:</p>
     <ul class="list">${items.map((x) => `<li><div class="grow"><div class="t">${x.year}: tu última factura importada es la ${esc(x.last)}</div><div class="d">La siguiente sería ${x.prefix}${x.year}-${pad(x.next)} (ahora empezaría en ${x.prefix}${x.year}-${pad(x.current)}).</div></div><button class="btn sm primary" data-num="${x.year}" data-next="${x.next}" data-prefix="${x.prefix}">Usar ${x.prefix}${x.year}-${pad(x.next)}</button></li>`).join('')}</ul>
-    <p class="muted" style="margin:0;font-size:12.5px">Lo puedes cambiar después en Ajustes → Facturación → Series.</p></div>`, footer: '<button class="btn" data-close>Ahora no</button>',
+    <p class="muted" style="margin:0;font-size:12.5px">Lo puedes cambiar después en Ajustes → Tu empresa → Facturación → Series.</p></div>`, footer: '<button class="btn" data-close>Ahora no</button>',
     onMount: (el) => el.querySelectorAll('[data-num]').forEach((b) => b.addEventListener('click', async () => { b.disabled = true; try { await api('POST', '/api/invoice-numbering', { prefix: b.dataset.prefix, year: b.dataset.num, next: Number(b.dataset.next) }); b.textContent = 'Hecho'; toast('Numeración ajustada'); } catch (e) { toast(e.message, 'err'); b.disabled = false; } })) });
 }
 
@@ -98,7 +98,7 @@ function wizard(kind, text, fileName, sheets = null, sheet = 0, extra = null) {
   const m = openModal({ title: `Importar ${LABEL[kind]}`, wide: true, body: '<div id="im-body" class="stack"><p class="muted">Leyendo el archivo…</p></div>', footer: '<button class="btn" data-close>Cancelar</button><button class="btn primary" id="im-ok" disabled>Importar</button>',
     onMount: (el, close) => { el.querySelector('#im-ok').addEventListener('click', async (e) => {
       const b = e.currentTarget; b.disabled = true; b.textContent = 'Importando…';
-      try { const r = await api('POST', '/api/import/commit', { kind, ...src(), mapping: plan ? undefined : mapping, plan: plan || undefined, source: fileName }); await reload(); close(); refresh(); toast(`${r.imported} ${NOUN[kind]} importados${kind === 'facturas' && r.clients ? ` · ${r.clients} clientes nuevos` : ''}. Se guardó una copia antes de importar y puedes deshacerlo en Ajustes → Datos y copias.`); if (r.numbering?.length) numberingModal(r.numbering); }
+      try { const r = await api('POST', '/api/import/commit', { kind, ...src(), mapping: plan ? undefined : mapping, plan: plan || undefined, source: fileName }); await reload(); close(); refresh(); toast(`${r.imported} ${NOUN[kind]} importados${kind === 'facturas' && r.clients ? ` · ${r.clients} clientes nuevos` : ''}. Se guardó una copia antes de importar y puedes deshacerlo en Ajustes → Seguridad y copias.`); if (r.numbering?.length) numberingModal(r.numbering); }
       catch (err) { toast(err.message, 'err'); b.disabled = false; b.textContent = 'Importar'; }
     }); } });
   const root = m.el, body = () => root.querySelector('#im-body'), ok = () => root.querySelector('#im-ok');

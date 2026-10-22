@@ -8,14 +8,14 @@ How data reaches you from a client who uses REM.
 
 | What | Where your client gets it | Format |
 |---|---|---|
-| Invoices (number, date, client, tax ID, base, VAT, IRPF, total, status) | Reports, or Settings → Data | CSV |
-| Expenses (date, supplier, concept, category, base, VAT, total, paid) | Reports, or Settings → Data | CSV |
-| Clients (name, tax ID, contact, address) | Reports, or Settings → Data | CSV |
+| Invoices (number, date, client, tax ID, base, VAT, IRPF, total, status) | Reports, or Settings → Security and backups | CSV |
+| Expenses (date, supplier, concept, category, base, VAT, total, paid) | Reports, or Settings → Security and backups | CSV |
+| Clients (name, tax ID, contact, address) | Reports, or Settings → Security and backups | CSV |
 | Workbook with invoices, expenses, clients and quarterly VAT | Reports → «Todo en Excel» | `.xlsx` with filters and totals |
-| Indicative figures for forms 130, 303, 115 and 347 | Money → Forms | CSV |
+| Indicative figures for forms 130, 303, 115 and 347 | Money → How am I doing → Tax forms | CSV |
 | Period report with VAT summary | Reports → PDF | PDF |
 | Statement per client | Client record → «Extracto PDF» | PDF |
-| Everything (full copy) | Settings → Data | «Todo (JSON)» or `.db` backup |
+| Everything (full copy) | Settings → Security and backups | «Todo (JSON)» or `.db` backup |
 
 CSV files use Spanish formatting (decimal comma) and UTF-8.
 

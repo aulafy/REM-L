@@ -41,7 +41,7 @@ REM numera facturas de forma correlativa (F2026-0001), tiene un estado «emitida
 
 ## Cómo usarlo correctamente hoy
 
-- **Emite la factura oficial en un programa conforme** (tu asesor te indicará uno). REM puede **importar** después esas facturas (CSV, Excel o Facturae XML; Ajustes → Datos) para que cobros, tesorería, informes y el cierre trimestral trabajen con los datos oficiales.
+- **Emite la factura oficial en un programa conforme** (tu asesor te indicará uno). REM puede **importar** después esas facturas (CSV, Excel o Facturae XML; Ajustes → Seguridad y copias) para que cobros, tesorería, informes y el cierre trimestral trabajen con los datos oficiales.
 - Usa REM para **presupuestos, albaranes, borradores, cobros, gastos, tareas, mensajes con clientes y la exportación para el asesor**.
 - Las cifras de los modelos 130, 303, 115 y 347 son **orientativas**: REM no presenta nada ante Hacienda.
 

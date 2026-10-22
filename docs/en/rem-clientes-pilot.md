@@ -14,7 +14,7 @@ Goal: check with **5-10 real businesses** whether their clients use a structured
 ## How to set it up (30 minutes)
 1. A server with Node ≥ 22 (a small VPS is enough) and a domain with HTTPS in front (Caddy/nginx → `127.0.0.1:4800`).
 2. `RELAY_INVITES=business-1,business-2,… node relay/server.mjs` (one code per pilot business).
-3. In each business's REM: Settings → Channels → **REM Clientes**: relay address + its code → *Activate*. Copy the link.
+3. In each business's REM: Settings → Messages → Connections → **REM Clientes**: relay address + its code → *Activate*. Copy the link.
 4. The business puts the link where it already talks to its clients: email signature, invoice, poster/QR (generate the QR with any tool), business card, WhatsApp welcome message.
 5. To send a quote: quote record → **Send via REM Clientes** (the client must have written first). To get paid: in the conversation, **Request payment**; for orders: **Order status**.
 

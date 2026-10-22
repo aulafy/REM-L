@@ -1,4 +1,4 @@
-import { store, on, go, toast, mutate, confirmBox, openModal, field, formModal } from '../core.js';
+import { store, on, go, toast, mutate, confirmBox, openModal, field, formModal, helpBtn } from '../core.js';
 import { html, raw, esc, eur, eurPlain, toCents, fdate, relDate, icon, badge, avatar, clientOf, paidOf, statusOf, docLabel, norm, plural, STATUS } from '../util.js';
 import { computeTotals, addDays, today } from '../calc.js';
 import { clientModal } from '../actions.js';
@@ -57,7 +57,7 @@ function list(S, key) {
   if (st.sort) docs.sort((a, b) => { const x = SORTS[st.sort.k](S, a), y = SORTS[st.sort.k](S, b); return (x < y ? -1 : x > y ? 1 : 0) * st.sort.dir; });
   const total = docs.reduce((a, d) => a + d.total, 0), pend = key === 'facturas' ? docs.filter((d) => d.status === 'emitida').reduce((a, d) => a + Math.max(0, d.total - paidOf(S, d.id)), 0) : 0;
   return html`
-    <div class="page-head"><div><h1>${K.many}</h1><p class="sub">${key === 'facturas' ? 'Emite, cobra y reclama sin salir de aquí.' : 'Prepara ofertas y conviértelas en factura con un clic.'}</p></div><div class="actions"><a class="btn primary" href="#/${key}/${K.nuevo}">${icon('plus', 'sm')}${K.newLabel}</a></div></div>
+    <div class="page-head"><div><h1>${K.many}</h1><p class="sub">${key === 'facturas' ? 'Prepara tus facturas, controla lo que te deben y reclama lo vencido.' : key === 'albaranes' ? 'Entregas pendientes de facturar.' : 'Prepara ofertas y conviértelas en factura con un clic.'}</p></div><div class="actions"><a class="btn primary" href="#/${key}/${K.nuevo}">${icon('plus', 'sm')}${K.newLabel}</a></div></div>
     ${key === 'facturas' ? html`<div class="notice warn" style="margin-bottom:14px">${icon('alert')}<span>REM Negocio es una herramienta de gestión interna: <b>no es software de facturación certificado</b> (Verifactu/SII). Para facturas oficiales usa un sistema conforme a la normativa.</span></div>` : ''}
     ${key === 'albaranes' ? pendingNotes(S) : ''}
     <div class="toolbar"><input class="input" id="dq" type="search" placeholder="Buscar por número o cliente…" value="${st.q}" aria-label="Buscar"><div class="seg" role="group" aria-label="Filtrar por estado">${filters[key].map(([k, l]) => html`<button data-act="dfilter" data-key="${key}" data-k="${k}" aria-pressed="${st.f === k}">${l}</button>`)}</div></div>
@@ -92,37 +92,37 @@ function editor(S, key, d) {
   const isInv = key === 'facturas';
   return html`
     <a class="crumb" href="#/${d ? key + '/' + d.id : key}">${icon('back', 'sm')}${d ? docLabel(d) : K.many}</a>
-    <div class="page-head"><div><h1>${d ? (d.number ? `Editar ${d.number}` : 'Editar borrador') : K.newLabel}</h1><p class="sub">${isInv ? 'Se guarda como borrador hasta que la emitas: entonces recibe su número y ya no se puede cambiar.' : key === 'albaranes' ? 'Documento de entrega: se numera solo y luego lo pasas a factura (solo o junto a otros del mismo cliente).' : 'Se numera automáticamente al crearlo.'}</p></div></div>
+    <div class="page-head"><div><h1>${d ? (d.number ? `Editar ${d.number}` : 'Editar borrador') : K.newLabel}</h1><p class="sub">${isInv ? 'Guárdala como borrador y revísala con calma. Al emitirla recibe su número y ya no se puede cambiar.' : key === 'albaranes' ? 'Documento de entrega: se numera solo y luego lo pasas a factura (solo o junto a otros del mismo cliente).' : 'Se numera automáticamente al crearlo.'}</p></div></div>
     <div class="editor" id="editor">
       <div class="stack">
         <section class="card"><div class="card-b grid g2">
           <div class="field" style="grid-column:1/-1"><label for="e-client">Cliente</label><div class="row"><select class="input" id="e-client" data-f="client_id" data-combo><option value="">— Elige un cliente —</option>${S.clients.filter((c) => !c.archived || c.id === draft.client_id).map((c) => html`<option value="${c.id}" ${String(c.id) === String(draft.client_id) ? raw('selected') : ''}>${c.name}</option>`)}</select><button class="btn" data-act="quickClient" type="button">${icon('plus', 'sm')}Nuevo</button></div></div>
           <div class="field"><label for="e-date">Fecha</label><input class="input" id="e-date" type="date" data-f="issue_date" value="${draft.issue_date}"></div>
-          ${key === 'albaranes' ? '' : html`<div class="field"><label for="e-due">${isInv ? 'Vencimiento' : 'Válido hasta'}</label><input class="input" id="e-due" type="date" data-f="due_date" value="${draft.due_date}"></div>`}
+          ${key === 'albaranes' ? '' : html`<div class="field"><span class="lbl-row"><label for="e-due">${isInv ? 'Vencimiento' : 'Válido hasta'}</label>${isInv ? helpBtn('vencimiento') : ''}</span><input class="input" id="e-due" type="date" data-f="due_date" value="${draft.due_date}"></div>`}
           ${isInv && (S.settings.invoice_series || []).length > 1 ? html`<div class="field"><label for="e-series">Serie</label><select class="input" id="e-series" data-f="series">${S.settings.invoice_series.map((x) => html`<option value="${x.prefix}" ${(draft.series || S.settings.invoice_series[0].prefix) === x.prefix ? raw('selected') : ''}>${x.name} (${x.prefix})</option>`)}</select><span class="hint">Cada serie lleva su propia numeración.</span></div>` : ''}</div></section>
         <section class="card"><div class="card-h"><h2>Conceptos</h2><span class="spacer"></span>${S.items.length ? html`<select class="input" id="e-cat" style="width:auto;min-height:34px" aria-label="Añadir del catálogo"><option value="">Añadir del catálogo…</option>${S.items.map((i) => html`<option value="${i.id}">${i.name} · ${eur(i.price)}</option>`)}</select>` : ''}</div>
-          <div class="card-b"><table class="lines"><thead><tr><th style="width:44%">Descripción</th><th style="width:9%">Cant.</th><th style="width:15%">Precio</th><th style="width:11%">IVA</th><th style="width:9%">Dto. %</th><th class="right" style="width:12%;text-align:right">Importe</th><th></th></tr></thead>
+          <div class="card-b"><table class="lines"><thead><tr><th style="width:44%">Descripción</th><th style="width:9%">Cant.</th><th style="width:15%">Precio</th><th style="width:11%"><span class="lbl-row">IVA ${helpBtn('iva')}</span></th><th style="width:9%"><span class="lbl-row">Desc. ${helpBtn('descuento')}</span></th><th class="right" style="width:12%;text-align:right">Importe</th><th></th></tr></thead>
             <tbody id="lines">${draft.lines.map((l, i) => lineRow(l, i, t.detail[i]?.net))}</tbody></table>
             <button class="btn sm" data-act="addLine" type="button" style="margin-top:10px">${icon('plus', 'sm')}Añadir línea</button></div></section>
         <section class="card"><div class="card-b grid g2"><div class="field" style="grid-column:1/-1"><label for="e-notes">Notas ${isInv ? 'para el cliente' : 'y condiciones'}</label><textarea class="input" id="e-notes" data-f="notes" rows="3" placeholder="${isInv ? 'Forma de pago, referencias…' : key === 'albaranes' ? 'Dónde y cuándo se entregó, quién recibió…' : 'Plazo de entrega, condiciones de pago…'}">${draft.notes}</textarea></div>
-          <div class="field"><label for="e-irpf">Retención IRPF</label><select class="input" id="e-irpf" data-f="irpf">${[[0, 'Sin retención'], [7, '7 %'], [15, '15 % (profesionales)'], [19, '19 %']].map(([v, l]) => html`<option value="${v}" ${Number(draft.irpf) === v ? raw('selected') : ''}>${l}</option>`)}</select><span class="hint">Solo si eres autónomo y facturas a una empresa.</span></div></div></section>
+          <div class="field"><span class="lbl-row"><label for="e-irpf">Retención IRPF</label>${helpBtn('irpf')}</span><select class="input" id="e-irpf" data-f="irpf">${[[0, 'Sin retención'], [7, '7 %'], [15, '15 % (profesionales)'], [19, '19 %']].map(([v, l]) => html`<option value="${v}" ${Number(draft.irpf) === v ? raw('selected') : ''}>${l}</option>`)}</select><span class="hint">Solo si eres autónomo y facturas a una empresa o a otro profesional.</span></div></div></section>
       </div>
       <aside class="editor-side stack"><section class="card totals"><div class="card-b" id="totals">${totalsBlock(t)}</div>
         <div class="card-b" style="padding-top:0"><div class="stack" style="gap:8px">
-          ${isInv ? html`<button class="btn primary" data-act="saveIssue" type="button" style="width:100%">${icon('check', 'sm')}Emitir factura</button>` : html`<button class="btn primary" data-act="saveDraft" data-go="1" type="button" style="width:100%">${icon('check', 'sm')}${key === 'albaranes' ? 'Guardar albarán' : 'Guardar presupuesto'}</button>`}
-          ${isInv ? html`<button class="btn" data-act="saveDraft" data-go="1" type="button" style="width:100%">Guardar borrador</button>` : ''}
-          ${d ? html`<button class="btn ghost danger" data-act="deleteDoc" data-id="${d.id}" type="button">${icon('trash', 'sm')}Eliminar</button>` : ''}</div></div></section></aside>
+          <button class="btn primary" data-act="saveDraft" data-go="1" type="button" style="width:100%">${icon('check', 'sm')}${isInv ? 'Guardar borrador' : key === 'albaranes' ? 'Guardar albarán' : 'Guardar presupuesto'}</button>
+          ${isInv ? html`<div class="row" style="gap:6px"><button class="btn" data-act="saveIssue" type="button" style="flex:1">Emitir factura…</button>${helpBtn('emitir')}</div>` : ''}
+          ${d ? html`<hr style="border:0;border-top:1px solid var(--line);margin:6px 0"><button class="btn ghost danger" data-act="deleteDoc" data-id="${d.id}" type="button">${icon('trash', 'sm')}${isInv ? 'Eliminar borrador' : 'Eliminar'}</button>` : ''}</div></div></section></aside>
     </div>`;
 }
 function lineRow(l, i, net = 0) {
   return html`<tr data-i="${i}"><td class="desc"><input class="input" data-l="desc" value="${l.desc}" placeholder="Describe el servicio o producto" aria-label="Descripción línea ${i + 1}"></td>
     <td data-lbl="Cantidad"><input class="input" data-l="qty" inputmode="decimal" value="${String(l.qty).replace('.', ',')}" aria-label="Cantidad"></td><td data-lbl="Precio"><input class="input" data-l="price" inputmode="decimal" value="${eurPlain(l.price)}" aria-label="Precio unitario"></td>
     <td data-lbl="IVA"><select class="input" data-l="iva" aria-label="IVA">${IVAS.map((v) => html`<option value="${v}" ${Number(l.iva) === v ? raw('selected') : ''}>${v} %</option>`)}</select></td>
-    <td data-lbl="Dto. %"><input class="input" data-l="discount" inputmode="decimal" value="${l.discount || ''}" placeholder="0" aria-label="Descuento"></td><td class="amt" data-net>${eur(net)}</td>
+    <td data-lbl="Descuento %"><input class="input" data-l="discount" inputmode="decimal" value="${l.discount || ''}" placeholder="0" aria-label="Descuento"></td><td class="amt" data-net>${eur(net)}</td>
     <td><button class="btn ghost icon sm" data-act="delLine" data-i="${i}" type="button" aria-label="Quitar línea">${icon('x', 'sm')}</button></td></tr>`;
 }
 function totalsBlock(t) {
-  return html`<div class="tr"><span>Base imponible</span><span class="num">${eur(t.base)}</span></div>${t.ivaGroups.filter((g) => g.base).map((g) => html`<div class="tr"><span>IVA ${g.rate} %</span><span class="num">${eur(g.iva)}</span></div>`)}
+  return html`<div class="tr"><span class="lbl-row">Base imponible ${helpBtn('base')}</span><span class="num">${eur(t.base)}</span></div>${t.ivaGroups.filter((g) => g.base).map((g) => html`<div class="tr"><span>IVA ${g.rate} %</span><span class="num">${eur(g.iva)}</span></div>`)}
     ${t.irpfTotal ? html`<div class="tr"><span>Retención IRPF</span><span class="num">−${eur(t.irpfTotal)}</span></div>` : ''}<div class="tr big"><span>Total</span><span class="num">${eur(t.total)}</span></div>`;
 }
 const num = (v) => parseFloat(String(v).replace(',', '.')) || 0;

@@ -99,7 +99,7 @@ function settingsObj() { return Object.fromEntries(all('SELECT key,value FROM se
 function pubSettings() { const { pin_hash, menubar_token, backup_cfg, ...s } = settingsObj(); return { ...s, pin_on: !!pin_hash }; }
 function saveSetting(k, v) { run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v)); }
 const SETTING_KEYS = ['notify_on', 'notify_messages', 'notify_digest', 'notify_approvals', 'notify_details', 'notify_quiet_from', 'notify_quiet_to', 'notify_digest_time', 'cash_balance', 'cash_balance_date', 'cash_include_overdue', 'cash_include_estimates', 'claude_model', 'checklist_dismissed', 'llm_max_per_hour', 'embed_model', 'whisper_model', 'tts_voice', 'company_name', 'company_nif', 'company_address', 'company_city', 'company_zip', 'company_email', 'company_phone', 'company_iban', 'company_hours', 'company_web', 'company_description', 'logo',
-  'default_iva', 'default_irpf', 'legal_form', 'hourly_rate', 'invoice_series', 'lock_idle_min', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent'];
+  'default_iva', 'default_irpf', 'legal_form', 'hourly_rate', 'invoice_series', 'lock_idle_min', 'payment_days', 'quote_days', 'invoice_footer', 'quote_footer', 'ollama_url', 'ollama_model', 'onboarded', 'accent', 'features'];
 
 const llmlog = createLlmLog({ db, run, all, one, nowIso, settingsObj, HttpError });
 setLlmHooks({ log: llmlog.record, check: llmlog.check });
@@ -560,6 +560,7 @@ async function route(req_, url, body) {
       else if (k === 'checklist_dismissed' || k === 'cash_include_overdue' || k === 'cash_include_estimates') v = !!v;
       else if (k === 'cash_balance') { if (v === '' || v === null) { run('DELETE FROM settings WHERE key IN (?,?)', 'cash_balance', 'cash_balance_date'); continue; } v = Math.round(Number(v)); if (!Number.isFinite(v) || Math.abs(v) > 1e11) throw bad('Saldo no válido'); }
       else if (k === 'cash_balance_date') v = date(v, false);
+      else if (k === 'features') { const cur = settingsObj().features || {}; v = { ...cur }; for (const f of ['albaranes', 'horas', 'recurrentes', 'modelos']) if (body.features && typeof body.features[f] === 'boolean') v[f] = body.features[f]; }
       else if (k === 'llm_max_per_hour') v = Math.min(1000, Math.max(1, Math.round(Number(v)) || 60));
       else if (typeof v === 'string') v = k === 'logo' ? (v.length < 400000 && /^data:image\/(png|jpeg|svg\+xml|webp);base64,/.test(v) ? v : '') : str(v, 400);
       run('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', k, JSON.stringify(v));
@@ -575,7 +576,7 @@ async function route(req_, url, body) {
       const pr = aiPrompt(r.text, missing); sent = r.text.length;
       try {
         let out;
-        if (body.ai === 'claude') { const key = getSecret('anthropic_key'); if (!key) throw new HttpError(409, 'Añade tu clave de la API de Claude en Ajustes → Módulos'); out = await askClaude({ apiKey: key, model: cur.claude_model || 'claude-sonnet-5-5', base: process.env.REM_ANTHROPIC_BASE || 'https://api.anthropic.com', system: pr.system, user: pr.user }); aiUsed = 'Claude'; }
+        if (body.ai === 'claude') { const key = getSecret('anthropic_key'); if (!key) throw new HttpError(409, 'Añade tu clave de la API de Claude en Ajustes → Avanzado → Módulos'); out = await askClaude({ apiKey: key, model: cur.claude_model || 'claude-sonnet-5-5', base: process.env.REM_ANTHROPIC_BASE || 'https://api.anthropic.com', system: pr.system, user: pr.user }); aiUsed = 'Claude'; }
         else { if (!cur.ollama_url || !cur.ollama_model) throw new HttpError(409, 'Configura un modelo local en Ajustes'); out = await llmGenerate({ url: cur.ollama_url, model: cur.ollama_model, system: pr.system, prompt: pr.user, json: true, purpose: 'datos de la web', timeout: 90000 }); aiUsed = 'modelo local'; }
         const v = validateAi(out); for (const k of missing) if (v[k]) found[k] = { value: v[k], source: `resumen de la IA (${aiUsed}) · revísalo` };
       } catch (e) { if (e instanceof HttpError) throw e; r.notes.push('La IA no pudo completar los datos: ' + String(e.message).slice(0, 100)); }

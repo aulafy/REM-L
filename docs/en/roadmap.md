@@ -13,16 +13,16 @@ Status as of 22/10/2026. Order = value / effort. One feature at a time, with tes
 - Restore/import backups · recurring invoices · letters and contracts from templates · .ics calendar · Excel .xlsx
 
 ## Next block (in this order)
-1. ~~Cash-flow forecast (30/60/90 days)~~ ✅ done: Money → Cash flow (collections using each client's real delay, recurring items, usual expenses, VAT, optional balance)
+1. ~~Cash-flow forecast (30/60/90 days)~~ ✅ done: Money → How am I doing → Cash flow (collections using each client's real delay, recurring items, usual expenses, VAT, optional balance)
 2. ~~Recurring expenses~~ ✅ done: recorded automatically each period (one per missed period), with optional estimated amount; the forecast uses them
-3. ~~System notifications~~ ✅ done: Settings → Notifications (grouped messages, daily summary, proposals, quiet hours, no sensitive data by default) and a counter in the tab title
+3. ~~System notifications~~ ✅ done: Settings → Messages → Notifications (grouped messages, daily summary, proposals, quiet hours, no sensitive data by default) and a counter in the tab title
 4. ~~Single timeline per client~~ ✅ done: messages, invoices, payments, quotes, tasks and memory plus «Coming up»; filters and search
 5. ~~Attach files to clients and invoices~~ ✅ done: «Files» card (drag or pick, view, download, rename, note); allow-list of types with content check, max 25 MB, shown in the timeline
-6. ~~Import historical invoices and expenses from CSV~~ ✅ done: Settings → Data → «Import old data» (preview, detected and editable columns, duplicates skipped, backup before importing)
+6. ~~Import historical invoices and expenses from CSV~~ ✅ done: Settings → Security and backups → «Import old data» (preview, detected and editable columns, duplicates skipped, backup before importing)
 
 ## Office files (added)
 7. ~~Read Word, PowerPoint and Excel~~ ✅ done: `.docx` / `.pptx` / `.xlsx` (ZIP with size, CRC and decompression-bomb limits; nothing executed) and `.rtf` / `.doc` / `.odt` via `textutil` on macOS
-   - Settings → Knowledge → «From a file…» fills an assistant document
+   - Settings → Assistant → Rates and facts → «From a file…» fills an assistant document
    - Telegram and email attachments: their text appears in the message; the assistant treats it as data
    - Import invoices and expenses from `.xlsx` (choose sheet; dates and amounts by cell format)
    - Limits: PowerPoint text and notes only; legacy `.ppt` and `.xls` not supported; Excel: hidden sheets ignored, max 20,000 rows and 100 columns
@@ -31,12 +31,12 @@ Status as of 22/10/2026. Order = value / effort. One feature at a time, with tes
 
 ## Later
 10. ~~Accounts payable~~ ✅ done: an expense can be «pending payment» with a due date; what you owe in Expenses and Today, «Paid» button, filter, payments in the forecast, .ics calendar, morning summary and exports
-11. ~~Hours per client → invoice~~ ✅ done: Money → Hours (log, timer, hourly rate, «Bill hours» creates a draft with one line per entry; deleting the draft frees the hours)
-12. ~~Quarterly summaries 130 / 115 / 347~~ ✅ done: Money → Forms with 130, 303, 115 and 347, CSV and a notice that they are indicative; nothing is filed
-13. ~~Configurable invoice series~~ ✅ done: Settings → Billing → Series (1-4 letter prefix, own yearly counter, default), selector on each invoice; P and R reserved
-14. ~~Delivery notes → invoice~~ ✅ done: Money → Delivery notes (series A); several notes of the same client become ONE draft invoice; deleting the draft frees them
+11. ~~Hours per client → invoice~~ ✅ done: Money → Sales → Hours (log, timer, hourly rate, «Bill hours» creates a draft with one line per entry; deleting the draft frees the hours)
+12. ~~Quarterly summaries 130 / 115 / 347~~ ✅ done: Money → How am I doing → Tax forms with 130, 303, 115 and 347, CSV and a notice that they are indicative; nothing is filed
+13. ~~Configurable invoice series~~ ✅ done: Settings → Your business → Billing → Series (1-4 letter prefix, own yearly counter, default), selector on each invoice; P and R reserved
+14. ~~Delivery notes → invoice~~ ✅ done: Money → Sales → Delivery notes (series A); several notes of the same client become ONE draft invoice; deleting the draft frees them
 15. ~~Tasks with repetition, priority and subtasks~~ ✅ done
-16. ~~Launch at login + menu-bar icon · PIN lock~~ ✅ done: Settings → Access and startup (PIN with scrypt, cookie session, inactivity lock and attempt limit; user LaunchAgent; native icon with counters). The PIN does not encrypt the disk
+16. ~~Launch at login + menu-bar icon · PIN lock~~ ✅ done: Settings → Security and backups → Access and startup (PIN with scrypt, cookie session, inactivity lock and attempt limit; user LaunchAgent; native icon with counters). The PIN does not encrypt the disk
 
 ## Block 2 (October 2026)
 17. ✅ **Mac app (SwiftUI)**: setup assistant, encrypted `.rembak` backups with verification and test restore, import of contacts and files from other programs (CSV, Excel, vCard, Facturae XML, DBF) with preview, undo and optional AI help with a validated declarative plan; `.dmg` and release workflow (notarisation **not** tested with real credentials)

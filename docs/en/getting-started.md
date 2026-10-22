@@ -9,7 +9,7 @@
 3. On macOS, double-click **`Iniciar REM Negocio.command`**. You can also run `npm start` in the folder.
 4. `http://127.0.0.1:4400` opens. On the welcome screen choose **«Explorar con datos de ejemplo»** (explore with sample data).
 
-Suggested tour: **Hoy** (Today: what to collect, what is overdue) → an **invoice** and its PDF → **Dinero → Tesorería** (cash flow) → **Informes** (reports) → **Mensajes** (messages).
+Suggested tour: **Hoy** (Today: what to collect, what is overdue) → an **invoice** and its PDF → **Dinero → Cómo voy → Tesorería** (cash flow) → **Informes** (reports) → **Mensajes** (messages).
 
 To try Telegram and email without real accounts: `npm run sim:serve` starts simulated servers and tells you what to enter in Settings. See the [simulator](../../sim/README.md).
 
@@ -17,9 +17,9 @@ To try Telegram and email without real accounts: `npm run sim:serve` starts simu
 
 - [ ] Read the [Legal framework](legal.md): **the official invoice is issued with a compliant program**, not with REM.
 - [ ] Check the [Status by feature](status.md) and only rely on what is ✅ or 🟡.
-- [ ] Turn on **FileVault** (the database is not encrypted) and the **PIN** in Settings → Access and startup.
-- [ ] Set up off-computer backups: encrypted `.rembak` with the Mac app, or download backups from Settings → Data.
-- [ ] Import your clients and history (Settings → Data) and compare totals with your previous program.
+- [ ] Turn on **FileVault** (the database is not encrypted) and the **PIN** in Settings → Security and backups → Access and startup.
+- [ ] Set up off-computer backups: encrypted `.rembak` with the Mac app, or download backups from Settings → Security and backups.
+- [ ] Import your clients and history (Settings → Security and backups) and compare totals with your previous program.
 
 ## Requirements
 
@@ -41,7 +41,7 @@ The **Mac app** (`mac/`) bundles the server and a set-up assistant. There is no 
 
 ## Uninstall
 
-Quit REM and delete the data folder (`~/Library/Application Support/REM Negocio`) and the program folder. Secrets are removed via Settings → Data → «Borrar todos los datos» (delete all data), or in Keychain Access by searching «REM Negocio».
+Quit REM and delete the data folder (`~/Library/Application Support/REM Negocio`) and the program folder. Secrets are removed via Settings → Security and backups → «Borrar todos los datos» (delete all data), or in Keychain Access by searching «REM Negocio».
 
 ## FAQ
 

@@ -11,11 +11,21 @@
 - `SECURITY.md`, `CONTRIBUTING.md` y plantillas de incidencias.
 
 ### Cambiado
+- **Interfaz más sencilla** para quien no es técnico:
+  - **Hoy**: una sola lista «Lo importante hoy» ordenada por urgencia y un resumen calculado al momento (adiós a «día tranquilo» con facturas vencidas).
+  - **Dinero** en tres apartados (Ventas, Gastos, Cómo voy) en vez de nueve pestañas; albaranes, horas, facturas que se repiten y modelos solo aparecen si los usas (Ajustes → Tu empresa → Funciones).
+  - **Ajustes** en cinco apartados (Tu empresa, Mensajes, Asistente, Seguridad y copias, Avanzado) en vez de catorce, empezando por tu empresa.
+  - Factura nueva: la acción principal es «Guardar borrador»; «Emitir factura…» va aparte y pide confirmación.
+  - Ayuda «?» en lenguaje llano junto a los términos técnicos (base imponible, IVA, IRPF, vencimiento, emitir…).
+  - Menú «Nuevo» por frecuencia de uso; bienvenida que avanza con Intro y opción «Solo quiero probarlo».
+- **Accesibilidad**: letra base de 16 px, contraste AA en textos secundarios e insignias, zonas de clic de al menos 24 px, enlace «Saltar al contenido», apartados de Ajustes como pestañas navegables con flechas, nombres accesibles en contadores y casillas.
+- Importes con separador de miles siempre («2.035,86 €»).
 - El cliente web ya no descarga todo `/api/state` cada 6 s; solo cuando cambia algo. Las respuestas JSON grandes se comprimen con gzip.
 - README corto orientado a negocios; el detalle de funciones pasa a `docs/funciones.md`. `PRUEBA_CON_USUARIOS.md` pasa a `docs/prueba-con-usuarios.md`.
 - El posicionamiento fiscal se explica con fuentes de la AEAT: la normativa se aplica a los programas con los que se expiden facturas, aunque no envíen nada.
 
 ### Corregido
+- Los datos de ejemplo ya no sustituyen el nombre (ni otros datos) que la persona escribió en la bienvenida.
 - Correo: al conectar un buzón vacío, la regla «solo los últimos 15» se aplicaba en cada lectura y se perdían correos si llegaban más de 15 de golpe.
 
 ## [1.0.0] - 2026-10-19

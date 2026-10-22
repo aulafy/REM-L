@@ -179,7 +179,7 @@ Para **validar el producto** el camino más rápido y barato es el **Nivel 0** (
 
 ### 14.1 Nivel 0 implementado (18/10/2026): correo estructurado
 
-Ya funciona sobre el correo conectado en Ajustes → Canales, sin servidor intermedio (`lib/emailcards.mjs`):
+Ya funciona sobre el correo conectado en Ajustes → Mensajes → Conexiones, sin servidor intermedio (`lib/emailcards.mjs`):
 
 - **Tarjetas HTML** (con versión de texto) para **presupuesto** (botones Aceptar/Rechazar), **solicitud de pago** (IBAN, enlace https y «Ya he pagado») y **estado del pedido** (con enlace de seguimiento https). Se envían desde el detalle del presupuesto («Enviar tarjeta por correo») y desde la conversación de Mensajes (canal email: «Pedir pago», «Estado del pedido»).
 - Los botones son enlaces `mailto:` hacia tu buzón; funcionan en cualquier cliente de correo. Si el cliente no ve botones, basta responder `ACEPTO` / `RECHAZO` / `PAGADO`.

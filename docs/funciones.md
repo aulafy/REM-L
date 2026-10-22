@@ -6,6 +6,18 @@ Descripción detallada de lo que hace la app. Qué está maduro y qué no: [Esta
 
 > **Facturas y Verifactu:** REM numera y genera facturas, pero **no es un sistema de facturación conforme** con el reglamento (RRSIF/Verifactu). Lee [Marco legal](marco-legal.md) antes de usarlo para expedir facturas.
 
+## Cómo está organizada
+
+| Menú | Qué hay |
+|---|---|
+| **Hoy** | Resumen del día y una lista con lo importante, de lo más urgente a lo menos |
+| **Mensajes** | La bandeja con Telegram, correo y mensajes pegados |
+| **Clientes** | Fichas con todo el historial de cada cliente |
+| **Dinero** | **Ventas** (facturas y presupuestos; también albaranes, horas y facturas que se repiten si los activas), **Gastos** y **Cómo voy** (tesorería, informes y modelos de Hacienda) |
+| **Ajustes** | **Tu empresa**, **Mensajes**, **Asistente**, **Seguridad y copias** y **Avanzado** |
+
+Las funciones que no uses no aparecen: actívalas en Ajustes → Tu empresa → Funciones. Junto a cada término técnico hay un botón «?» con una explicación corta.
+
 ## Qué incluye
 
 | Área | Qué resuelve |
@@ -47,26 +59,26 @@ Escribe en la barra de Hoy o en ⌘K cosas como «factura a Marta por 3 horas a 
 
 ## Más herramientas básicas
 
-- **Copias de seguridad:** automática diaria; en Ajustes → Datos puedes **restaurar** (guarda antes una copia de lo actual), **descargar** e **importar** copias (.db). Antes de aceptar o restaurar una copia se comprueban SQLite, sus relaciones y la versión del esquema. Automáticas, manuales, importadas y copias previas a operaciones delicadas tienen retención separada.
+- **Copias de seguridad:** automática diaria; en Ajustes → Seguridad y copias puedes **restaurar** (guarda antes una copia de lo actual), **descargar** e **importar** copias (.db). Antes de aceptar o restaurar una copia se comprueban SQLite, sus relaciones y la versión del esquema. Automáticas, manuales, importadas y copias previas a operaciones delicadas tienen retención separada.
 - **Historial por cliente:** en cada ficha, una línea de tiempo única (mensajes, facturas, cobros, presupuestos, tareas, memoria) con lo que viene («Próximamente»), filtros y búsqueda.
 - **Archivos adjuntos:** en clientes y facturas/presupuestos, arrastra o elige contratos, planos o albaranes (PDF, imágenes, Word, Excel, PowerPoint, texto; hasta 25 MB). Se guardan en tu equipo, se comprueba que el contenido coincide con la extensión, se abren sin ejecutar nada y se borran con su cliente o documento.
-- **Importar histórico:** en Ajustes → Datos, sube un CSV o un Excel de facturas emitidas o de gastos (separador y acentos detectados solos; importes y fechas en formato español). Ves una vista previa con las columnas reconocidas —que puedes corregir—, avisos y filas con error; no se guarda nada hasta confirmar. Las facturas conservan número y fecha, los clientes se emparejan por NIF o nombre, los cobros se registran y lo ya importado se omite si repites el archivo.
+- **Importar histórico:** en Ajustes → Seguridad y copias, sube un CSV o un Excel de facturas emitidas o de gastos (separador y acentos detectados solos; importes y fechas en formato español). Ves una vista previa con las columnas reconocidas —que puedes corregir—, avisos y filas con error; no se guarda nada hasta confirmar. Las facturas conservan número y fecha, los clientes se emparejan por NIF o nombre, los cobros se registran y lo ya importado se omite si repites el archivo.
 - **Cartas y contratos en Word:** además del PDF, «Descargar Word» genera un `.docx` editable (títulos, listas, negrita, líneas de firma) con el texto que hayas ajustado, creado en tu equipo.
-- **Modelos fiscales (orientativos):** Dinero → Modelos calcula con tus datos las cifras del 130, 303, 115 y 347 por trimestre/año, con CSV para tu asesor. No presenta nada ante Hacienda.
+- **Modelos fiscales (orientativos):** Dinero → Cómo voy → Modelos de Hacienda calcula con tus datos las cifras del 130, 303, 115 y 347 por trimestre/año, con CSV para tu asesor. No presenta nada ante Hacienda.
 - **Albaranes:** crea albaranes de entrega (numeración A) y pásalos a factura de uno en uno o en bloque por cliente; la factura lleva una cabecera por albarán.
 - **Tareas:** con prioridad, repetición (la siguiente aparece al completar la actual) y subtareas con progreso.
 - **Acceso y arranque:** bloqueo con PIN (4-12 cifras, se guarda con scrypt, se bloquea solo tras inactividad y limita los intentos; no cifra el disco), arranque automático al iniciar sesión en macOS y un icono en la barra de menús con los contadores de lo pendiente.
-- **Series de facturación:** crea series con su propio prefijo y numeración anual (F, TA…) en Ajustes → Facturación y elige la serie al crear cada factura.
-- **Horas por cliente:** en Dinero → Horas apuntas el tiempo (o usas el cronómetro) con tu tarifa por hora y, con «Facturar horas», se crea un borrador de factura con una línea por entrada. Si borras ese borrador, las horas quedan libres otra vez.
+- **Series de facturación:** crea series con su propio prefijo y numeración anual (F, TA…) en Ajustes → Tu empresa → Facturación y elige la serie al crear cada factura.
+- **Horas por cliente:** en Dinero → Ventas → Horas apuntas el tiempo (o usas el cronómetro) con tu tarifa por hora y, con «Facturar horas», se crea un borrador de factura con una línea por entrada. Si borras ese borrador, las horas quedan libres otra vez.
 - **Cuentas a pagar:** al apuntar un gasto puedes marcarlo «Pendiente de pago» con su vencimiento. Ves cuánto debes (y lo vencido) en Gastos y en Hoy, lo marcas «Pagado» con un clic, entra en la previsión de Tesorería el día que vence, en tu calendario (.ics), en el resumen de la mañana y en el Excel/CSV. Los gastos de antes cuentan como pagados.
 - **Propuesta en PowerPoint:** desde cualquier presupuesto, «Descargar propuesta (PowerPoint)» crea una presentación editable de 5 diapositivas con tus datos, las líneas, los totales y las condiciones; sin internet ni plantillas externas.
 - **Leer Word, PowerPoint y Excel:** el texto de `.docx`, `.pptx` y `.xlsx` se extrae en tu equipo, sin abrir ni ejecutar nada (límites de tamaño y de descompresión). Sirve para alimentar el Conocimiento del asistente, para ver el contenido de los adjuntos de Telegram y correo —tratado como dato del remitente, nunca como órdenes— y para importar facturas y gastos desde un `.xlsx`. `.rtf`, `.doc` y `.odt` se leen con `textutil` de macOS; los `.ppt` y `.xls` antiguos no se admiten.
-- **Avisos de macOS:** Ajustes → Avisos: mensajes nuevos (agrupados), resumen del día, propuestas por aprobar y horario de silencio. Por privacidad no muestran nombres ni importes salvo que lo actives.
+- **Avisos de macOS:** Ajustes → Mensajes → Avisos: mensajes nuevos (agrupados), resumen del día, propuestas por aprobar y horario de silencio. Por privacidad no muestran nombres ni importes salvo que lo actives.
 - **Gastos recurrentes:** alquiler, cuotas, seguros… se registran solos cada periodo (y los que falten si la app estuvo cerrada); botón «Repetir» en cualquier gasto.
 - **Facturas recurrentes:** «Repetir…» en una factura; cada periodo pendiente prepara su propio **borrador** (hasta 12 por ejecución, sin saltarse los restantes y nunca se emite solo).
-- **Cartas y contratos:** plantillas con variables (reclamación de pago, contrato de servicios, consentimiento de datos) desde la ficha del cliente → vista previa editable → PDF. Plantillas propias en Ajustes → Documentos.
+- **Cartas y contratos:** plantillas con variables (reclamación de pago, contrato de servicios, consentimiento de datos) desde la ficha del cliente → vista previa editable → PDF. Plantillas propias en Ajustes → Tu empresa → Cartas y contratos.
 - **Calendario:** Tareas → Calendario: suscripción `.ics` con tareas, vencimientos de facturas, caducidad de presupuestos y recurrentes (enlace privado renovable, solo en tu Mac).
-- **Tesorería:** Dinero → Tesorería: previsión a 30/60/90 días con vencimientos, el retraso medio con que paga cada cliente, facturas recurrentes, gastos habituales, IVA del trimestre y, si lo apuntas, tu saldo bancario.
+- **Tesorería:** Dinero → Cómo voy → Tesorería: previsión a 30/60/90 días con vencimientos, el retraso medio con que paga cada cliente, facturas recurrentes, gastos habituales, IVA del trimestre y, si lo apuntas, tu saldo bancario.
 - **Excel:** libro `.xlsx` con facturas, gastos, clientes e IVA trimestral (importes y fechas reales, filtros y totales con fórmulas).
 
 ## Tickets y documentos (OCR local)
@@ -75,14 +87,14 @@ Sube una foto o un PDF en **Gastos → Subir ticket** (o arrástralo), o envíal
 
 ## Módulos a medida
 
-En **Ajustes → Módulos** el autónomo amplía la app sin código: campos extra en clientes y facturas, plantillas de mensajes con variables, reglas que solo *proponen* tareas e informes propios. Se instalan desde una galería, pegando un JSON o **describiéndoselo a Claude** con su propia clave de API (opcional, guardada en el llavero; solo se envía el texto que escribe, nunca datos de clientes). Un módulo es **datos, no código**: se valida de forma estricta, se muestra qué podrá hacer antes de instalarlo, pasa por la política de aprobación y se puede quitar.
+En **Ajustes → Avanzado → Módulos** el autónomo amplía la app sin código: campos extra en clientes y facturas, plantillas de mensajes con variables, reglas que solo *proponen* tareas e informes propios. Se instalan desde una galería, pegando un JSON o **describiéndoselo a Claude** con su propia clave de API (opcional, guardada en el llavero; solo se envía el texto que escribe, nunca datos de clientes). Un módulo es **datos, no código**: se valida de forma estricta, se muestra qué podrá hacer antes de instalarlo, pasa por la política de aprobación y se puede quitar.
 
 ## Rellenar los datos desde tu web (opcional)
-En Ajustes → Datos de tu empresa (y en el asistente inicial) puedes pegar la dirección de tu web: REM lee unas pocas páginas (portada, contacto, aviso legal), extrae nombre, teléfono, dirección, horario y NIF (de los datos estructurados `schema.org`, los enlaces y el aviso legal) y te los muestra para que **marques lo que quieres guardar**. Opcionalmente, un modelo local o Claude resume la descripción y el horario si faltan. Seguridad: solo http/https, bloquea redes privadas (también tras redirecciones), respeta `robots.txt`, límites de tamaño/tiempo y el NIF solo se acepta con dígito de control válido. Código: `lib/webprofile.mjs`, `public/webprofile.js`.
+En Ajustes → Tu empresa → Datos (y en el asistente inicial) puedes pegar la dirección de tu web: REM lee unas pocas páginas (portada, contacto, aviso legal), extrae nombre, teléfono, dirección, horario y NIF (de los datos estructurados `schema.org`, los enlaces y el aviso legal) y te los muestra para que **marques lo que quieres guardar**. Opcionalmente, un modelo local o Claude resume la descripción y el horario si faltan. Seguridad: solo http/https, bloquea redes privadas (también tras redirecciones), respeta `robots.txt`, límites de tamaño/tiempo y el NIF solo se acepta con dígito de control válido. Código: `lib/webprofile.mjs`, `public/webprofile.js`.
 
 ## Importar desde otros programas
 
-En Ajustes → Datos y copias: **clientes** (Contactos de Mac, Google, Outlook —inglés y español—, vCard, CSV o Excel), **facturas emitidas** y **gastos** (también **tablas DBF** de programas antiguos y **Facturae XML**, el formato de factura electrónica, con varias líneas por factura y continuidad de la numeración). Vista previa con duplicados y errores, copia automática antes de importar y **deshacer** por lote. Si el archivo es raro (títulos, otro programa, columnas con otros nombres), **«Ordenar con IA»** envía a Claude —con tu clave— solo una **muestra enmascarada** (la ves antes) y recibe un *plan declarativo* que REM valida y aplica en tu equipo: la IA propone, no ejecuta ni toca tus datos. Estrategia para los programas más usados en España: [migraciones-espana.md](migraciones-espana.md).
+En Ajustes → Seguridad y copias: **clientes** (Contactos de Mac, Google, Outlook —inglés y español—, vCard, CSV o Excel), **facturas emitidas** y **gastos** (también **tablas DBF** de programas antiguos y **Facturae XML**, el formato de factura electrónica, con varias líneas por factura y continuidad de la numeración). Vista previa con duplicados y errores, copia automática antes de importar y **deshacer** por lote. Si el archivo es raro (títulos, otro programa, columnas con otros nombres), **«Ordenar con IA»** envía a Claude —con tu clave— solo una **muestra enmascarada** (la ves antes) y recibe un *plan declarativo* que REM valida y aplica en tu equipo: la IA propone, no ejecuta ni toca tus datos. Estrategia para los programas más usados en España: [migraciones-espana.md](migraciones-espana.md).
 
 ## REM Clientes (experimental)
 

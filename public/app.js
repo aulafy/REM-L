@@ -1,11 +1,21 @@
 import { store, ACT, on, reload, go, toast, openPalette, openModal, refresh } from './core.js';
-import { html, raw, icon, esc, api, statusOf, paidOf } from './util.js';
+import { html, raw, icon, esc, api, statusOf, paidOf, feat } from './util.js';
 import { today } from './calc.js';
 import { upgradeCombos } from './combo.js';
 
 const VIEWS = {};
 const NAV = [['hoy', 'Hoy'], ['mensajes', 'Mensajes'], ['clientes', 'Clientes'], ['dinero', 'Dinero']];
 const DINERO = ['facturas', 'presupuestos', 'albaranes', 'gastos', 'horas', 'informes', 'modelos', 'tesoreria', 'recurrentes'];
+// Dinero en tres grupos; las funciones opcionales solo aparecen si la persona las usa (Ajustes → Tu empresa → Funciones).
+const GROUPS = [['ventas', 'Ventas', [['facturas', 'Facturas'], ['presupuestos', 'Presupuestos'], ['albaranes', 'Albaranes', 'albaranes'], ['horas', 'Horas', 'horas'], ['recurrentes', 'Se repiten', 'recurrentes']]],
+  ['gastos', 'Gastos', [['gastos', 'Gastos']]], ['cuentas', 'Cómo voy', [['tesoreria', 'Tesorería'], ['informes', 'Informes'], ['modelos', 'Modelos de Hacienda', 'modelos']]]];
+function dineroNav(S, key, c) {
+  const pages = (g) => g[2].filter(([k, , f]) => !f || feat(S, f) || k === key);
+  const cur = GROUPS.find((g) => g[2].some(([k]) => k === key)) || GROUPS[0];
+  const cnt = (k) => (k === 'facturas' || k === 'ventas') && c.facturas ? html`<span class="count alert">${c.facturas}<span class="sr"> ${c.facturas === 1 ? 'vencida' : 'vencidas'}</span></span>` : '';
+  return html`<nav class="subtabs" aria-label="Dinero">${GROUPS.map((g) => html`<a href="#/${pages(g)[0][0]}" ${g === cur ? raw('aria-current="page"') : ''}>${g[1]}${cnt(g[0])}</a>`)}</nav>
+    ${pages(cur).length > 1 ? html`<nav class="subtabs sub2" aria-label="${cur[1]}">${pages(cur).map(([k, l]) => html`<a href="#/${k}" ${key === k ? raw('aria-current="page"') : ''}>${l}${cnt(k)}</a>`)}</nav>` : ''}`;
+}
 const navKey = (k) => (DINERO.includes(k) ? 'dinero' : k === 'tareas' ? 'hoy' : k);
 const root = document.getElementById('root');
 
@@ -30,7 +40,7 @@ function shell(S, key, content) {
   const badge = (k) => k === 'mensajes' && c.mensajes ? html`<span class="count" title="Mensajes por responder">${c.mensajes}</span>` : k === 'dinero' && c.facturas ? html`<span class="count alert" title="Facturas vencidas">${c.facturas}</span>` : k === 'hoy' && c.tareas ? html`<span class="count alert" title="Tareas para hoy o vencidas">${c.tareas}</span>` : '';
   const link = (k, l) => html`<a href="#/${k === 'dinero' ? 'facturas' : k}" ${nk === k ? raw('aria-current="page"') : ''}><span class="ni" data-c="${k}">${icon(k)}</span><span>${l}</span>${badge(k)}</a>`;
   const theme = document.documentElement.dataset.theme;
-  return html`<div class="app">
+  return html`<button class="skip" data-act="skipMain">Saltar al contenido</button><div class="app">
     <aside class="side" aria-label="Navegación principal">
       <div class="brand"><span class="logo">${st.logo ? html`<img src="${st.logo}" alt="">` : (st.company_name || 'R')[0].toUpperCase()}</span><div><b>${st.company_name || 'Tu negocio'}</b><small>REM Negocio</small></div></div>
       <nav class="nav">${NAV.map(([k, l]) => link(k, l))}</nav>
@@ -46,7 +56,7 @@ function shell(S, key, content) {
         ${st.pin_on ? html`<button class="btn ghost icon" data-act="lockNow" aria-label="Bloquear la aplicación" title="Bloquear">${icon('lock')}</button>` : ''}<button class="btn ghost icon" data-act="theme" aria-label="Cambiar entre tema claro y oscuro" title="Tema">${icon(theme === 'dark' ? 'sun' : 'moon')}</button>
         <span class="me" title="${st.company_name || ''}">${st.logo ? html`<img src="${st.logo}" alt="">` : (st.company_name || 'R')[0].toUpperCase()}</span><button class="btn primary" data-act="quick"><span class="hide-sm" style="display:contents">${icon('plus', 'sm')}</span> Nuevo</button>
       </header>
-      <main class="page" id="page" tabindex="-1">${S.agentsPaused ? html`<div class="notice warn" style="margin:6px 0 16px">${icon('alert')}<span>Los agentes están en pausa: no prepararán borradores ni propuestas. <a href="#" data-act="agentsResume"><b>Reanudar</b></a></span></div>` : ''}${DINERO.includes(key) ? html`<nav class="subtabs" aria-label="Dinero">${[['facturas', 'Facturas'], ['presupuestos', 'Presupuestos'], ['albaranes', 'Albaranes'], ['gastos', 'Gastos'], ['horas', 'Horas'], ['informes', 'Informes'], ['modelos', 'Modelos'], ['tesoreria', 'Tesorería'], ['recurrentes', 'Recurrentes']].map(([k, l]) => html`<a href="#/${k}" ${key === k ? raw('aria-current="page"') : ''}>${l}${k === 'facturas' && c.facturas ? html` <span class="count alert">${c.facturas}</span>` : ''}</a>`)}</nav>` : ''}${content}</main>
+      <main class="page" id="page" tabindex="-1">${S.agentsPaused ? html`<div class="notice warn" style="margin:6px 0 16px">${icon('alert')}<span>Los agentes están en pausa: no prepararán borradores ni propuestas. <a href="#" data-act="agentsResume"><b>Reanudar</b></a></span></div>` : ''}${DINERO.includes(key) ? dineroNav(S, key, c) : ''}${content}</main>
     </div>
     <nav class="tabbar" aria-label="Navegación">
       ${[...NAV, ['ajustes', 'Ajustes']].map(([k, l]) => html`<a href="#/${k === 'dinero' ? 'facturas' : k}" ${nk === k ? raw('aria-current="page"') : ''}>${icon(k)}${l}${c.mensajes && k === 'mensajes' ? html`<i class="tabdot"></i>` : ''}</a>`)}
@@ -109,7 +119,7 @@ ACT.theme = () => {
   refresh();
 };
 ACT.quick = () => {
-  const m = openModal({ title: 'Crear', body: `<div class="grid g2" style="padding-bottom:10px">${[['', 'mensajes', 'Mensaje pegado', 'pasteMsg'], ['facturas/nueva', 'facturas', 'Factura'], ['presupuestos/nuevo', 'presupuestos', 'Presupuesto'], ['', 'clientes', 'Cliente', 'newClient'], ['', 'gastos', 'Gasto', 'newExpense'], ['', 'tareas', 'Tarea', 'newTask']]
+  const m = openModal({ title: '¿Qué quieres crear?', body: `<div class="grid g2" style="padding-bottom:10px">${[['facturas/nueva', 'facturas', 'Factura'], ['presupuestos/nuevo', 'presupuestos', 'Presupuesto'], ['', 'gastos', 'Gasto', 'newExpense'], ['', 'clientes', 'Cliente', 'newClient'], ['', 'tareas', 'Tarea', 'newTask'], ['', 'mensajes', 'Mensaje pegado', 'pasteMsg']]
     .map(([h, i, l, act]) => `<button class="btn" style="justify-content:flex-start;min-height:52px" ${act ? `data-act="${act}"` : `data-href="#/${h}"`} data-close>${icon(i).toString()}${l}</button>`).join('')}</div>`,
     onMount: (el) => el.addEventListener('click', (e) => { const b = e.target.closest('[data-href]'); if (b) go(b.dataset.href); }) });
 };

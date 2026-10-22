@@ -6,6 +6,18 @@ Detailed description of what the app does. What is mature and what is not: [Stat
 
 > **Invoices and VeriFactu:** REM numbers and produces invoices, but it is **not a compliant invoicing system** under Spain's RRSIF/VeriFactu regulation. Read [Legal framework](legal.md) before using it to issue invoices.
 
+## How it is organised
+
+| Menu | What is there |
+|---|---|
+| **Hoy** (Today) | Summary of the day and one list of what matters, most urgent first |
+| **Mensajes** (Messages) | The inbox with Telegram, email and pasted messages |
+| **Clientes** (Clients) | Records with each client's full history |
+| **Dinero** (Money) | **Sales** (invoices and quotes; also delivery notes, hours and repeating invoices if you turn them on), **Expenses** and **How am I doing** (cash flow, reports and tax forms) |
+| **Ajustes** (Settings) | **Your business**, **Messages**, **Assistant**, **Security and backups** and **Advanced** |
+
+Features you do not use stay hidden: turn them on in Settings → Your business → Features. Next to each technical term there is a «?» button with a short explanation.
+
 ## What it includes
 
 | Area | What it solves |
@@ -47,26 +59,26 @@ Type in the Today bar or in ⌘K things like «factura a Marta por 3 horas a 40 
 
 ## More everyday tools
 
-- **Backups:** automatic daily; in Settings → Data you can **restore** (a copy of the current state is saved first), **download** and **import** backups (.db). Before accepting or restoring a backup, SQLite, its relations and the schema version are checked. Automatic, manual, imported and pre-operation backups have separate retention.
+- **Backups:** automatic daily; in Settings → Security and backups you can **restore** (a copy of the current state is saved first), **download** and **import** backups (.db). Before accepting or restoring a backup, SQLite, its relations and the schema version are checked. Automatic, manual, imported and pre-operation backups have separate retention.
 - **Client history:** in each record, a single timeline (messages, invoices, payments, quotes, tasks, memory) with what is coming up, filters and search.
 - **Attachments:** on clients and invoices/quotes, drag or pick contracts, plans or delivery notes (PDF, images, Word, Excel, PowerPoint, text; up to 25 MB). Stored on your computer, content checked against the extension, opened without executing anything, deleted with their client or document.
-- **Importing history:** in Settings → Data, upload a CSV or Excel of issued invoices or expenses (separator and accents detected automatically; Spanish number and date formats). You get a preview with recognised columns —which you can correct—, warnings and rows with errors; nothing is saved until you confirm. Invoices keep number and date, clients are matched by tax ID or name, payments are recorded and anything already imported is skipped if you repeat the file.
+- **Importing history:** in Settings → Security and backups, upload a CSV or Excel of issued invoices or expenses (separator and accents detected automatically; Spanish number and date formats). You get a preview with recognised columns —which you can correct—, warnings and rows with errors; nothing is saved until you confirm. Invoices keep number and date, clients are matched by tax ID or name, payments are recorded and anything already imported is skipped if you repeat the file.
 - **Letters and contracts in Word:** besides PDF, «Download Word» produces an editable `.docx` (headings, lists, bold, signature lines), created on your computer.
-- **Tax forms (indicative):** Money → Forms calculates the figures for forms 130, 303, 115 and 347 per quarter/year from your data, with CSV for your accountant. It files nothing with the tax agency.
+- **Tax forms (indicative):** Money → How am I doing → Tax forms calculates the figures for forms 130, 303, 115 and 347 per quarter/year from your data, with CSV for your accountant. It files nothing with the tax agency.
 - **Delivery notes:** create delivery notes (series A) and turn them into invoices one by one or in bulk per client.
 - **Tasks:** with priority, repetition (the next one appears when you complete the current one) and subtasks with progress.
 - **Access and startup:** PIN lock (4-12 digits, stored with scrypt, locks after inactivity and limits attempts; it does not encrypt the disk), launch at login on macOS and a menu-bar icon with pending counters.
-- **Invoice series:** create series with their own prefix and yearly numbering in Settings → Billing and choose the series for each invoice.
-- **Hours per client:** in Money → Hours you log time (or use the timer) with your hourly rate; «Bill hours» creates a draft invoice with one line per entry. Deleting that draft frees the hours again.
+- **Invoice series:** create series with their own prefix and yearly numbering in Settings → Your business → Billing and choose the series for each invoice.
+- **Hours per client:** in Money → Sales → Hours you log time (or use the timer) with your hourly rate; «Bill hours» creates a draft invoice with one line per entry. Deleting that draft frees the hours again.
 - **Accounts payable:** an expense can be marked «pending payment» with a due date. You see what you owe (and what is overdue) in Expenses and Today, mark it «Paid» with one click, and it feeds the cash-flow forecast, your calendar (.ics), the morning summary and the Excel/CSV export.
 - **PowerPoint proposal:** from any quote, «Download proposal (PowerPoint)» creates an editable 5-slide deck with your details, lines, totals and terms; no internet or external templates.
 - **Reading Word, PowerPoint and Excel:** text from `.docx`, `.pptx` and `.xlsx` is extracted locally, without opening or executing anything (size and decompression limits). It feeds the assistant's Knowledge, shows the content of Telegram and email attachments —treated as the sender's data, never as instructions— and imports invoices and expenses from `.xlsx`.
 - **macOS notifications:** new messages (grouped), daily summary, proposals awaiting approval and quiet hours. For privacy they show no names or amounts unless you enable it.
 - **Recurring expenses:** rent, fees, insurance… are recorded automatically each period (including missed ones if the app was closed).
 - **Recurring invoices:** «Repeat…» on an invoice; each pending period prepares its own **draft** (never issued automatically).
-- **Letters and contracts:** templates with variables (payment claim, service contract, data consent) from the client record → editable preview → PDF. Your own templates in Settings → Documents.
+- **Letters and contracts:** templates with variables (payment claim, service contract, data consent) from the client record → editable preview → PDF. Your own templates in Settings → Your business → Letters and contracts.
 - **Calendar:** Tasks → Calendar: an `.ics` subscription with tasks, invoice due dates, quote expiry and recurring items (private, renewable link, only on your Mac).
-- **Cash flow:** Money → Cash flow: 30/60/90-day forecast using due dates, each client's typical payment delay, recurring invoices, usual expenses, quarterly VAT and, if you enter it, your bank balance.
+- **Cash flow:** Money → How am I doing → Cash flow: 30/60/90-day forecast using due dates, each client's typical payment delay, recurring invoices, usual expenses, quarterly VAT and, if you enter it, your bank balance.
 - **Excel:** `.xlsx` workbook with invoices, expenses, clients and quarterly VAT (real amounts and dates, filters and formula totals).
 
 ## Receipts and documents (local OCR)
@@ -75,14 +87,14 @@ Upload a photo or a PDF in **Expenses → Upload receipt** (or drag it), or send
 
 ## Custom modules
 
-In **Settings → Modules** the user extends the app without code: extra fields on clients and invoices, message templates with variables, rules that only *propose* tasks, and custom reports. They are installed from a gallery, by pasting JSON, or **by describing them to Claude** with your own API key (optional, stored in the keychain; only the text you write is sent, never client data). A module is **data, not code**: it is strictly validated, shows what it will be able to do before installation, goes through the approval policy and can be removed.
+In **Settings → Advanced → Modules** the user extends the app without code: extra fields on clients and invoices, message templates with variables, rules that only *propose* tasks, and custom reports. They are installed from a gallery, by pasting JSON, or **by describing them to Claude** with your own API key (optional, stored in the keychain; only the text you write is sent, never client data). A module is **data, not code**: it is strictly validated, shows what it will be able to do before installation, goes through the approval policy and can be removed.
 
 ## Fill in your details from your website (optional)
-In Settings → Company (and in the first-run assistant) you can paste your website address: REM reads a few pages (home, contact, legal notice), extracts name, phone, address, opening hours and tax ID (from `schema.org` structured data, links and the legal notice) and shows them so **you tick what to save**. Optionally, a local model or Claude summarises the description and hours if missing. Security: http/https only, private networks blocked (also after redirects), `robots.txt` respected, size/time limits, and the tax ID is only accepted with a valid check digit. Code: `lib/webprofile.mjs`, `public/webprofile.js`.
+In Settings → Your business → Details (and in the first-run assistant) you can paste your website address: REM reads a few pages (home, contact, legal notice), extracts name, phone, address, opening hours and tax ID (from `schema.org` structured data, links and the legal notice) and shows them so **you tick what to save**. Optionally, a local model or Claude summarises the description and hours if missing. Security: http/https only, private networks blocked (also after redirects), `robots.txt` respected, size/time limits, and the tax ID is only accepted with a valid check digit. Code: `lib/webprofile.mjs`, `public/webprofile.js`.
 
 ## Importing from other software
 
-In Settings → Data and backups: **clients** (Mac Contacts, Google, Outlook —English and Spanish—, vCard, CSV or Excel), **issued invoices** and **expenses** (also **DBF tables** from legacy programs and **Facturae XML**, the Spanish e-invoice format, with multi-line invoices and numbering continuity). Preview with duplicates and errors, automatic backup before importing and **undo** per batch. If the file is unusual, **«Sort with AI»** sends Claude —with your key— only a **masked sample** (you see it first) and receives a *declarative plan* that REM validates and applies locally: the AI proposes, it never executes or touches your data. Strategy for the most common Spanish programs: [migrations-spain.md](migrations-spain.md).
+In Settings → Security and backups: **clients** (Mac Contacts, Google, Outlook —English and Spanish—, vCard, CSV or Excel), **issued invoices** and **expenses** (also **DBF tables** from legacy programs and **Facturae XML**, the Spanish e-invoice format, with multi-line invoices and numbering continuity). Preview with duplicates and errors, automatic backup before importing and **undo** per batch. If the file is unusual, **«Sort with AI»** sends Claude —with your key— only a **masked sample** (you see it first) and receives a *declarative plan* that REM validates and applies locally: the AI proposes, it never executes or touches your data. Strategy for the most common Spanish programs: [migrations-spain.md](migrations-spain.md).
 
 ## REM Clientes (experimental)
 

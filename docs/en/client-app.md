@@ -178,7 +178,7 @@ To **validate the product**, the fastest and cheapest path is **Level 0** (zero 
 
 ### 14.1 Level 0 implemented (18/10/2026): structured email
 
-It works on top of the email connected in Settings → Channels, with no intermediate server (`lib/emailcards.mjs`):
+It works on top of the email connected in Settings → Messages → Connections, with no intermediate server (`lib/emailcards.mjs`):
 
 - **HTML cards** (with a text version) for **quotes** (Accept/Reject buttons), **payment requests** (IBAN, https link and «I've paid») and **order status** (with an https tracking link). Sent from the quote detail («Send card by email») and from a Messages conversation (email channel: «Request payment», «Order status»).
 - The buttons are `mailto:` links to your mailbox and work in any email client. If the client sees no buttons, replying `ACEPTO` / `RECHAZO` / `PAGADO` is enough.

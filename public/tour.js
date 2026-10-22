@@ -3,13 +3,13 @@ import { on, store } from './core.js';
 import { api, esc } from './util.js';
 
 const STEPS = [
-  { sel: ['.nav a[href="#/hoy"]', '.tabbar a[href="#/hoy"]'], title: 'Hoy', text: 'Tu mesa de trabajo: lo que necesita tu atención ahora (cobros vencidos, presupuestos sin respuesta, mensajes y tareas).' },
+  { sel: ['.nav a[href="#/hoy"]', '.tabbar a[href="#/hoy"]'], title: 'Hoy', text: 'Tu mesa de trabajo: una sola lista con lo importante de hoy, de lo más urgente a lo menos (cobros vencidos, mensajes, tareas y presupuestos sin respuesta).' },
   { sel: ['.nav a[href="#/mensajes"]', '.tabbar a[href="#/mensajes"]'], title: 'Mensajes', text: 'Telegram, correo y mensajes pegados en una bandeja. El asistente prepara borradores; tú decides si enviarlos: aprobar no es enviar.' },
   { sel: ['.nav a[href="#/clientes"]', '.tabbar a[href="#/clientes"]'], title: 'Clientes', text: 'La ficha de cada cliente reúne su historial: facturas, cobros, mensajes, archivos y tareas.' },
-  { sel: ['.nav a[href="#/facturas"]', '.nav a[href="#/dinero"]', '.tabbar a[href="#/facturas"]', '.tabbar a[href="#/dinero"]'], title: 'Dinero', text: 'Facturas, presupuestos, albaranes, gastos, horas, informes, modelos fiscales y la previsión de tesorería. Las facturas emitidas no se editan: se corrigen con una rectificativa.' },
-  { sel: ['[data-act="quick"]'], title: 'Crear', text: 'Desde aquí creas casi cualquier cosa: una factura, un cliente, un gasto, una tarea o pegas un mensaje.' },
+  { sel: ['.nav a[href="#/facturas"]', '.nav a[href="#/dinero"]', '.tabbar a[href="#/facturas"]', '.tabbar a[href="#/dinero"]'], title: 'Dinero', text: 'Tres apartados: Ventas (facturas y presupuestos), Gastos y Cómo voy (tesorería, informes y modelos para tu asesor). Lo que no uses no aparece; actívalo en Ajustes → Tu empresa → Funciones.' },
+  { sel: ['[data-act="quick"]'], title: 'Crear', text: 'Desde aquí creas casi cualquier cosa: una factura, un presupuesto, un gasto, un cliente o una tarea.' },
   { sel: ['.search-btn'], title: 'Buscar y saltar (⌘K)', text: 'Busca clientes, facturas o acciones, y salta a cualquier pantalla con el teclado.' },
-  { sel: ['.nav a[href="#/ajustes"]', '.tabbar a[href="#/ajustes"]'], title: 'Ajustes', text: 'Tu empresa, canales, copias de seguridad, acceso con PIN e importación desde otros programas. Revisa «Datos y copias» de vez en cuando.' },
+  { sel: ['.nav a[href="#/ajustes"]', '.tabbar a[href="#/ajustes"]'], title: 'Ajustes', text: 'Cinco apartados: Tu empresa, Mensajes, Asistente, Seguridad y copias y Avanzado. Revisa «Seguridad y copias» de vez en cuando.' },
   { sel: [], title: '¡Eso es todo!', text: 'Si te pierdes, pulsa ⌘K y escribe «recorrido» para verlo otra vez. Empieza por crear tu primer cliente o factura.' },
 ];
 const visible = (sel) => { for (const s of sel) { const el = document.querySelector(s); if (el && el.offsetParent !== null) return el; } return null; };

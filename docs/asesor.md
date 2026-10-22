@@ -8,14 +8,14 @@ Cómo te llegan los datos de un cliente que usa REM.
 
 | Qué | Dónde lo saca tu cliente | Formato |
 |---|---|---|
-| Facturas (número, fecha, cliente, NIF, base, IVA, IRPF, total, estado) | Informes, o Ajustes → Datos | CSV |
-| Gastos (fecha, proveedor, concepto, categoría, base, IVA, total, pagado) | Informes, o Ajustes → Datos | CSV |
-| Clientes (nombre, NIF, contacto, dirección) | Informes, o Ajustes → Datos | CSV |
+| Facturas (número, fecha, cliente, NIF, base, IVA, IRPF, total, estado) | Informes, o Ajustes → Seguridad y copias | CSV |
+| Gastos (fecha, proveedor, concepto, categoría, base, IVA, total, pagado) | Informes, o Ajustes → Seguridad y copias | CSV |
+| Clientes (nombre, NIF, contacto, dirección) | Informes, o Ajustes → Seguridad y copias | CSV |
 | Libro con facturas, gastos, clientes e IVA trimestral | Informes → «Todo en Excel» | `.xlsx` con filtros y totales |
-| Cifras orientativas de los modelos 130, 303, 115 y 347 | Dinero → Modelos | CSV |
+| Cifras orientativas de los modelos 130, 303, 115 y 347 | Dinero → Cómo voy → Modelos de Hacienda | CSV |
 | Informe del periodo con resumen de IVA | Informes → PDF | PDF |
 | Extracto por cliente | Ficha del cliente → «Extracto PDF» | PDF |
-| Todo (copia completa) | Ajustes → Datos | «Todo (JSON)» o copia `.db` |
+| Todo (copia completa) | Ajustes → Seguridad y copias | «Todo (JSON)» o copia `.db` |
 
 Los CSV usan formato español (coma decimal) y UTF-8.
 

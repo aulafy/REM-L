@@ -1,14 +1,20 @@
 import { store, on, mutate, toast, confirmBox, field, formValues, formModal, go, refresh, reload } from '../core.js';
-import { html, raw, eur, eurPlain, icon, api, fdate, clientOf, toCents } from '../util.js';
+import { html, raw, eur, eurPlain, icon, api, fdate, clientOf, toCents, FEATURES, feat } from '../util.js';
 import { openModal } from '../core.js';
 import { validNif } from '../calc.js';
 import { BUILTIN, VARS } from '../doctpl.js';
 import { importCard, toBase64 } from '../importui.js';
 import '../webprofile.js';
 
-let tab = 'canales';
+let tab = 'empresa';
 const NEG_TPL = `# Mi negocio\n\n## Qué hacemos\n(Describe tu actividad en dos líneas.)\n\n## Cómo hablamos con los clientes\n- Trato: tuteo, cercano y profesional.\n- Respuestas cortas; siempre una propuesta de siguiente paso.\n\n## Nunca\n- Prometer descuentos ni fechas sin confirmarlo conmigo.\n- Dar precios que no estén en las tarifas.\n- Hablar de otros clientes.\n\n## Objetivos\n- Responder a todos en menos de 2 horas laborables.\n- Cobrar las facturas a 30 días.\n`;
-const TABS = [['canales', 'Canales'], ['avisos', 'Avisos'], ['negocio', 'Mi negocio'], ['conocimiento', 'Conocimiento'], ['memoria', 'Memoria'], ['agentes', 'Agentes'], ['modulos', 'Módulos'], ['documentos', 'Documentos'], ['ia', 'IA y voz'], ['empresa', 'Empresa'], ['facturacion', 'Facturación'], ['catalogo', 'Catálogo'], ['acceso', 'Acceso y arranque'], ['datos', 'Datos y copias']];
+// Cinco apartados en lenguaje llano; lo técnico queda en «Avanzado».
+const GROUPS = [['empresa', 'Tu empresa', [['empresa', 'Datos'], ['facturacion', 'Facturación'], ['catalogo', 'Catálogo'], ['documentos', 'Cartas y contratos'], ['funciones', 'Funciones']]],
+  ['mensajes', 'Mensajes', [['canales', 'Conexiones'], ['avisos', 'Avisos']]],
+  ['asistente', 'Asistente', [['negocio', 'Cómo trabajas'], ['conocimiento', 'Tarifas y datos'], ['ia', 'IA local y voz']]],
+  ['seguridad', 'Seguridad y copias', [['datos', 'Copias y datos'], ['acceso', 'Acceso y arranque']]],
+  ['avanzado', 'Avanzado', [['agentes', 'Agentes'], ['memoria', 'Memoria'], ['modulos', 'Módulos'], ['remclientes', 'REM Clientes']]]];
+const groupOf = (k) => GROUPS.find((g) => g[2].some(([x]) => x === k)) || GROUPS[0];
 export const openTab = (k) => { tab = k; };
 const v = (x) => x ?? '';
 
@@ -63,7 +69,7 @@ export const views = {
               ${field({ name: 'email_user', label: 'Tu correo', type: 'email', required: true })}${field({ name: 'email_pass', label: 'Contraseña de aplicación', type: 'password', required: true })}
               ${field({ name: 'imap_host', label: 'Servidor de entrada (IMAP)', placeholder: 'imap.gmail.com', required: true })}${field({ name: 'smtp_host', label: 'Servidor de salida (SMTP)', placeholder: 'smtp.gmail.com', required: true })}
               <div style="grid-column:1/-1"><button class="btn primary" type="submit">Conectar correo</button><span class="muted" id="mail-err" style="margin-left:12px;color:var(--red)"></span></div></form>`}</div></section>
-          ${remCard(S)}
+
           <section class="card"><div class="card-h"><h2>WhatsApp e iMessage</h2></div><div class="card-b"><p class="muted">WhatsApp Business oficial exige verificar tu negocio con Meta y un servidor público, así que de momento se hace de forma sencilla y segura: <b>pega el mensaje</b> del cliente (Mensajes → Pegar mensaje), el asistente te prepara la respuesta y la abres en WhatsApp con un clic. Lo mismo con iMessage.</p></div></section></div>`,
         avisos: html`<div class="stack"><section class="card"><div class="card-h"><h2>Avisos del sistema</h2>${s.notify_on ? html`<span class="pill-on more">● Activados</span>` : html`<span class="badge grey more">Desactivados</span>`}</div><div class="card-b stack">
           <p class="muted">Notificaciones de macOS, aunque la pestaña esté cerrada (mientras REM Negocio esté en marcha). Nada sale de tu equipo.</p>
@@ -128,6 +134,9 @@ export const views = {
           <div class="card-b" style="padding-top:0"><p class="muted">Se rellenan con los datos del cliente y de tu negocio y se descargan en PDF desde la ficha del cliente («Documento…»). Los modelos de serie son orientativos: revísalos con tu asesor.</p></div>
           <ul class="list">${[...BUILTIN, ...S.docTemplates.map((t) => ({ ...t, id: 't:' + t.id, mine: true }))].map((t) => html`<li><span class="badge ic-only ${t.mine ? 'green' : 'blue'}" style="padding:7px">${icon('presupuestos', 'sm')}</span><div class="grow"><div class="t">${t.name}</div><div class="d" style="white-space:normal">${t.mine ? 'Tu plantilla' : t.note}</div></div>
             ${t.mine ? html`<button class="btn ghost icon sm" data-act="editDocTpl" data-id="${t.id}" aria-label="Editar">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="delDocTpl" data-id="${t.id}" aria-label="Eliminar">${icon('trash', 'sm')}</button>` : html`<button class="btn sm" data-act="copyDocTpl" data-id="${t.id}">Usar como base</button>`}</li>`)}</ul></section></div>`,
+        remclientes: html`<div class="stack"><div class="notice warn">${icon('alert')}<span><b>Experimental.</b> Úsalo solo con datos de prueba: el canal no ha pasado una auditoría de seguridad.</span></div>${remCard(S)}</div>`,
+        funciones: html`<section class="card"><div class="card-h"><h2>Funciones que uso</h2></div><div class="card-b"><p class="muted" style="margin-bottom:6px">Muestra solo lo que necesitas. Puedes cambiarlo cuando quieras; no se borra nada.</p>
+          ${FEATURES.map(([k, l, d]) => html`<label class="feat-row"><input type="checkbox" class="check" data-feat="${k}" ${feat(S, k) ? raw('checked') : ''}><span><b>${l}</b><br><span class="muted">${d}</span></span></label>`)}</div></section>`,
         ia: html`<form data-save class="card"><div class="card-h"><h2>IA local</h2></div><div class="card-b stack"><div class="notice">${icon('sparkle')}<span>REM funciona completo sin IA. Con un modelo local (Ollama) el asistente redacta respuestas y contesta preguntas. <b>Nada sale de tu ordenador</b>; solo se admiten direcciones locales.</span></div>
           <div class="grid g2">${field({ name: 'ollama_url', label: 'Dirección de Ollama', value: v(s.ollama_url), placeholder: 'http://127.0.0.1:11434' })}${field({ name: 'ollama_model', label: 'Modelo de texto', value: v(s.ollama_model), placeholder: 'p. ej. qwen3:8b', hint: S.channels.ai.on ? 'Activado' : 'Rellena dirección y modelo para activarlo' })}
           ${field({ name: 'embed_model', label: 'Modelo de embeddings (opcional)', value: v(s.embed_model), placeholder: 'nomic-embed-text', hint: 'Mejora la búsqueda en tu conocimiento' })}</div>
@@ -137,11 +146,16 @@ export const views = {
           <p class="muted" style="font-size:12.5px">El botón «Dictar» usa el reconocimiento de voz de tu navegador; según el navegador, el audio puede procesarse fuera del equipo.</p></div>
           <div class="card-h" style="border-top:1px solid var(--line);border-bottom:0"><button class="btn" type="button" data-act="checkModels">Comprobar modelos</button><span class="spacer"></span><button class="btn primary" type="submit">Guardar</button></div></form>`,
       }[tab];
+      const g = groupOf(tab);
       return html`<div class="page-head"><div><h1>Ajustes</h1></div></div>
-        <div class="toolbar"><div class="seg" role="tablist" aria-label="Secciones">${TABS.map(([k, l]) => html`<button role="tab" data-act="stab" data-k="${k}" aria-pressed="${tab === k}" aria-selected="${tab === k}">${l}</button>`)}</div></div>
-        <div style="max-width:780px">${body}</div>`;
+        <div class="toolbar setgroup"><div class="seg" role="tablist" aria-label="Apartados de Ajustes">${GROUPS.map((x) => html`<button role="tab" id="st-${x[0]}" data-act="stab" data-k="${x[2][0][0]}" aria-selected="${x === g}" aria-controls="set-panel" tabindex="${x === g ? 0 : -1}">${x[1]}</button>`)}</div></div>
+        ${g[2].length > 1 ? html`<nav class="subtabs sub2" aria-label="${g[1]}">${g[2].map(([k, l]) => html`<a href="#/ajustes" data-act="stab" data-k="${k}" ${tab === k ? raw('aria-current="page"') : ''}>${l}</a>`)}</nav>` : ''}
+        <div id="set-panel" role="tabpanel" aria-labelledby="st-${g[0]}" style="max-width:780px">${body}</div>`;
     },
     mount(root, S) {
+      // flechas izquierda/derecha entre apartados, como en cualquier lista de pestañas
+      root.querySelector('[role=tablist]')?.addEventListener('keydown', (e) => { if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) return; const t = [...e.currentTarget.querySelectorAll('[role=tab]')], i = t.indexOf(document.activeElement); const n = t[(i + (e.key === 'ArrowRight' ? 1 : t.length - 1)) % t.length]; if (n) { e.preventDefault(); tab = n.dataset.k; refresh(); document.getElementById(n.id)?.focus(); } });
+      root.querySelectorAll('[data-feat]').forEach((c) => c.addEventListener('change', async () => { try { await mutate('PUT', '/api/settings', { features: { [c.dataset.feat]: c.checked } }, c.checked ? 'Función activada' : 'Función oculta'); } catch {} }));
       root.querySelector('#lock-idle')?.addEventListener('change', (e) => mutate('PUT', '/api/settings', { lock_idle_min: Number(e.target.value) }, 'Guardado'));
       if (store.S.startup?.menubar?.building) setTimeout(async () => { if (tab === 'acceso') { await reload(); refresh(); } }, 3000);
       root.querySelector('#rem-on')?.addEventListener('submit', async (e) => { e.preventDefault(); const d = formValues(e.target), err = root.querySelector('#rem-err'); err.textContent = ''; try { await mutate('POST', '/api/client-channel/enable', { relay: d.relay, invite: d.invite }, 'REM Clientes activado'); } catch (x) { err.textContent = x.message; } });

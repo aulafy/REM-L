@@ -64,13 +64,33 @@ export function confirmBox({ title, text, ok = 'Confirmar', danger = false }) {
 }
 
 // ---------- formularios ----------
-export function field({ name, label, type = 'text', value = '', hint = '', required = false, options, rows, placeholder = '', attrs = '', cls = '', combo = false }) {
+// ---------- ayuda en lenguaje llano ----------
+// Un botón «?» junto a cada término técnico; abre una explicación corta. Pensado para quien no sabe de facturación.
+export const GLOSSARY = {
+  base: ['Base imponible', 'El precio de lo que vendes antes de sumar el IVA y de restar la retención.'],
+  iva: ['IVA', 'Impuesto que cobras a tu cliente y que luego ingresas a Hacienda cada trimestre (modelo 303). Lo habitual es el 21 %; algunos servicios llevan el 10 % o el 4 %.'],
+  irpf: ['Retención de IRPF', 'Si eres autónomo y facturas a una empresa o a otro profesional, ellos te retienen un porcentaje y lo pagan a Hacienda por ti. Lo habitual es el 15 % (7 % los primeros años). Si facturas a particulares, no hay retención.'],
+  descuento: ['Descuento', 'Porcentaje que rebajas en esa línea. Déjalo en blanco si no hay descuento.'],
+  vencimiento: ['Vencimiento', 'Fecha límite para que el cliente pague. Pasada esa fecha, REM la marca como vencida y te ayuda a reclamarla.'],
+  borrador: ['Borrador', 'Se puede cambiar o borrar cuando quieras. Mientras sea borrador no tiene número ni cuenta como factura.'],
+  emitir: ['Emitir', 'Da a la factura su número definitivo y ya no se puede cambiar; si hay un error, se corrige con una rectificativa. Recuerda: la factura oficial debe emitirse en un programa conforme con Verifactu.'],
+  rectificativa: ['Factura rectificativa', 'Una factura emitida no se borra ni se cambia: si hay un error, se hace otra que la corrige.'],
+  albaran: ['Albarán', 'Documento que acredita una entrega. Después puedes juntar varios albaranes del mismo cliente en una sola factura.'],
+  serie: ['Serie', 'Una numeración propia, por ejemplo F para las facturas normales y T para las de la tienda.'],
+  tesoreria: ['Tesorería', 'Previsión del dinero que entrará y saldrá en los próximos 30, 60 y 90 días.'],
+};
+export const helpBtn = (k) => html`<button type="button" class="help" data-act="help" data-term="${k}" aria-label="Qué significa «${GLOSSARY[k][0]}»" title="Qué significa">?</button>`;
+on('help', (el) => { const [t, d] = GLOSSARY[el.dataset.term] || []; if (t) openModal({ title: t, body: `<p style="font-size:15px;line-height:1.6;padding-bottom:6px">${esc(d)}</p>`, footer: '<button class="btn primary" data-close>Entendido</button>' }); });
+on('skipMain', () => { const p = document.getElementById('page'); p?.focus(); p?.scrollIntoView(); });
+
+export function field({ name, label, type = 'text', value = '', hint = '', required = false, options, rows, placeholder = '', attrs = '', cls = '', combo = false, help = '' }) {
   const id = 'f_' + name + Math.random().toString(36).slice(2, 6);
   let ctl;
   if (options) ctl = html`<select class="input" id="${id}" name="${name}" ${combo ? raw('data-combo') : ''}>${options.map(([v, l]) => html`<option value="${v}" ${String(v) === String(value) ? raw('selected') : ''}>${l}</option>`)}</select>`;
   else if (rows) ctl = html`<textarea class="input" id="${id}" name="${name}" rows="${rows}" placeholder="${placeholder}">${value}</textarea>`;
   else ctl = html`<input class="input" id="${id}" name="${name}" type="${type}" value="${value}" placeholder="${placeholder}" ${required ? raw('required') : ''} ${raw(attrs)}>`;
-  return html`<div class="field ${cls}"><label for="${id}">${label}${required ? html` <span class="muted">*</span>` : ''}</label>${ctl}${hint ? html`<span class="hint">${hint}</span>` : ''}</div>`;
+  const lbl = html`<label for="${id}">${label}${required ? html` <span class="muted">*</span>` : ''}</label>`;
+  return html`<div class="field ${cls}">${help ? html`<span class="lbl-row">${lbl}${helpBtn(help)}</span>` : lbl}${ctl}${hint ? html`<span class="hint">${hint}</span>` : ''}</div>`;
 }
 export const formValues = (form) => Object.fromEntries([...new FormData(form)].map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v]));
 

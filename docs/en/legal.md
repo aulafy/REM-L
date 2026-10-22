@@ -41,7 +41,7 @@ REM numbers invoices sequentially (F2026-0001), has an «issued» status, produc
 
 ## How to use it correctly today
 
-- **Issue the official invoice with a compliant program** (your accountant can recommend one). REM can then **import** those invoices (CSV, Excel or Facturae XML; Settings → Data) so payments, cash flow, reports and the quarterly close work with the official data.
+- **Issue the official invoice with a compliant program** (your accountant can recommend one). REM can then **import** those invoices (CSV, Excel or Facturae XML; Settings → Security and backups) so payments, cash flow, reports and the quarterly close work with the official data.
 - Use REM for **quotes, delivery notes, drafts, payments, expenses, tasks, client messages and the export for your accountant**.
 - Figures for forms 130, 303, 115 and 347 are **indicative**: REM files nothing with the tax agency.
 

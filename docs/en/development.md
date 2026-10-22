@@ -42,6 +42,6 @@ npm run stress           # load test
 
 ## Extending REM
 
-- **Declarative modules** (fields, templates, rules, reports) without touching code: Settings → Modules.
+- **Declarative modules** (fields, templates, rules, reports) without touching code: Settings → Advanced → Modules.
 - **Claude Code skill** to operate, test and create modules: `.claude/skills/rem-negocio/`.
 - How to contribute: [CONTRIBUTING.md](../../CONTRIBUTING.md).

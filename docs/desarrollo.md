@@ -42,6 +42,6 @@ npm run stress           # prueba de carga
 
 ## Ampliar REM
 
-- **Módulos declarativos** (campos, plantillas, reglas, informes) sin tocar código: Ajustes → Módulos.
+- **Módulos declarativos** (campos, plantillas, reglas, informes) sin tocar código: Ajustes → Avanzado → Módulos.
 - **Skill de Claude Code** para operar, probar y crear módulos: `.claude/skills/rem-negocio/`.
 - Cómo contribuir: [CONTRIBUTING.md](../CONTRIBUTING.md).

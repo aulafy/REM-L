@@ -14,7 +14,7 @@ Objetivo: comprobar con **5-10 negocios reales** si sus clientes usan un enlace 
 ## Cómo montarlo (30 minutos)
 1. Un servidor con Node ≥ 22 (un VPS pequeño basta) y un dominio con HTTPS delante (Caddy/nginx → `127.0.0.1:4800`).
 2. `RELAY_INVITES=negocio-1,negocio-2,… node relay/server.mjs` (un código por negocio piloto).
-3. En REM de cada negocio: Ajustes → Canales → **REM Clientes**: dirección del relé + su código → *Activar*. Copiar el enlace.
+3. En REM de cada negocio: Ajustes → Mensajes → Conexiones → **REM Clientes**: dirección del relé + su código → *Activar*. Copiar el enlace.
 4. El negocio pone el enlace donde ya habla con sus clientes: firma de correo, factura, cartel/QR (generar el QR con cualquier herramienta), tarjeta, mensaje de bienvenida de WhatsApp.
 5. Para enviar un presupuesto: ficha del presupuesto → **Enviar por REM Clientes** (el cliente tiene que haber escrito antes). Para cobrar: en la conversación, **Pedir pago**; para pedidos: **Estado del pedido**.
 
