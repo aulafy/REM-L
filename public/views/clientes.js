@@ -27,7 +27,7 @@ const tlRow = (i) => html`<li class="tl-row ${i.href ? 'link' : ''}" ${i.href ? 
 function historyCard(S, id) {
   const tl = timelineOf(S, id), ok = (i) => (tlGroup === 'todo' || i.group === tlGroup) && (!tlQ || norm(`${i.title} ${i.detail || ''}`).includes(norm(tlQ)));
   const up = tl.upcoming.filter(ok), past = tl.past.filter(ok), shown = past.slice(0, tlShow); let cur = '';
-  return html`<section class="card" style="margin-top:18px" aria-labelledby="h-tl"><div class="card-h" style="flex-wrap:wrap"><h2 id="h-tl">Historial</h2><span class="muted" style="font-size:12.5px">${tl.past.length} movimientos</span><span class="spacer"></span>
+  return html`<section class="card" style="margin-top:18px" aria-labelledby="h-tl"><div class="card-h" style="flex-wrap:wrap"><h2 id="h-tl">Historial</h2><span class="muted" style="font-size:13px">${tl.past.length} movimientos</span><span class="spacer"></span>
     <div class="seg" role="group" aria-label="Filtrar historial">${[['todo', 'Todo'], ...Object.entries(GROUPS)].map(([k, l]) => html`<button data-act="tlf" data-k="${k}" aria-pressed="${tlGroup === k}">${l}</button>`)}</div><input class="input" id="tlq" type="search" placeholder="Buscar…" value="${tlQ}" aria-label="Buscar en el historial" style="max-width:200px;min-height:36px"></div>
     ${up.length ? html`<div class="tl-h">Próximamente</div><ul class="list tl">${up.map(tlRow)}</ul>` : ''}
     ${shown.length ? html`<ul class="list tl">${shown.map((i) => { const m = i.at.slice(0, 7), head = m !== cur ? (cur = m, html`<li class="tl-h" role="presentation">${MONTHS_ES[Number(m.slice(5)) - 1]} ${m.slice(0, 4)}</li>`) : ''; return html`${head}${tlRow(i)}`; })}</ul>${past.length > shown.length ? html`<div class="card-b" style="text-align:center"><button class="btn sm" data-act="tlmore">Ver más (${past.length - shown.length})</button></div>` : ''}`
@@ -82,11 +82,11 @@ function detail(S, id) {
     ${!c.nif ? html`<div class="notice warn" style="margin-bottom:16px">${icon('alert')}<span>Falta el NIF/CIF: lo necesitarás para emitir facturas a este cliente. <a href="#" data-act="editClient" data-id="${c.id}">Añadirlo</a></span></div>` : ''}
     <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="card kpi"><div class="l">Facturado en total</div><div class="v">${eur(s.billed)}</div></div>
       <div class="card kpi ${s.overdue ? 'warn' : ''}"><div class="l">Pendiente de cobro</div><div class="v">${eur(s.pending)}</div><div class="s">${s.overdue ? plural(s.overdue, 'factura vencida', 'facturas vencidas') : 'Sin vencidas'}</div></div>
-      <div class="card kpi"><div class="l">Último movimiento</div><div class="v" style="font-size:19px;padding-top:4px">${s.last ? fdate(s.last) : '—'}</div></div></div>
+      <div class="card kpi"><div class="l">Último movimiento</div><div class="v" style="font-size:20px;padding-top:4px">${s.last ? fdate(s.last) : '—'}</div></div></div>
     <div class="cols"><section class="card"><div class="card-h"><h2>Documentos</h2></div>
       ${docs.length ? html`<div class="tbl-wrap"><table class="tbl"><tbody>${docs.map((d) => html`<tr class="link" data-href="#/${{ factura: 'facturas', albaran: 'albaranes' }[d.type] || 'presupuestos'}/${d.id}" tabindex="0"><td><span class="name">${d.number || 'Borrador'}</span><br><small class="muted">${d.type === 'factura' ? 'Factura' : 'Presupuesto'} · ${fdate(d.issue_date)}</small></td><td>${badge(statusOf(S, d))}</td><td class="right num">${eur(d.total)}</td></tr>`)}</tbody></table></div>`
         : html`<div class="empty">${icon('facturas')}<p>Todavía no hay documentos para este cliente.</p></div>`}</section>
-      <div class="stack"><section class="card"><div class="card-h"><h2>Contacto</h2></div><div class="card-b"><dl class="kv" style="grid-template-columns:auto 1fr;font-size:13.5px">
+      <div class="stack"><section class="card"><div class="card-h"><h2>Contacto</h2></div><div class="card-b"><dl class="kv" style="grid-template-columns:auto 1fr;font-size:14px">
         <dt>Email</dt><dd>${c.email ? html`<a href="mailto:${c.email}">${c.email}</a>` : '—'}</dd><dt>Teléfono</dt><dd>${c.phone ? html`<a href="tel:${c.phone}">${c.phone}</a>` : '—'}</dd></dl>
         ${c.notes ? html`<hr style="border:0;border-top:1px solid var(--line);margin:14px 0"><p style="white-space:pre-wrap;color:var(--ink-2)">${c.notes}</p>` : ''}</div></section>
         ${extCard(S, 'clients', c.id)}
@@ -138,7 +138,7 @@ on('clientDoc', (el) => {
   const vars = docVars(S, cl, { eurFmt: eur, paidOf }), e = (x) => String(x).replace(/[<>&"]/g, (m) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[m]));
   openModal({ title: `Documento para ${cl.name}`, wide: true, cls: 'docmodal',
     body: `<div class="docgrid"><div class="stack" style="gap:10px"><div class="field"><label for="dt-sel">Plantilla</label><select class="input" id="dt-sel">${all_.map((t, i) => `<option value="${i}">${e(t.name)}</option>`).join('')}</select><span class="hint" id="dt-note"></span></div>
-      <div class="field"><label for="dt-txt">Texto (puedes editarlo)</label><textarea class="input" id="dt-txt" rows="18" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px"></textarea></div></div>
+      <div class="field"><label for="dt-txt">Texto (puedes editarlo)</label><textarea class="input" id="dt-txt" rows="18" style="font-family:ui-monospace,Menlo,monospace;font-size:13px"></textarea></div></div>
       <div><div class="lbl" style="margin-bottom:6px">Vista previa</div><div class="doc docprev" id="dt-prev"></div></div></div>`,
     footer: `<button class="btn" id="dt-copy">${icon('copy', 'sm').toString()}Copiar texto</button><span class="spacer"></span><button class="btn" data-close>Cerrar</button><button class="btn" id="dt-docx">${icon('download', 'sm').toString()}Descargar Word</button><button class="btn primary" id="dt-pdf">${icon('download', 'sm').toString()}Descargar PDF</button>`,
     onMount: (m) => {

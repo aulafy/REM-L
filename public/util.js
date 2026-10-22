@@ -9,7 +9,7 @@ export const html = (s, ...v) => new Raw(s.reduce((a, x, i) => a + x + (i < v.le
 
 // ---------- formato ----------
 const nf = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', useGrouping: 'always' }); // «2.035,86 €» también con 4 cifras
-export const eur = (c) => nf.format((c || 0) / 100).replace(/ /g, ' ');
+export const eur = (c) => nf.format((c || 0) / 100).replace(/ /g, ' ').replace(/^-/, '−'); // signo menos tipográfico
 export const eurPlain = (c) => ((c || 0) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: 'always' });
 export const toCents = (v) => Math.round(parseFloat(String(v).replace(/\./g, (m, o, s) => (s.includes(',') ? '' : m)).replace(',', '.')) * 100) || 0;
 const df = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });

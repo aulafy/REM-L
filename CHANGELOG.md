@@ -20,6 +20,9 @@
   - Menú «Nuevo» por frecuencia de uso; bienvenida que avanza con Intro y opción «Solo quiero probarlo».
 - **Accesibilidad**: letra base de 16 px, contraste AA en textos secundarios e insignias, zonas de clic de al menos 24 px, enlace «Saltar al contenido», apartados de Ajustes como pestañas navegables con flechas, nombres accesibles en contadores y casillas.
 - Importes con separador de miles siempre («2.035,86 €»).
+- **Sistema de diseño v5**: una sola escala tipográfica (de 17 tamaños a 9; de 8 pesos a 4), alturas fijas de botones y campos (32 · 40 · 44 px) y radios coherentes. Pestañas en dos niveles (control segmentado para el apartado y subrayado para la página), tablas, listas, insignias y contadores unificados.
+- Fichas de factura y presupuesto: una acción principal, las de documento (PDF, imprimir, duplicar) en segundo plano y lo delicado (rectificar, eliminar) aparte.
+- Detalles: signo menos tipográfico (−289,90 €), fecha de la última copia en lenguaje llano, «Ayuda» en el lateral (recorrido, primeros pasos y atajos), buscador que dice qué busca, aviso legal compacto en Facturas.
 - El cliente web ya no descarga todo `/api/state` cada 6 s; solo cuando cambia algo. Las respuestas JSON grandes se comprimen con gzip.
 - README corto orientado a negocios; el detalle de funciones pasa a `docs/funciones.md`. `PRUEBA_CON_USUARIOS.md` pasa a `docs/prueba-con-usuarios.md`.
 - El posicionamiento fiscal se explica con fuentes de la AEAT: la normativa se aplica a los programas con los que se expiden facturas, aunque no envíen nada.

@@ -1,5 +1,5 @@
 import { store, ACT, on, reload, go, toast, openPalette, openModal, refresh } from './core.js';
-import { html, raw, icon, esc, api, statusOf, paidOf, feat } from './util.js';
+import { html, raw, icon, esc, api, statusOf, paidOf, feat, relDate } from './util.js';
 import { today } from './calc.js';
 import { upgradeCombos } from './combo.js';
 
@@ -45,13 +45,13 @@ function shell(S, key, content) {
       <div class="brand"><span class="logo">${st.logo ? html`<img src="${st.logo}" alt="">` : (st.company_name || 'R')[0].toUpperCase()}</span><div><b>${st.company_name || 'Tu negocio'}</b><small>REM Negocio</small></div></div>
       <nav class="nav">${NAV.map(([k, l]) => link(k, l))}</nav>
       <div class="side-foot">
-        <button class="btn ghost sm" data-act="shortcuts" style="justify-content:flex-start;margin-bottom:4px">${icon('menu', 'sm')}Atajos <kbd style="margin-left:auto">?</kbd></button><div class="safe">${icon('shield', 'sm')}<span>Tus datos se guardan solo en este equipo. Última copia: ${S.backups[0] ? S.backups[0].name.slice(8, 18) : 'ninguna'}.</span></div>
+        <button class="btn ghost sm" data-act="helpMenu" style="justify-content:flex-start;margin-bottom:4px">${icon('book', 'sm')}Ayuda</button><div class="safe">${icon('shield', 'sm')}<span>Tus datos se guardan solo en este equipo. Última copia: ${S.backups[0] ? relDate(S.backups[0].name.slice(8, 18), S.serverDate) : 'ninguna'}.</span></div>
         <nav class="nav">${link('ajustes', 'Ajustes')}</nav>
       </div>
     </aside>
     <div class="main">
       <header class="top" id="top">
-        <button class="search-btn" data-act="palette" aria-label="Buscar, crear u ordenar">${icon('search', 'sm')}<span>Buscar…</span><kbd>⌘K</kbd></button>
+        <button class="search-btn" data-act="palette" aria-label="Buscar, crear u ordenar">${icon('search', 'sm')}<span>Buscar clientes, facturas o acciones…</span><kbd>⌘K</kbd></button>
         <span class="grow"></span>
         ${st.pin_on ? html`<button class="btn ghost icon" data-act="lockNow" aria-label="Bloquear la aplicación" title="Bloquear">${icon('lock')}</button>` : ''}<button class="btn ghost icon" data-act="theme" aria-label="Cambiar entre tema claro y oscuro" title="Tema">${icon(theme === 'dark' ? 'sun' : 'moon')}</button>
         <span class="me" title="${st.company_name || ''}">${st.logo ? html`<img src="${st.logo}" alt="">` : (st.company_name || 'R')[0].toUpperCase()}</span><button class="btn primary" data-act="quick"><span class="hide-sm" style="display:contents">${icon('plus', 'sm')}</span> Nuevo</button>
@@ -112,6 +112,11 @@ window.addEventListener('hashchange', () => { fresh = true; render(); });
 window.addEventListener('rem-render', render);
 ACT.palette = () => openPalette();
 ACT.shortcuts = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+ACT.helpMenu = () => openModal({ title: 'Ayuda', body: `<div class="stack" style="gap:8px;padding-bottom:8px">
+  <button class="btn" style="justify-content:flex-start;min-height:52px" data-act="tourStart" data-close>${icon('sparkle').toString()}Recorrido guiado de la app</button>
+  <a class="btn" style="justify-content:flex-start;min-height:52px" href="https://github.com/aulafy/REM-L/blob/main/docs/empezar.md" target="_blank" rel="noopener">${icon('book').toString()}Primeros pasos y preguntas frecuentes</a>
+  <button class="btn" style="justify-content:flex-start;min-height:52px" data-act="shortcuts" data-close>${icon('menu').toString()}Atajos de teclado</button></div>` });
+ACT.tourStart = () => import('./tour.js').then((t) => t.startTour());
 ACT.theme = () => {
   const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   const next = cur === 'dark' ? 'light' : 'dark';

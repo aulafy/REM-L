@@ -12,7 +12,7 @@ export function filesCard(S, type, id, { title = 'Archivos' } = {}) {
     ${list.length ? html`<ul class="list">${list.map((f) => html`<li>${f.kind === 'image' && f.mime !== 'image/heic' ? html`<img class="thumb" src="/api/files/${f.id}/view" alt="" loading="lazy">` : html`<span class="thumb ext" aria-hidden="true">${EXT(f.name)}</span>`}
       <div class="grow" style="min-width:0"><a class="t" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)" href="/api/files/${f.id}/${inline(f) ? 'view' : 'download'}" ${inline(f) ? raw('target="_blank" rel="noopener"') : ''}>${f.name}</a><div class="d" style="white-space:normal">${size(f.size)} · ${fdate(f.created_at.slice(0, 10))}${f.note ? ' · ' + f.note : ''}</div></div>
       <a class="btn ghost icon sm" href="/api/files/${f.id}/download" aria-label="Descargar ${f.name}" title="Descargar">${icon('download', 'sm')}</a><button class="btn ghost icon sm" data-act="fileEdit" data-id="${f.id}" aria-label="Renombrar o añadir nota" title="Renombrar">${icon('edit', 'sm')}</button><button class="btn ghost icon sm" data-act="fileDel" data-id="${f.id}" aria-label="Eliminar ${f.name}" title="Eliminar">${icon('trash', 'sm')}</button></li>`)}</ul>`
-      : html`<div class="dropzone"><p class="muted">Arrastra aquí contratos, planos, albaranes… <br><span style="font-size:12.5px">PDF, imágenes, Word, Excel, PowerPoint o texto · hasta 25 MB</span></p></div>`}</section>`;
+      : html`<div class="dropzone"><p class="muted">Arrastra aquí contratos, planos, albaranes… <br><span style="font-size:13px">PDF, imágenes, Word, Excel, PowerPoint o texto · hasta 25 MB</span></p></div>`}</section>`;
 }
 
 async function upload(key, files) {
