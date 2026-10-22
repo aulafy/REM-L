@@ -1,0 +1,14 @@
+name: Idea o mejora
+description: Propón una función o un cambio
+labels: [mejora]
+body:
+  - type: textarea
+    id: problema
+    attributes: { label: Qué problema tienes hoy, description: "Cuéntalo con un caso real (sin datos de clientes): qué haces ahora y qué te cuesta" }
+    validations: { required: true }
+  - type: textarea
+    id: propuesta
+    attributes: { label: Qué te gustaría que hiciera REM }
+  - type: dropdown
+    id: quien
+    attributes: { label: Eres…, options: [Autónomo, Pyme, Asesor o gestoría, Técnico, Otro] }

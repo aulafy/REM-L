@@ -2,7 +2,7 @@
 
 **Español** · [English](docs/en/roadmap.md)
 
-Estado a 19/10/2026. Orden = valor / esfuerzo. Una función cada vez, con pruebas y commit local.
+Estado a 22/10/2026. Orden = valor / esfuerzo. Una función cada vez, con pruebas y commit local.
 
 ## Hecho
 - Clientes, presupuestos, facturas (rectificativas, cobros), gastos, informes, tareas
@@ -48,10 +48,21 @@ Estado a 19/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
 23. ✅ **Prueba de carga** (`npm run stress`): ha encontrado y corregido fallos reales del relé
 24. ✅ **Documentación educativa**: tutorial de construcción, libro «Manual del usuario de REM» (`book/`, CC BY-SA 4.0) y skill de Claude Code (`.claude/skills/rem-negocio`). El código pasa a **MIT**.
 
+## Bloque 3 (octubre 2026)
+25. ✅ **Sondeo ligero**: el cliente web consulta `/api/pulse` cada 6 s en lugar de descargar todo el estado; gzip en respuestas grandes
+26. ✅ **Correo**: ya no se pierden mensajes si llegan más de 15 de golpe tras conectar un buzón vacío (encontrado por el simulador)
+27. ✅ **Simulador de pymes** (`npm run sim`): tres negocios ficticios con semilla, Telegram, IMAP/SMTP y Ollama simulados; también con el modelo real
+28. ✅ **Documentación para empresas**: README corto, documentación por público, estado por función, seguridad y privacidad, marco legal, CHANGELOG, SECURITY y CONTRIBUTING
+
+## En estudio (decisión pendiente)
+- **Frontera fiscal, «modo acompañante»**: que REM no expida la factura oficial. Borradores y proformas marcados «NO ES FACTURA», exportación al programa conforme e importación de la factura oficial como documento canónico. Ver [Marco legal](docs/marco-legal.md)
+- Revisión trimestral con reglas («posibles inconsistencias» antes de entregar al asesor), ida y vuelta con el asesor y expediente de cobro (promesas, próxima acción, devoluciones)
+
 ## Pendiente
 - **Presets por programa concreto** (Holded, Quipu, Billin, Contasimple, Factusol…): necesitan exportaciones reales y anonimizadas; no se escribe ninguno sin ellas
 - **Desplegar un relé** con HTTPS y probar REM Clientes con negocios reales; después, QR y notificaciones push
-- **Rendimiento con muchos datos**: `/api/state` pesa unos 6 MB con 5 000 clientes y 10 000 facturas; paginarlo
+- **Rendimiento con muchos datos**: `/api/state` pesa unos 6 MB con 5 000 clientes y 10 000 facturas; el sondeo ya no lo descarga, pero falta paginarlo
+- **Hindsight**: restringir su dirección a este equipo, como ya se hace con Ollama
 - **Notarización** de la app de Mac con una cuenta de Apple Developer
 - **Auditoría de seguridad independiente** del canal con clientes y del protocolo antes de usarlo con datos sensibles
 - **Cifrado de la base de datos en reposo** (hoy solo están cifradas las copias `.rembak`)
@@ -61,4 +72,4 @@ Estado a 19/10/2026. Orden = valor / esfuerzo. Una función cada vez, con prueba
 - Acceso desde el móvil en la red local con PIN (fotos de tickets con la cámara)
 
 ## Fuera de alcance (decisión del usuario)
-- Verifactu / SII: REM Negocio se posiciona como gestión interna, no como software de facturación certificado.
+- Convertir REM en sistema de facturación conforme (Verifactu / no Verifactu) o SII. Ver «En estudio» para la alternativa.

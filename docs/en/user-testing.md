@@ -1,6 +1,6 @@
 # User-testing script with 3–5 freelancers or small businesses (20 min each)
 
-[Español](../../PRUEBA_CON_USUARIOS.md) · **English**
+[Español](../prueba-con-usuarios.md) · **English**
 
 Setup: `Iniciar REM Negocio.command`, empty data. Do not explain anything; watch and note where they hesitate.
 

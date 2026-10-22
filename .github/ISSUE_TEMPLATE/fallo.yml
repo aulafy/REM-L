@@ -1,0 +1,24 @@
+name: Algo no funciona
+description: Informa de un fallo (no lo uses para fallos de seguridad; ver SECURITY.md)
+labels: [fallo]
+body:
+  - type: markdown
+    attributes:
+      value: "Gracias. **No incluyas datos reales de clientes.** Para fallos de seguridad usa el aviso privado (SECURITY.md)."
+  - type: textarea
+    id: que
+    attributes: { label: Qué ha pasado, description: Qué esperabas y qué ha ocurrido }
+    validations: { required: true }
+  - type: textarea
+    id: pasos
+    attributes: { label: Cómo reproducirlo, placeholder: "1. Abro…\n2. Pulso…\n3. Veo…" }
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes: { label: Versión o commit, placeholder: "1.0.0 o 77201bb" }
+  - type: dropdown
+    id: como
+    attributes: { label: Cómo lo usas, options: [Navegador con npm start, App de Mac, Otro] }
+  - type: input
+    id: sistema
+    attributes: { label: Sistema, placeholder: "macOS 27, Node 22.13" }

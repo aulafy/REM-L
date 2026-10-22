@@ -10,7 +10,7 @@ Cambios respecto al diseño original: el asistente es nativo para todos los paso
 
 Que una persona sin conocimientos técnicos, con un negocio de una sola persona, pase de «he descargado la app» a «tengo mis datos, mis copias funcionan y sé usarla» en **menos de 30 minutos**, sin abrir la terminal ni instalar Node.
 
-Criterios de éxito (se miden con usuarios reales, ver `PRUEBA_CON_USUARIOS.md`):
+Criterios de éxito (se miden con usuarios reales, ver [prueba-con-usuarios.md](prueba-con-usuarios.md)):
 - El 80 % termina el asistente sin ayuda.
 - Al final hay **una copia cifrada hecha y una restauración probada** (no solo «programada»).
 - Sus clientes existentes ya están dentro y revisados.

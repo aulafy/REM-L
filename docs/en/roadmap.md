@@ -2,7 +2,7 @@
 
 [Español](../../ROADMAP.md) · **English**
 
-Status as of 19/10/2026. Order = value / effort. One feature at a time, with tests and a local commit.
+Status as of 22/10/2026. Order = value / effort. One feature at a time, with tests and a local commit.
 
 ## Done
 - Clients, quotes, invoices (corrective invoices, payments), expenses, reports, tasks
@@ -48,10 +48,21 @@ Status as of 19/10/2026. Order = value / effort. One feature at a time, with tes
 23. ✅ **Load test** (`npm run stress`): found and fixed real relay bugs
 24. ✅ **Educational documentation**: build tutorial, the book «Manual del usuario de REM» (`book/`, CC BY-SA 4.0) and a Claude Code skill (`.claude/skills/rem-negocio`). The code becomes **MIT**.
 
+## Block 3 (October 2026)
+25. ✅ **Lightweight polling**: the web client checks `/api/pulse` every 6 s instead of downloading the whole state; gzip for large responses
+26. ✅ **Email**: messages are no longer lost when more than 15 arrive at once after connecting an empty mailbox (found by the simulator)
+27. ✅ **SME simulator** (`npm run sim`): three fictitious seeded businesses with simulated Telegram, IMAP/SMTP and Ollama; also with the real model
+28. ✅ **Documentation for businesses**: short README, docs by audience, status by feature, security and privacy, legal framework, CHANGELOG, SECURITY and CONTRIBUTING
+
+## Under consideration (decision pending)
+- **Tax boundary, «companion mode»**: REM would not issue the official invoice. Drafts and pro formas marked «NOT AN INVOICE», export to the compliant program and import of the official invoice as the canonical document. See [Legal framework](legal.md)
+- Rule-based quarterly review («possible inconsistencies» before handing over to the accountant), round trip with the accountant and a collections file (promises, next action, returned debits)
+
 ## Pending
 - **Presets for specific programs** (Holded, Quipu, Billin, Contasimple, Factusol…): they need real, anonymised exports; none is written without them
 - **Deploy a relay** with HTTPS and test REM Clientes with real businesses; then QR codes and push notifications
-- **Performance with large data**: `/api/state` weighs about 6 MB with 5,000 clients and 10,000 invoices; paginate it
+- **Performance with large data**: `/api/state` weighs about 6 MB with 5,000 clients and 10,000 invoices; polling no longer downloads it, but it still needs pagination
+- **Hindsight**: restrict its address to this computer, as is already done for Ollama
 - **Notarisation** of the Mac app with an Apple Developer account
 - **Independent security audit** of the client channel and protocol before using it with sensitive data
 - **Database encryption at rest** (today only `.rembak` backups are encrypted)
@@ -61,4 +72,4 @@ Status as of 19/10/2026. Order = value / effort. One feature at a time, with tes
 - Mobile access on the local network with PIN (receipt photos with the camera)
 
 ## Out of scope (owner's decision)
-- VeriFactu / SII: REM Negocio is positioned as internal management, not as certified invoicing software.
+- Turning REM into a compliant invoicing system (VeriFactu / non-VeriFactu) or SII. See «Under consideration» for the alternative.

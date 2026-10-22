@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Fallo de seguridad (privado)
+    url: https://github.com/aulafy/REM-L/security/advisories/new
+    about: No publiques fallos de seguridad en incidencias abiertas.
+  - name: Documentación
+    url: https://github.com/aulafy/REM-L/blob/main/docs/README.md
+    about: Primeros pasos, estado por función, seguridad y marco legal.
