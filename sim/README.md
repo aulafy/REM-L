@@ -15,7 +15,10 @@ Prueba REM como si lo hubiera implantado una empresa de verdad, sin clientes rea
 npm run sim                                   # los tres perfiles
 npm run sim -- --profile asesoria --seed 7 --clients 60 --months 12 --keep
 npm run sim:serve                             # Telegram y correo simulados para usar REM a mano
+npm run sim -- --profile fontanero --clients 10 --months 6 --llm real --model qwen3.5:9b-mlx   # con tu Ollama
 ```
+
+**Con el modelo real (`--llm real`)** se comprueba comportamiento observable: que haya borrador para al menos el 80 % de los mensajes, que no pasen de 150 palabras, que estén en español, que no inventen precios y que ante una inyección el modelo no prometa ni haga lo ordenado. Antes, comprueba que ninguna otra aplicación esté usando Ollama: cargar el modelo puede desalojar otro de memoria. El simulador sube el tope de llamadas al modelo (`llm_max_per_hour`, 60 por defecto en REM) para que una ráfaga de mensajes no deje borradores sin hacer.
 
 ## Qué comprueba
 - Totales de factura = cálculo independiente; numeración correlativa; cobros y gastos cuadran; CSV.
