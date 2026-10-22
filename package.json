@@ -10,7 +10,9 @@
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.mjs",
     "test": "REM_PDF_WARM=0 REM_BIN_DIR=\"${TMPDIR:-/tmp}/rem-test-bin\" node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\"",
-    "stress": "node --disable-warning=ExperimentalWarning scripts/stress.mjs"
+    "stress": "node --disable-warning=ExperimentalWarning scripts/stress.mjs",
+    "sim": "node --disable-warning=ExperimentalWarning sim/run.mjs",
+    "sim:serve": "node --disable-warning=ExperimentalWarning sim/serve.mjs"
   },
   "license": "MIT",
   "author": "Ramon Guillamon <learntouseai@gmail.com>"

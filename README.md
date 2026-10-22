@@ -17,6 +17,7 @@ Nace de la filosofía de [REM](https://github.com/aulafy/REM): local primero, re
 | Migrar desde otros programas | [docs/migraciones-espana.md](docs/migraciones-espana.md) |
 | REM Clientes: visión, guía del piloto y relé | [docs/app-clientes.md](docs/app-clientes.md) · [docs/rem-clientes-prototipo.md](docs/rem-clientes-prototipo.md) · [relay/README.md](relay/README.md) |
 | Hoja de ruta y guion de prueba con usuarios | [ROADMAP.md](ROADMAP.md) · [PRUEBA_CON_USUARIOS.md](PRUEBA_CON_USUARIOS.md) |
+| Simulador de pymes (datos con semilla, Telegram y correo simulados) | [sim/README.md](sim/README.md) · `npm run sim` |
 | Skill de Claude Code para operar y ampliar REM | `.claude/skills/rem-negocio/` |
 
 ## Arrancar
